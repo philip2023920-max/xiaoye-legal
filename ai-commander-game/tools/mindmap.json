@@ -1312,6 +1312,22 @@
           "children": []
         },
         {
+          "id": "n_2a143998",
+          "text": "docs/09-board-schema.md（戰情板合約）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_2b69579a",
+          "text": "docs/10-sim-rules.md（模擬會戰規則與手算範例）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_368f013e",
           "text": "THIRD_PARTY.md（第三方元件與授權）",
           "status": "",
@@ -1346,8 +1362,8 @@
       ]
     }
   ],
-  "version": 11,
-  "updatedAt": "2026-11-01T22:22:55Z",
+  "version": 12,
+  "updatedAt": "2026-11-01T22:39:58Z",
   "updatedBy": "claude",
   "instructions": ""
 }

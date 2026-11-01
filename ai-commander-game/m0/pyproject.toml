@@ -1,7 +1,7 @@
 [project]
 name = "chief-m0"
 description = "AI 參謀長 RTS — M0 文字版沙盤與 AI 戰情板（Python）"
-version = "0.0.1"
+version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
   "textual>=8.2,<9",

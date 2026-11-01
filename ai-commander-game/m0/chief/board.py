@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -139,16 +140,22 @@ class Board(BaseModel):
     # ---- 一致性檢查：把「半對」的戰局檔擋在門外 ----
     @model_validator(mode="after")
     def _check_links(self) -> "Board":
-        ids = [u.id for u in self.orbat]
-        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if self.schema_version != SCHEMA_VERSION:
+            raise ValueError(f"戰情板版本「{self.schema_version}」不是目前支援的「{SCHEMA_VERSION}」，請用工具轉換或改用新範例")
+        sectors = self.map.sectors
+        dup = sorted(i for i, n in Counter(u.id for u in self.orbat).items() if n > 1)
         if dup:
             raise ValueError(f"部隊 id 重複：{', '.join(dup)}")
+        clash = sorted(u.id for u in self.orbat if u.id in sectors)
+        if clash:
+            raise ValueError(f"部隊 id 不可與分區 id 同名：{', '.join(clash)}")
         by_id = {u.id: u for u in self.orbat}
-        sectors = self.map.sectors
         for u in self.orbat:
             if u.sector not in sectors:
                 raise ValueError(f"部隊 {u.id} 所在分區「{u.sector}」不在地圖上")
             if u.parent is not None:
+                if u.parent == u.id:
+                    raise ValueError(f"部隊 {u.id} 的 parent 不能是自己")
                 p = by_id.get(u.parent)
                 if p is None:
                     raise ValueError(f"部隊 {u.id} 的 parent「{u.parent}」不存在")
@@ -156,23 +163,37 @@ class Board(BaseModel):
                     raise ValueError(
                         f"部隊 {u.id}（{ECHELON_ZH[u.echelon]}）的上級 {p.id} 是 {ECHELON_ZH[p.echelon]}，層級必須更高"
                     )
-            if u.task is not None and u.task.target not in sectors and u.task.target not in by_id:
-                raise ValueError(f"部隊 {u.id} 的任務目標「{u.task.target}」既不是分區也不是友軍單位")
+            if u.task is not None:
+                tgt = u.task.target
+                if u.task.type == "support":
+                    if tgt not in by_id:
+                        raise ValueError(f"部隊 {u.id} 的 support 目標「{tgt}」必須是友軍單位 id")
+                    if tgt == u.id:
+                        raise ValueError(f"部隊 {u.id} 不能 support 自己")
+                elif tgt not in sectors:
+                    raise ValueError(f"部隊 {u.id} 的任務 {u.task.type} 目標「{tgt}」必須是分區 id")
+        dup_c = sorted(i for i, n in Counter(c.id for c in self.enemy_known).items() if n > 1)
+        if dup_c:
+            raise ValueError(f"敵情 id 重複：{', '.join(dup_c)}")
         for c in self.enemy_known:
             if c.sector not in sectors:
                 raise ValueError(f"敵情 {c.id} 所在分區「{c.sector}」不在地圖上")
-        obj_ids = [o.id for o in self.objectives]
+        dup_o = sorted(i for i, n in Counter(o.id for o in self.objectives).items() if n > 1)
+        if dup_o:
+            raise ValueError(f"目標 id 重複：{', '.join(dup_o)}")
+        obj_ids = {o.id for o in self.objectives}
         for o in self.objectives:
             if o.sector not in sectors:
                 raise ValueError(f"目標 {o.id} 的分區「{o.sector}」不在地圖上")
-            if sectors[o.sector].objective not in (None, o.id):
-                raise ValueError(f"分區 {o.sector} 標記的目標是「{sectors[o.sector].objective}」，但目標表說是「{o.id}」")
+            if sectors[o.sector].objective != o.id:
+                marked = sectors[o.sector].objective
+                raise ValueError(f"目標 {o.id} 在分區 {o.sector}，但該分區標記的目標是「{marked}」（兩邊必須一致）")
         for sid, sec in sectors.items():
             if sec.objective is not None and sec.objective not in obj_ids:
                 raise ValueError(f"分區 {sid} 標記了目標「{sec.objective}」，但目標表裡沒有")
-        for s in self.fog.visible_sectors:
-            if s not in sectors:
-                raise ValueError(f"迷霧的可見分區「{s}」不在地圖上")
+        for v in self.fog.visible_sectors:
+            if v not in sectors:
+                raise ValueError(f"迷霧的可見分區「{v}」不在地圖上")
         return self
 
     # ---- 查詢工具 ----
@@ -189,6 +210,7 @@ class Board(BaseModel):
         return [u for u in self.orbat if u.parent is None]
 
     def units_in(self, sector_id: str) -> list[Unit]:
+        """分區內的友軍（不含已殲滅；部隊樹仍保留殲滅單位以供回放）。"""
         return [u for u in self.orbat if u.sector == sector_id and u.state != "destroyed"]
 
     def contacts_in(self, sector_id: str) -> list[Contact]:
@@ -204,6 +226,7 @@ class Board(BaseModel):
             if s.contested:
                 parts.append("contested")
             sectors[sid] = "/".join(parts)
+        alive_ids = {u.id for u in self.orbat if u.state != "destroyed"}
         friendly = []
         for u in self.orbat:
             if u.state == "destroyed":
@@ -213,7 +236,7 @@ class Board(BaseModel):
                 "state": u.state, "sector": u.sector,
                 "task": f"{u.task.type} {u.task.target}" if u.task else None,
             }
-            if u.parent:
+            if u.parent and u.parent in alive_ids:  # 上級已殲滅就不留懸空引用
                 row["parent"] = u.parent
             if u.controlled_by == "player":
                 row["ctrl"] = "player"
@@ -226,7 +249,7 @@ class Board(BaseModel):
         return {
             "t": self.t, "unit": self.time_unit, "phase": self.phase, "scale": self.scale,
             "map": {"size": f"{self.map.cols}x{self.map.rows}", "sectors": sectors},
-            "visible": self.fog.visible_sectors,
+            "visible": self.fog.visible_sectors or "all",  # 空列表＝全圖可見，講明白給 LLM
             "friendly": friendly,
             "enemy": enemy,
             "objectives": [{"id": o.id, "sector": o.sector, "value": o.value, "owner": o.owner} for o in self.objectives],
@@ -245,6 +268,24 @@ def estimate_tokens(text: str) -> int:
     return ascii_chars // 4 + (len(text) - ascii_chars)
 
 
+_PYDANTIC_ZH = {
+    "missing": "缺少這個欄位",
+    "literal_error": "值不在允許的選項內（允許：{expected}）",
+    "greater_than_equal": "必須 ≥ {ge}",
+    "less_than_equal": "必須 ≤ {le}",
+    "int_parsing": "必須是整數",
+    "int_type": "必須是整數",
+    "float_parsing": "必須是數字",
+    "float_type": "必須是數字",
+    "string_type": "必須是文字",
+    "bool_type": "必須是 true/false",
+    "list_type": "必須是列表",
+    "dict_type": "必須是物件（鍵值表）",
+    "model_type": "必須是物件（鍵值表）",
+    "extra_forbidden": "多了不認識的欄位",
+}
+
+
 def _humanize(err: ValidationError) -> str:
     lines = []
     for e in err.errors():
@@ -252,6 +293,13 @@ def _humanize(err: ValidationError) -> str:
         msg = e["msg"]
         if msg.startswith("Value error, "):
             msg = msg[len("Value error, "):]
+        else:
+            template = _PYDANTIC_ZH.get(e.get("type", ""))
+            if template:
+                try:
+                    msg = template.format(**(e.get("ctx") or {}))
+                except (KeyError, IndexError):
+                    msg = template
         lines.append(f"- {loc}：{msg}")
     return "\n".join(lines)
 
@@ -268,7 +316,7 @@ def load_board(path: str | Path) -> Board:
     if not p.exists():
         raise BoardError(f"找不到戰情板檔案：{p}")
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
+        data = json.loads(p.read_text(encoding="utf-8-sig"))  # 容忍記事本／Out-File 的 BOM
     except json.JSONDecodeError as err:
         raise BoardError(f"{p} 不是合法的 JSON（第 {err.lineno} 行附近）") from None
     return board_from_dict(data)

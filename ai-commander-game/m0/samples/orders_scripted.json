@@ -1,0 +1,13 @@
+{
+  "orders": {
+    "1": [
+      {"unit_id": "plt-A1", "task": "seize",   "target": "C3",     "reason": "先搶價值最高的城鎮"},
+      {"unit_id": "plt-A2", "task": "support", "target": "plt-A1", "reason": "A2 跟進掩護"},
+      {"unit_id": "plt-A3", "task": "hold",    "target": "B2",     "reason": "機槍守高地"}
+    ],
+    "3": [{"unit_id": "plt-A3", "task": "flank", "target": "C3", "reason": "機槍排從側翼包夾城鎮"}],
+    "5": [{"unit_id": "co-A",   "task": "seize", "target": "C3", "reason": "全連投入城鎮"}],
+    "7": [{"unit_id": "plt-A2", "task": "seize", "target": "D4", "reason": "試探渡河點"}],
+    "9": [{"unit_id": "co-A",   "task": "hold",  "target": "C3", "reason": "守住戰果"}]
+  }
+}

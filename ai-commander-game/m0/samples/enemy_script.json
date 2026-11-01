@@ -1,0 +1,18 @@
+{
+  "units": [
+    {"id": "e-co-1",   "name": "敵 1 連",     "echelon": "company", "type": "mixed",    "parent": null,     "strength": 1.0, "state": "idle", "sector": "D4"},
+    {"id": "e-plt-11", "name": "敵 11 排",    "echelon": "platoon", "type": "infantry", "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "C4"},
+    {"id": "e-plt-12", "name": "敵 12 機槍排", "echelon": "platoon", "type": "mg",      "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "C3"},
+    {"id": "e-plt-13", "name": "敵 13 裝甲排", "echelon": "platoon", "type": "armor",   "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "D4"}
+  ],
+  "orders": {
+    "1": [
+      {"unit_id": "e-plt-12", "task": "hold",    "target": "C3"},
+      {"unit_id": "e-plt-11", "task": "seize",   "target": "C3"},
+      {"unit_id": "e-plt-13", "task": "reserve", "target": "D4"}
+    ],
+    "4": [{"unit_id": "e-plt-13", "task": "seize", "target": "B2"}],
+    "6": [{"unit_id": "e-plt-11", "task": "seize", "target": "B2"}],
+    "8": [{"unit_id": "e-co-1",   "task": "hold",  "target": "C3"}]
+  }
+}

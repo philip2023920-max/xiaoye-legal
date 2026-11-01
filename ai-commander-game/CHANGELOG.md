@@ -2,6 +2,11 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第九次）— 施工單 01、02 完成
+- 01 戰情板合約：`chief/board.py`、`render.py`、`cli.py`、`samples/board_t0.json`、`docs/09-board-schema.md`；審查員回報 21 項（含範例敵方少一排、任務目標檢查過寬、懸空 parent、版本不檢查、Windows 字元）全部修正，測試 10 → 20
+- 02 模擬會戰：`chief/grid.py`、`formation_ai.py`、`sim.py`、`samples/board_start.json`、`orders_scripted.json`、`enemy_script.json`、`docs/10-sim-rules.md`（手算範例為測試期望值）；`chief sim` 子命令；測試 13 個；共 33 個全綠
+- 心智圖 M0 節點更新；回寫 Artifact 資料庫
+
 ## 2026-11-01（第八次）— 進入 Stage 3，拆施工單
 - 開工前檢查：未決決策 2 個（模擬規則粒度、推翻介面）附建議答案；預估檔案 ≥ 10 → 拆 7 張曳光彈施工單 `docs/issues/01～07`
 - 心智圖 M0 節點展開為 7 張施工單；回寫 Artifact 資料庫

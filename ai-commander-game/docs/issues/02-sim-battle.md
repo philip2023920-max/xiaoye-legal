@@ -9,11 +9,11 @@
 01。
 
 ## 驗收清單
-- [ ] `uv run chief sim --orders samples/orders_scripted.json` 跑完 10 回合，每回合印沙盤與事件，最後印勝負、雙方剩餘戰力、據點
-- [ ] 六種任務（seize／hold／flank／withdraw／support／reserve）都有編制 AI 行為，且對一組固定輸入產生固定輸出（同 seed 同結果）
-- [ ] 戰損公式：手算一個例子寫在 `docs/10-sim-rules.md`，測試用那個手算值
-- [ ] 一方總戰力 < 30% 提前結束，事件流有「潰散」紀錄
-- [ ] 每回合戰情板寫入 `battles/<id>/t<N>.json`（戰例庫用）
+- [x] `uv run chief sim --orders samples/orders_scripted.json` 跑完 10 回合，每回合印沙盤與事件，最後印勝負、雙方剩餘戰力、據點
+- [x] 六種任務（seize／hold／flank／withdraw／support／reserve）都有編制 AI 行為，且對一組固定輸入產生固定輸出（同 seed 同結果）
+- [x] 戰損公式：手算一個例子寫在 `docs/10-sim-rules.md`，測試用那個手算值
+- [x] 一方總戰力 < 30% 提前結束，事件流有「潰散」紀錄
+- [x] 每回合戰情板寫入 `battles/<id>/t<N>.json`（戰例庫用）
 
 ## 30 秒驗收腳本
 `uv run chief sim --orders samples/orders_scripted.json --seed 7` → 看到 10 回合跑完、最後一行「結果：我方勝／敗，據點 2/3」之類。

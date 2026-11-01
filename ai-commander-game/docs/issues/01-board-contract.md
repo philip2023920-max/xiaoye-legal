@@ -9,11 +9,11 @@
 無。
 
 ## 驗收清單
-- [ ] `uv run chief show samples/board_t0.json` 顯示：分區地圖（5×5 格，據點與擁有者）、部隊樹（可見 echelon、戰力、狀態、任務、controlled_by）、最近事件、目標
-- [ ] 範例檔含會戰規模（連級，含敵我各 1 個連、3 個排）
-- [ ] `board.compact()` 輸出給 LLM 的壓縮版 JSON，範例檔壓縮後 < 2,000 token（用 anthropic SDK `count_tokens` 或字元÷4 估算，報告註明用哪種）
-- [ ] 不合法的戰局檔（排的 parent 指到不存在的連）載入時報人話錯誤
-- [ ] 文件 `docs/09-board-schema.md`：每個欄位一句話說明，附範例
+- [x] `uv run chief show samples/board_t0.json` 顯示：分區地圖（5×5 格，據點與擁有者）、部隊樹（可見 echelon、戰力、狀態、任務、controlled_by）、最近事件、目標
+- [x] 範例檔含會戰規模（連級，含敵我各 1 個連、3 個排）
+- [x] `board.compact()` 輸出給 LLM 的壓縮版 JSON，範例檔壓縮後 < 2,000 token（用 anthropic SDK `count_tokens` 或字元÷4 估算，報告註明用哪種）
+- [x] 不合法的戰局檔（排的 parent 指到不存在的連）載入時報人話錯誤
+- [x] 文件 `docs/09-board-schema.md`：每個欄位一句話說明，附範例
 
 ## 30 秒驗收腳本
 打開 PowerShell → `cd C:\dev\xiaoye-legal\ai-commander-game\m0` → `git pull` → `uv run chief show samples/board_t0.json` → 應看到地圖、部隊樹、事件三個面板。

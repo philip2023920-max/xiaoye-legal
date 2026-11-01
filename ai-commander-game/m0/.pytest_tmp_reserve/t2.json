@@ -1,0 +1,230 @@
+{
+  "schema_version": "0.1",
+  "battle_id": "mini",
+  "t": 2,
+  "time_unit": "turn",
+  "phase": "early",
+  "scale": "battle",
+  "map": {
+    "cols": 5,
+    "rows": 5,
+    "sectors": {
+      "A1": {
+        "id": "A1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "B1": {
+        "id": "B1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "C1": {
+        "id": "C1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "D1": {
+        "id": "D1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "E1": {
+        "id": "E1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "A2": {
+        "id": "A2",
+        "terrain": "open",
+        "owner": "us",
+        "contested": false,
+        "cover": 0.2
+      },
+      "B2": {
+        "id": "B2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "C2": {
+        "id": "C2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "D2": {
+        "id": "D2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "E2": {
+        "id": "E2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "A3": {
+        "id": "A3",
+        "terrain": "open",
+        "owner": "us",
+        "contested": false,
+        "cover": 0.2
+      },
+      "B3": {
+        "id": "B3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "C3": {
+        "id": "C3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "D3": {
+        "id": "D3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "E3": {
+        "id": "E3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "A4": {
+        "id": "A4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "B4": {
+        "id": "B4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "C4": {
+        "id": "C4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "D4": {
+        "id": "D4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "E4": {
+        "id": "E4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "A5": {
+        "id": "A5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "B5": {
+        "id": "B5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "C5": {
+        "id": "C5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "D5": {
+        "id": "D5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      },
+      "E5": {
+        "id": "E5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.2
+      }
+    }
+  },
+  "orbat": [
+    {
+      "id": "u",
+      "name": "u",
+      "echelon": "platoon",
+      "type": "infantry",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "A3",
+      "task": {
+        "type": "reserve",
+        "target": "A3"
+      },
+      "controlled_by": "ai"
+    }
+  ],
+  "enemy_known": [],
+  "objectives": [],
+  "events": [
+    {
+      "t": 1,
+      "kind": "seized",
+      "text": "我方取得 A2",
+      "sector": "A2"
+    },
+    {
+      "t": 2,
+      "kind": "seized",
+      "text": "我方取得 A3",
+      "sector": "A3"
+    }
+  ],
+  "fog": {
+    "visible_sectors": [
+      "A2",
+      "A3",
+      "A4",
+      "B3"
+    ]
+  },
+  "overrides_this_battle": 0
+}
