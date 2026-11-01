@@ -979,17 +979,17 @@
           "children": []
         },
         {
-          "id": "n_8d81c0a1",
-          "text": "待老闆決定：護欄要不要連 git push 一起擋",
-          "status": "decide",
+          "id": "n_97f4cd13",
+          "text": "護欄不擋 git push（老闆決定）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
         },
         {
-          "id": "n_d98c1bf5",
-          "text": "待老闆說「開始」：走環境建置精靈第 1 步",
-          "status": "decide",
+          "id": "n_f6e84986",
+          "text": "環境建置精靈（Windows）進行中：第 1 步安裝 uv",
+          "status": "doing",
           "link": "",
           "note": "",
           "children": []
@@ -1266,8 +1266,8 @@
       ]
     }
   ],
-  "version": 7,
-  "updatedAt": "2026-11-01T22:00:24Z",
+  "version": 8,
+  "updatedAt": "2026-11-01T22:02:32Z",
   "updatedBy": "claude",
   "instructions": ""
 }

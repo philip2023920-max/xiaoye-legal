@@ -136,8 +136,8 @@ markmap:
 - 第二輪已拍板：D10 對決不設限制；新需求 Token 計量（F13）、戰報卡＋討論（F14） ✅
 - 第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama ✅
 - Stage 2 已啟動 ✅
-- 待老闆決定：護欄要不要連 git push 一起擋 ❓
-- 待老闆說「開始」：走環境建置精靈第 1 步 ❓
+- 護欄不擋 git push（老闆決定） ✅
+- 環境建置精靈（Windows）進行中：第 1 步安裝 uv 🟡
 
 ## 8. 素材與模板庫 🧰 → docs/07-reuse-catalog.md
 - 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅

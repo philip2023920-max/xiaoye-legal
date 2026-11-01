@@ -77,12 +77,22 @@ flowchart LR
 - 位置：`ai-commander-game/.claude/hooks/block-dangerous.js` ＋ 同目錄 `settings.json`（隨專案搬家後即為新 repo 根目錄）；目前 repo 根目錄另有一份 `.claude/settings.json` 指向它，讓這個 session 立刻生效
 - 自測（2026-11-01）：`git reset --hard`、`git push --force`、`git branch -D`、`Set-Content` 無 `-Encoding utf8` 全部 ⛔ 擋下；`git branch -d`、`git status`、帶 utf8 的 Set-Content 放行
 - 已知限制：純文字比對的絆線，可能誤擋 commit 訊息含這些字樣的情況；誤擋時先講明再換寫法
-- ❓ 待老闆決定：**`git push` 本身要不要一起擋？**（擋了每次推送都要老闆明示；不擋則照現在流程 Claude 可直接推到工作分支）
+- ✅ 老闆決定（2026-11-01）：**不擋 `git push`**；只擋 `--force`。老闆用 Windows，環境建置精靈從第 1 步開始走
 
 ## 5. 本階段 ADR
 
 - ADR-0012 M0 技術棧（uv、Textual、LiteLLM＋instructor、anthropic SDK）
 
-## 6. 下一步
+## 6. 精靈進度（Windows）
 
-老闆回「開始」→ 走環境建置精靈第 1 步。全部通過後回「進入 Stage 3」才動工寫程式。
+| 步驟 | 狀態 |
+|---|---|
+| 1 安裝 uv | 🟡 進行中 |
+| 2 Git 與專案 | ⬜ |
+| 3 Ollama | ⬜ |
+| 4 Anthropic 金鑰 | ⬜ |
+| 5 金鑰捕捉 | ⬜ |
+| 6 uv sync 與 doctor | ⬜ |
+| 7 護欄 | ✅ |
+
+全部通過後老闆回「進入 Stage 3」才動工寫程式。
