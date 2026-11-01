@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 38　🟡 1　✅ 17　❌ 1　❓ 9</span>
+  <span>⬜ 38　🟡 1　✅ 23　❌ 3　❓ 2</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -90,7 +90,7 @@ markmap:
 
 ## 4. 戰鬥沙盤（畫面簡化）🎮 → docs/02-prd.md
 - 風格：TABS 低多邊形、無貼圖、單色材質、固定俯視
-- 規模階梯（D8） ❓ → docs/05-decisions.md
+- 規模階梯（ADR-0008） ✅ → docs/05-decisions.md
   - 遭遇戰：班排，每人一個方塊人，死亡 ragdoll
   - 會戰：連旅，一班一組三個方塊人
   - 大會戰：旅軍團，棋子，拉近才展開
@@ -101,17 +101,17 @@ markmap:
 - 本版不做：多人、資源採集、基地建造、語音、純建議模式
 
 ## 5. 技術架構 🧱 → docs/03-architecture.md
-- 引擎（D1） ❓ → docs/06-engine-comparison.md
-  - Godot 4（建議；免費、輕、GDScript 好學）
-  - Unity 6（若要上主機）
+- 引擎：Godot 4（ADR-0001；M0 用 Python 不綁引擎） ✅ → docs/06-engine-comparison.md
+  - Godot 4：免費、輕、GDScript 好學；4.4+ 內建 Jolt 物理
+  - Unity 6（若日後要上主機再考慮） ❌
   - 純網頁 Three.js（Plan B／展示版）
-  - Unreal 5、Bevy：不建議
+  - Unreal 5、Bevy：排除 ❌
 - LLM 閘道（多供應商，ADR-0003） ✅
   - Anthropic 原生 adapter：strict tool、快取、串流 ⬜
   - OpenAI 相容 adapter：OpenAI／Gemini／Ollama／LM Studio／vLLM／OpenRouter ⬜
   - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ⬜
   - 供應商能力表 provider.json ⬜
-  - 第一個供應商（D9） ❓
+  - 首批：Anthropic 原生＋Ollama 本地（ADR-0009） ✅
 - 參謀長包 Harness：doctrine、prompts、provider.json、evals 打包 ⬜
   - 匯出／匯入 ⬜
   - 參謀長對決：兩個包各指揮一方，本地對戰 ⬜
@@ -138,7 +138,7 @@ markmap:
   - Token 計量與每場費用小結
   - 戰報卡文字版＋討論三回合＋採納 diff
   - 驗收：5 場推翻率下降；回歸能抓到壞準則
-- M1 引擎戰鬥沙盤（4～6 週，等 D1） ⬜
+- M1 Godot 4 戰鬥沙盤（4～6 週） ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
@@ -148,15 +148,13 @@ markmap:
   - LLM 延遲 → 決策節拍＋串流＋任務式命令，有解法 ✅
   - 幻覺指令 → schema 合約＋驗證器，有解法 ✅
   - 「變強」變垃圾堆 → Doctrine 上限＋戰例庫回歸，有解法 ✅
-  - 軍團規模 vs 低硬體 → 規模階梯（D8）❓
-  - 便宜或本地模型常被退回 → 能力表＋提示（D9）❓
+  - 軍團規模 vs 低硬體 → 規模階梯（ADR-0008）✅
+  - 便宜或本地模型常被退回 → 能力表＋驗證器重試，M0 用 Ollama 先驗 ✅
   - 體驗是否夠爽 → 只能靠 M0 實測 ❓
 - 第一輪已拍板：D2 M0 戰情板、D3 多供應商、D4 BYOK、D5 AI 主控可推翻、D6 新 repo、D7 三語 ✅
 - 第二輪已拍板：D10 對決不設限制；新需求 Token 計量（F13）、戰報卡＋討論（F14） ✅
-- 第二輪待拍板（可整批回「全照建議」）
-  - D1 引擎：建議 Godot 4 ❓
-  - D8 規模階梯：建議採用 ❓
-  - D9 首批供應商：建議 Anthropic＋Ollama ❓
+- 第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama ✅
+- 待老闆下令：「進入 Stage 2」（環境建置、正式比價、ADR 細化） ❓
 
 ## 8. 文件索引 📂
 - README.md（規則與工作流程）
@@ -166,7 +164,7 @@ markmap:
 - docs/04-roadmap.md（M0～M4）
 - docs/05-decisions.md（拍板紀錄＋第二輪）
 - docs/06-engine-comparison.md（引擎比較）
-- docs/adr/（ADR-0002～0007、0010）
+- docs/adr/（ADR-0001～0010）
 - CHANGELOG.md（每次同步紀錄）
 
 </script>

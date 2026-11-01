@@ -2,6 +2,11 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第四次）— 老闆第三輪「全照建議」，D1～D10 全部定案
+- D1 Godot 4 → ADR-0001；D8 規模階梯 → ADR-0008；D9 Anthropic＋Ollama → ADR-0009
+- `05-decisions.md` 狀態改 ✅；`03-architecture.md`、`04-roadmap.md`、`06-engine-comparison.md`、README 標題同步
+- 心智圖：D1／D8／D9 節點改 ✅，新增「待老闆下令進入 Stage 2」；回寫 Artifact 資料庫
+
 ## 2026-11-01（第三次）— 老闆第二輪：D10 拍板＋兩項新需求
 - D10 否決建議：對決不設限制，寫 `docs/adr/0010-duels-unrestricted.md`
 - 新需求 F13 Token 與費用計量、F14 戰報卡＋討論（遊戲化從簡）→ `02-prd.md` v0.3、`03-architecture.md` v0.3、`04-roadmap.md`（T0.9、T0.10、T2.7、T2.8）

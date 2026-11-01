@@ -1,7 +1,7 @@
 # AI 參謀長 RTS（專案代號 CHIEF）
 
 > AI 參謀長全盤指揮，玩家是總司令，隨時可推翻；每次推翻都在訓練它。畫面走 TABS 風格的簡化低多邊形，重點在「推翻 → 成長」迴圈與可打包對決的參謀長生態。
-> 目前階段：**Stage 1 需求釐清**。第一輪已拍板 D2～D7，第二輪待拍板 D1、D8～D10（`docs/05-decisions.md`）。
+> 目前階段：**Stage 1 需求釐清**，D1～D10 全部拍板（`docs/05-decisions.md`）。等老闆說「進入 Stage 2」。
 
 ## 心智圖就是施工藍圖
 
@@ -59,7 +59,7 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/04-roadmap.md` | 里程碑 M0～M4 與任務 |
 | `docs/05-decisions.md` | 拍板紀錄與待決策（建議答案制） |
 | `docs/06-engine-comparison.md` | 引擎五選項比較（D1 用） |
-| `docs/adr/` | 決策備忘卡 ADR-0002～0007 |
+| `docs/adr/` | 決策備忘卡 ADR-0001～0010 |
 | `CHANGELOG.md` | 每次同步紀錄 |
 
 ## 注意

@@ -359,14 +359,14 @@
           "children": []
         },
         {
-          "id": "n_ddd71c43",
-          "text": "規模階梯（D8）",
-          "status": "decide",
+          "id": "n_d4b00486",
+          "text": "規模階梯（ADR-0008）",
+          "status": "done",
           "link": "docs/05-decisions.md",
           "note": "",
           "children": [
             {
-              "id": "n_c710192f",
+              "id": "n_5f74760c",
               "text": "遭遇戰：班排，每人一個方塊人，死亡 ragdoll",
               "status": "",
               "link": "",
@@ -374,7 +374,7 @@
               "children": []
             },
             {
-              "id": "n_f1a6a610",
+              "id": "n_f39551f3",
               "text": "會戰：連旅，一班一組三個方塊人",
               "status": "",
               "link": "",
@@ -382,7 +382,7 @@
               "children": []
             },
             {
-              "id": "n_68bf27d5",
+              "id": "n_b608f991",
               "text": "大會戰：旅軍團，棋子，拉近才展開",
               "status": "",
               "link": "",
@@ -441,30 +441,30 @@
       "note": "",
       "children": [
         {
-          "id": "n_a5ed8a28",
-          "text": "引擎（D1）",
-          "status": "decide",
+          "id": "n_a746d74a",
+          "text": "引擎：Godot 4（ADR-0001；M0 用 Python 不綁引擎）",
+          "status": "done",
           "link": "docs/06-engine-comparison.md",
           "note": "",
           "children": [
             {
-              "id": "n_dac5671e",
-              "text": "Godot 4（建議；免費、輕、GDScript 好學）",
+              "id": "n_1d817cd1",
+              "text": "Godot 4：免費、輕、GDScript 好學；4.4+ 內建 Jolt 物理",
               "status": "",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_8afa3948",
-              "text": "Unity 6（若要上主機）",
-              "status": "",
+              "id": "n_6cf3c9b2",
+              "text": "Unity 6（若日後要上主機再考慮）",
+              "status": "dropped",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_6bd985d0",
+              "id": "n_28189087",
               "text": "純網頁 Three.js（Plan B／展示版）",
               "status": "",
               "link": "",
@@ -472,9 +472,9 @@
               "children": []
             },
             {
-              "id": "n_7adb7f7a",
-              "text": "Unreal 5、Bevy：不建議",
-              "status": "",
+              "id": "n_e8659b41",
+              "text": "Unreal 5、Bevy：排除",
+              "status": "dropped",
               "link": "",
               "note": "",
               "children": []
@@ -521,9 +521,9 @@
               "children": []
             },
             {
-              "id": "n_7087b77c",
-              "text": "第一個供應商（D9）",
-              "status": "decide",
+              "id": "n_5b0ae0fc",
+              "text": "首批：Anthropic 原生＋Ollama 本地（ADR-0009）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -735,8 +735,8 @@
           ]
         },
         {
-          "id": "n_8fdf1653",
-          "text": "M1 引擎戰鬥沙盤（4～6 週，等 D1）",
+          "id": "n_20356a38",
+          "text": "M1 Godot 4 戰鬥沙盤（4～6 週）",
           "status": "todo",
           "link": "",
           "note": "",
@@ -810,15 +810,15 @@
               "id": "n_f644f067",
               "text": "軍團規模 vs 低硬體",
               "status": "",
-              "link": "規模階梯（D8）❓",
+              "link": "規模階梯（ADR-0008）✅",
               "note": "",
               "children": []
             },
             {
-              "id": "n_11a14975",
-              "text": "便宜或本地模型常被退回",
-              "status": "",
-              "link": "能力表＋提示（D9）❓",
+              "id": "n_f1aa04f3",
+              "text": "便宜或本地模型常被退回 → 能力表＋驗證器重試，M0 用 Ollama 先驗",
+              "status": "done",
+              "link": "",
               "note": "",
               "children": []
             },
@@ -849,37 +849,20 @@
           "children": []
         },
         {
-          "id": "n_16f03ac7",
-          "text": "第二輪待拍板（可整批回「全照建議」）",
-          "status": "",
+          "id": "n_0608cbed",
+          "text": "第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama",
+          "status": "done",
           "link": "",
           "note": "",
-          "children": [
-            {
-              "id": "n_382d30b5",
-              "text": "D1 引擎：建議 Godot 4",
-              "status": "decide",
-              "link": "",
-              "note": "",
-              "children": []
-            },
-            {
-              "id": "n_2cdefc3f",
-              "text": "D8 規模階梯：建議採用",
-              "status": "decide",
-              "link": "",
-              "note": "",
-              "children": []
-            },
-            {
-              "id": "n_32549603",
-              "text": "D9 首批供應商：建議 Anthropic＋Ollama",
-              "status": "decide",
-              "link": "",
-              "note": "",
-              "children": []
-            }
-          ]
+          "children": []
+        },
+        {
+          "id": "n_7dc1f23c",
+          "text": "待老闆下令：「進入 Stage 2」（環境建置、正式比價、ADR 細化）",
+          "status": "decide",
+          "link": "",
+          "note": "",
+          "children": []
         }
       ]
     },
@@ -947,8 +930,8 @@
           "children": []
         },
         {
-          "id": "n_f41bcc8e",
-          "text": "docs/adr/（ADR-0002～0007、0010）",
+          "id": "n_b850ace0",
+          "text": "docs/adr/（ADR-0001～0010）",
           "status": "",
           "link": "",
           "note": "",
@@ -965,8 +948,8 @@
       ]
     }
   ],
-  "version": 3,
-  "updatedAt": "2026-11-01T21:42:19Z",
+  "version": 4,
+  "updatedAt": "2026-11-01T21:47:49Z",
   "updatedBy": "claude",
   "instructions": ""
 }
