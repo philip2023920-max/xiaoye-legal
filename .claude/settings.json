@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [{ "type": "command", "command": "node ai-commander-game/.claude/hooks/block-dangerous.js" }]
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 # AI 參謀長 RTS（專案代號 CHIEF）
 
 > AI 參謀長全盤指揮，玩家是總司令，隨時可推翻；每次推翻都在訓練它。畫面走 TABS 風格的簡化低多邊形，重點在「推翻 → 成長」迴圈與可打包對決的參謀長生態。
-> 目前階段：**Stage 1 需求釐清**，D1～D10 全部拍板（`docs/05-decisions.md`）。等老闆說「進入 Stage 2」。
+> 目前階段：**Stage 2 架構設計＋環境建置**（`docs/08-stage2-architecture.md`）。選型完成、護欄已裝，等老闆說「開始」走環境建置精靈。
 
 ## 心智圖就是施工藍圖
 
@@ -60,7 +60,10 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/05-decisions.md` | 拍板紀錄與待決策（建議答案制） |
 | `docs/06-engine-comparison.md` | 引擎五選項比較（D1 用） |
 | `docs/07-reuse-catalog.md` | 可重用素材與模板目錄（ADR-0011 重用優先） |
-| `docs/adr/` | 決策備忘卡 ADR-0001～0011 |
+| `docs/08-stage2-architecture.md` | Stage 2：選型比價、流程圖、環境建置精靈、金鑰表、故障排除 |
+| `m0/` | M0 Python 環境骨架（pyproject、uv.lock、.env.example、金鑰捕捉腳本、doctor 體檢） |
+| `THIRD_PARTY.md` | 進專案的第三方元件與授權 |
+| `docs/adr/` | 決策備忘卡 ADR-0001～0012 |
 | `CHANGELOG.md` | 每次同步紀錄 |
 
 ## 注意

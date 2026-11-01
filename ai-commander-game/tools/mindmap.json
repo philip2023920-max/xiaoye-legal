@@ -65,6 +65,14 @@
           "children": []
         },
         {
+          "id": "n_4e13a305",
+          "text": "目前階段：Stage 2 架構＋環境建置",
+          "status": "doing",
+          "link": "docs/08-stage2-architecture.md",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_01bedb96",
           "text": "完整規則",
           "status": "",
@@ -621,6 +629,55 @@
           ]
         },
         {
+          "id": "n_0b7be8eb",
+          "text": "M0 技術棧（ADR-0012，沙盒實測安裝通過）",
+          "status": "done",
+          "link": "docs/08-stage2-architecture.md",
+          "note": "",
+          "children": [
+            {
+              "id": "n_f5a31e7a",
+              "text": "uv 管 Python 與套件；版本鎖在 m0/uv.lock",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_b5abbfa3",
+              "text": "Textual 8.2.8 終端機戰情板",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_b47a7c00",
+              "text": "LiteLLM 1.106.6＋instructor 1.17.0：OpenAI 相容路徑與價格表",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_4c4e8e43",
+              "text": "anthropic SDK 2.3.0：原生路徑（strict tool、parse、快取、串流）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_2034fba4",
+              "text": "pydantic、pytest、python-dotenv",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
           "id": "n_d8517259",
           "text": "資料層：harness/、battles/*.jsonl、evals/",
           "status": "",
@@ -739,6 +796,55 @@
               "link": "",
               "note": "",
               "children": []
+            },
+            {
+              "id": "n_f4556405",
+              "text": "Stage 2 環境建置",
+              "status": "doing",
+              "link": "",
+              "note": "",
+              "children": [
+                {
+                  "id": "n_33bd300e",
+                  "text": "環境骨架 m0/（pyproject、uv.lock、.env.example、doctor）",
+                  "status": "done",
+                  "link": "",
+                  "note": "",
+                  "children": []
+                },
+                {
+                  "id": "n_18a71acf",
+                  "text": "金鑰捕捉腳本 macOS／Windows（金鑰不進聊天）",
+                  "status": "done",
+                  "link": "",
+                  "note": "",
+                  "children": []
+                },
+                {
+                  "id": "n_4f96bac0",
+                  "text": "實體護欄 .claude/hooks 已裝並自測",
+                  "status": "done",
+                  "link": "",
+                  "note": "",
+                  "children": []
+                },
+                {
+                  "id": "n_99f862bf",
+                  "text": "環境建置精靈 7 步導覽：等老闆說「開始」",
+                  "status": "decide",
+                  "link": "",
+                  "note": "",
+                  "children": []
+                },
+                {
+                  "id": "n_eb4cf7e5",
+                  "text": "THIRD_PARTY.md（M0 部分）",
+                  "status": "done",
+                  "link": "",
+                  "note": "",
+                  "children": []
+                }
+              ]
             }
           ]
         },
@@ -865,8 +971,24 @@
           "children": []
         },
         {
-          "id": "n_7dc1f23c",
-          "text": "待老闆下令：「進入 Stage 2」（環境建置、正式比價、ADR 細化）",
+          "id": "n_98c3523e",
+          "text": "Stage 2 已啟動",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_8d81c0a1",
+          "text": "待老闆決定：護欄要不要連 git push 一起擋",
+          "status": "decide",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_d98c1bf5",
+          "text": "待老闆說「開始」：走環境建置精靈第 1 步",
           "status": "decide",
           "link": "",
           "note": "",
@@ -1102,8 +1224,32 @@
           "children": []
         },
         {
-          "id": "n_466bfb71",
-          "text": "docs/adr/（ADR-0001～0011）",
+          "id": "n_aace1a2e",
+          "text": "docs/08-stage2-architecture.md（Stage 2 選型與環境建置）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_368f013e",
+          "text": "THIRD_PARTY.md（第三方元件與授權）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_a2f1aaa2",
+          "text": "m0/（M0 環境骨架）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_eefac934",
+          "text": "docs/adr/（ADR-0001～0012）",
           "status": "",
           "link": "",
           "note": "",
@@ -1120,8 +1266,8 @@
       ]
     }
   ],
-  "version": 5,
-  "updatedAt": "2026-11-01T21:53:16Z",
+  "version": 7,
+  "updatedAt": "2026-11-01T22:00:24Z",
   "updatedBy": "claude",
   "instructions": ""
 }

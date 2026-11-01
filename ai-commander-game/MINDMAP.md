@@ -16,6 +16,7 @@ markmap:
 - Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md
 - 重用優先（ADR-0011）：每張施工單先找現成素材／模板／套件，能用就用、能改就改，最後才自製
 - 階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳
+- 目前階段：Stage 2 架構＋環境建置 🟡 → docs/08-stage2-architecture.md
 - 完整規則 → README.md
 
 ## 1. 願景與定位 🎯
@@ -90,6 +91,12 @@ markmap:
   - 價格表 prices.json：玩家可編輯，附更新日期 ⬜
   - HUD：本場／今天／本月；預算上限與警示 ⬜
   - 本地模型顯示 $0 但仍顯示 token 與秒數 ⬜
+- M0 技術棧（ADR-0012，沙盒實測安裝通過） ✅ → docs/08-stage2-architecture.md
+  - uv 管 Python 與套件；版本鎖在 m0/uv.lock
+  - Textual 8.2.8 終端機戰情板
+  - LiteLLM 1.106.6＋instructor 1.17.0：OpenAI 相容路徑與價格表
+  - anthropic SDK 2.3.0：原生路徑（strict tool、parse、快取、串流）
+  - pydantic、pytest、python-dotenv
 - 資料層：harness/、battles/*.jsonl、evals/
 - 金鑰：BYOK 存本機加密設定，不進 repo 不進對話（ADR-0004） ✅
 - 三語：繁中／簡中／英文，字串抽資源檔（ADR-0007） ✅
@@ -106,6 +113,12 @@ markmap:
   - Token 計量與每場費用小結
   - 戰報卡文字版＋討論三回合＋採納 diff
   - 驗收：5 場推翻率下降；回歸能抓到壞準則
+  - Stage 2 環境建置 🟡
+    - 環境骨架 m0/（pyproject、uv.lock、.env.example、doctor） ✅
+    - 金鑰捕捉腳本 macOS／Windows（金鑰不進聊天） ✅
+    - 實體護欄 .claude/hooks 已裝並自測 ✅
+    - 環境建置精靈 7 步導覽：等老闆說「開始」 ❓
+    - THIRD_PARTY.md（M0 部分） ✅
 - M1 Godot 4 戰鬥沙盤（4～6 週） ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
@@ -122,7 +135,9 @@ markmap:
 - 第一輪已拍板：D2 M0 戰情板、D3 多供應商、D4 BYOK、D5 AI 主控可推翻、D6 新 repo、D7 三語 ✅
 - 第二輪已拍板：D10 對決不設限制；新需求 Token 計量（F13）、戰報卡＋討論（F14） ✅
 - 第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama ✅
-- 待老闆下令：「進入 Stage 2」（環境建置、正式比價、ADR 細化） ❓
+- Stage 2 已啟動 ✅
+- 待老闆決定：護欄要不要連 git push 一起擋 ❓
+- 待老闆說「開始」：走環境建置精靈第 1 步 ❓
 
 ## 8. 素材與模板庫 🧰 → docs/07-reuse-catalog.md
 - 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅
@@ -153,5 +168,8 @@ markmap:
 - docs/05-decisions.md（拍板紀錄＋第二輪）
 - docs/06-engine-comparison.md（引擎比較）
 - docs/07-reuse-catalog.md（素材與模板目錄）
-- docs/adr/（ADR-0001～0011）
+- docs/08-stage2-architecture.md（Stage 2 選型與環境建置）
+- THIRD_PARTY.md（第三方元件與授權）
+- m0/（M0 環境骨架）
+- docs/adr/（ADR-0001～0012）
 - CHANGELOG.md（每次同步紀錄）

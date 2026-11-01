@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第六次）— 進入 Stage 2
+- 選型比價（WebSearch 降級＋沙盒 uv 實測）：uv、Textual 8.2.8、LiteLLM 1.106.6＋instructor 1.17.0、anthropic 2.3.0 → ADR-0012；`docs/08-stage2-architecture.md`
+- M0 環境骨架 `m0/`：pyproject、uv.lock、.env.example、.gitignore、金鑰捕捉腳本（sh／ps1）、`chief/doctor.py` 體檢（已煙霧測試）
+- 實體護欄：`ai-commander-game/.claude/hooks/block-dangerous.js`（隨專案搬家）＋ repo 根目錄 `.claude/settings.json` 指向它；自測 7 條全部符合預期
+- `THIRD_PARTY.md` 建立（M0 部分）；心智圖加 M0 技術棧與 Stage 2 進度；回寫 Artifact 資料庫
+
 ## 2026-11-01（第五次）— 老闆指示「重用優先」
 - ADR-0011 重用優先；新增 `docs/07-reuse-catalog.md`（RTS 骨架、布娃娃、地形、UI、方塊人素材、milsymbol、Textual、LiteLLM、instructor、TextStarCraft II 摘要鏈），全部標 ⚠️ 待 Stage 2 驗證
 - 架構文件標註重用元件；路線圖加 T0.0、T1.0 重用檢查

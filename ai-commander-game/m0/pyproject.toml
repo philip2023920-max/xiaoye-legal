@@ -1,0 +1,15 @@
+[project]
+name = "chief-m0"
+description = "AI 參謀長 RTS — M0 文字版沙盤與 AI 戰情板（Python）"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = [
+  "textual>=8.2,<9",
+  "litellm>=1.106,<2",
+  "instructor>=1.17,<2",
+  "anthropic>=2.3,<3",
+  "pydantic>=2.14,<3",
+  "python-dotenv>=1.1,<2",
+]
+[dependency-groups]
+dev = ["pytest>=9,<10"]
