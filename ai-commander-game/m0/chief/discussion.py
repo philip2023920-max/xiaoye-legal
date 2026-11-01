@@ -24,13 +24,14 @@ def quick_replies(card: BattleCard, lang: str) -> list[str]:
 
 
 def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console: Console, input_fn=input,
-                   max_rounds: int = MAX_ROUNDS) -> list[dict]:
+                   max_rounds: int = MAX_ROUNDS, on_usage=None) -> list[dict]:
     """回傳對話紀錄 [{role, content}]。輸入空白提前結束；EOF／Ctrl+C 視同結束。"""
     system = ("You are the Chief of Staff debriefing with the Commander after a battle. Answer in at most TWO sentences, "
               f"in {LANG_NAME.get(lang, lang)}, concrete and without flattery. Battle summary:\n" + card_summary_text(card)
               + "\n\n## Your doctrine\n" + doctrine)
     history: list[dict] = []
-    for rnd in range(1, max_rounds + 1):
+    rnd = 1
+    while rnd <= max_rounds:
         options = quick_replies(card, lang)
         console.print(Panel(Text("\n".join(f"{i+1}. {q}" for i, q in enumerate(options)) + "\n（輸入數字、或直接打字；Enter 結束討論）"),
                             title=f"討論 第 {rnd}/{max_rounds} 回合", border_style="cyan"))
@@ -40,9 +41,15 @@ def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console:
             break
         if not raw:
             break
-        text = options[int(raw) - 1] if raw.isdecimal() and 1 <= int(raw) <= len(options) else raw
+        if raw.isdecimal() and not (1 <= int(raw) <= len(options)):
+            console.print(Text(f"請輸入 1～{len(options)}，或直接打字", style="red"))
+            continue                                             # 不算一回合
+        text = options[int(raw) - 1] if raw.isdecimal() else raw
         history.append({"role": "user", "content": text})
         resp = gateway.chat([{"role": "system", "content": system}] + history)
+        if on_usage:
+            on_usage(resp.usage, resp.latency_s)
+        rnd += 1
         reply = first_sentences(resp.text, 2) if not resp.error else f"（參謀長無回應：{resp.error}）"
         history.append({"role": "assistant", "content": reply})
         console.print(Text(f"參謀長：{reply}", style="cyan"))

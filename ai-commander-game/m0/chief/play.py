@@ -19,7 +19,8 @@ from .board import Board, Event
 from .discussion import run_discussion
 from .doctrine import DoctrineStore, apply_diff, propose_diff, save_aar
 from .gateway import Gateway
-from .report import BattleCard, build_card_from, chief_line, pick_moments, render_card, card_summary_text
+from .report import BattleCard, build_card_from, card_dict, chief_line, pick_moments, render_card, card_summary_text
+from rich.markup import escape as _esc
 from .meter import Ledger, PriceTable, UsageMeter
 from .orders import Rejection
 from .override import OverrideLog, OverrideRecord, TASK_CHOICES, judge_outcome, player_order_problem, subtree_ids, target_sector
@@ -174,42 +175,52 @@ def run_play(
         console.print("[yellow]本場已達預算上限，參謀長中途暫停。[/]")
     console.print(f"[dim]快照、usage.jsonl、llm_log.jsonl 已存：{battle.out_dir}[/]")
     if not skip_aar:
-        result.card = _aar_flow(console, gateway, aar_gateway or gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter)
+        result.card = _aar_flow(console, gateway, aar_gateway or gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger)
     return result
 
 
-def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter) -> BattleCard:
-    """戰後：戰報卡（不花 token）→ 參謀長一句話 → 討論（最多三回合）→ 準則 diff 一鍵採納。自動模式只出卡。"""
+def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger=None) -> BattleCard:
+    """戰後：戰報卡（不花 token）→ 參謀長一句話 → 討論（最多三回合）→ 準則 diff 一鍵採納。
+    自動模式只出卡（不呼叫 LLM）。戰後每次呼叫都計費（phase=aar）。"""
+    def bill(gw):
+        def _on(usage, latency):
+            e = meter.record(battle.t, gw.provider, gw.model, usage, latency, phase="aar")
+            if ledger:
+                ledger.add(battle.board.battle_id, gw.provider, gw.model, e.cost_usd, usage)
+        return _on
+
     start_us = {o.id for o in start_board.objectives if o.owner == "us"}
     end_us = {o.id for o in battle.board.objectives if o.owner == "us"}
     badges = award(result.battle.winner, result.override_outcomes, len(overrides.records), meter.cost_usd, start_us, end_us)
     card = build_card_from(result, battle, overrides.records, badges, gateway)
-    line = chief_line(gateway, card, doctrine, lang)
-    if line:
-        card.chief_line = line
+    if not auto and store is not None:
+        line = chief_line(gateway, card, doctrine, lang, on_usage=bill(gateway))
+        if line:
+            card.chief_line = line
     console.print(render_card(card))
     summary = card_summary_text(card)
     if auto or store is None:
-        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None)
+        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card))
         return card
     try:
         choice = (input_fn("戰後（Enter＝討論｜a＝直接採納｜s＝跳過）> ") or "").strip().lower()
     except (EOFError, KeyboardInterrupt):
         choice = "s"
     if choice == "s":
-        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None)
+        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card))
         return card
-    transcript = run_discussion(gateway, card, doctrine, lang, console, input_fn) if choice != "a" else []
+    transcript = run_discussion(gateway, card, doctrine, lang, console, input_fn, on_usage=bill(gateway)) if choice != "a" else []
     resp = propose_diff(aar_gateway, doctrine, summary, transcript, lang)
+    bill(aar_gateway)(resp.usage, resp.latency_s)
     if resp.parsed is None:
         console.print(Text(f"準則更新失敗：{resp.error}", style="red"))
-        save_aar(battle.out_dir / "aar.json", summary, transcript, None, False, None)
+        save_aar(battle.out_dir / "aar.json", summary, transcript, None, False, None, card=card_dict(card))
         return card
     diff = resp.parsed
     lines = [Text(f"摘要：{diff.summary}")] + [Text(f"＋ [{l.section}] {l.text}", style="green") for l in diff.add] + [Text(f"－ {r}", style="red") for r in diff.remove]
     if not diff.add and not diff.remove:
         lines.append(Text("（參謀長認為這場不需要改準則）", style="dim"))
-    console.print(Panel(Group(*lines), title=f"準則變更提案（{aar_gateway.provider}/{aar_gateway.model}）", border_style="magenta"))
+    console.print(Panel(Group(*lines), title=_esc(f"準則變更提案（{aar_gateway.provider}/{aar_gateway.model}）"), border_style="magenta"))
     try:
         ok = (input_fn("採納？（Enter＝採納｜n＝不採納）> ") or "").strip().lower() != "n"
     except (EOFError, KeyboardInterrupt):
@@ -224,7 +235,10 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
         console.print(Text("沒有變更。", style="dim"))
     else:
         console.print(Text("未採納。", style="yellow"))
-    save_aar(battle.out_dir / "aar.json", summary, transcript, diff, bool(ok and (diff.add or diff.remove)), report)
+    if report and report.get("ignored_removes"):
+        console.print(Text(f"（略過 {len(report['ignored_removes'])} 條找不到或太短的刪除：{'；'.join(report['ignored_removes'])}）", style="dim"))
+    console.print(Text(f"戰後流程費用：${sum(e.cost_usd for e in meter.entries if e.phase == 'aar'):.4f}（已計入帳本）", style="dim"))
+    save_aar(battle.out_dir / "aar.json", summary, transcript, diff, bool(ok and (diff.add or diff.remove)), report, card=card_dict(card))
     return card
 
 

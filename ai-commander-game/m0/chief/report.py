@@ -95,7 +95,15 @@ def render_card(card: BattleCard) -> Panel:
     parts = [head, badge_line, t]
     if card.chief_line:
         parts.append(Text(f"參謀長：「{card.chief_line}」", style="cyan"))
-    return Panel(Group(*parts), title=f"戰報卡 — {card.battle_id}（{card.provider}/{card.model}）", border_style="green")
+    from rich.markup import escape
+    return Panel(Group(*parts), title=escape(f"戰報卡 — {card.battle_id}（{card.provider}/{card.model}）"), border_style="green")
+
+
+def card_dict(card: BattleCard) -> dict:
+    return {"battle_id": card.battle_id, "winner": card.winner, "score": [card.score_us, card.score_enemy], "turns": card.turns,
+            "end_reason": card.end_reason, "overrides": card.overrides, "override_rate": card.override_rate, "cost_usd": card.cost_usd,
+            "provider": card.provider, "model": card.model, "badges": [b.id for b in card.badges],
+            "moments": [m.__dict__ for m in card.moments], "chief_line": card.chief_line}
 
 
 def card_summary_text(card: BattleCard) -> str:
@@ -111,21 +119,41 @@ def card_summary_text(card: BattleCard) -> str:
     return "\n".join(lines)
 
 
+_ABBREV = ("e.g.", "i.e.", "etc.", "vs.", "no.", "mr.", "dr.", "st.")
+
+
 def first_sentences(text: str, n: int = 2) -> str:
-    """只留前 n 句（中英文句號、驚嘆號、問號）。"""
+    """只留前 n 句。中文句號／驚嘆號／問號一律算句尾；英文 .!? 只在後面接空白＋大寫或句末時算，
+    小數（$0.01）與縮寫（e.g.）不算。保留句與句之間的空白。"""
     text = text.strip().replace("\n", " ")
-    parts = re.split(r"(?<=[。！？.!?])\s*", text)
-    parts = [p for p in parts if p]
-    return "".join(parts[:n]) if len(parts) > n else text
+    ends: list[int] = []
+    for i, ch in enumerate(text):
+        if ch in "。！？":
+            ends.append(i + 1)
+        elif ch in ".!?":
+            nxt = text[i + 1:i + 2]
+            if nxt and not nxt.isspace():
+                continue                                        # 小數點、縮寫中間的點
+            tail = text[:i + 1].lower()
+            if ch == "." and any(tail == a or tail.endswith(" " + a) for a in _ABBREV):   # 整個詞才算縮寫（first. 不是 st.）
+                continue
+            rest = text[i + 1:].lstrip()
+            if not rest or rest[0].isupper() or rest[0].isdigit() or ord(rest[0]) > 127:
+                ends.append(i + 1)
+        if len(ends) == n:
+            return text[:ends[-1]].strip()
+    return text
 
 
-def chief_line(gateway, card: BattleCard, doctrine: str, lang: str) -> str:
+def chief_line(gateway, card: BattleCard, doctrine: str, lang: str, on_usage=None) -> str:
     from .prompts import LANG_NAME
     if not hasattr(gateway, "chat"):
         return ""
     system = ("You are the Chief of Staff. Given the battle summary and your doctrine, say ONE sentence to the Commander "
               f"about what you learned about their preferences, in {LANG_NAME.get(lang, lang)}. No JSON, no list.\n\n## Doctrine\n" + doctrine)
     resp = gateway.chat([{"role": "system", "content": system}, {"role": "user", "content": card_summary_text(card)}])
+    if on_usage:
+        on_usage(resp.usage, resp.latency_s)
     if resp.error or not resp.text.strip():
         return ""
     return first_sentences(resp.text, 1)

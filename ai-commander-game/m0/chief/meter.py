@@ -80,6 +80,7 @@ class Entry:
     latency_s: float
     cost_usd: float
     at: float = field(default_factory=time.time)
+    phase: str = "tick"    # tick＝決策節拍；aar＝戰後（一句話、討論、準則 diff）
 
 
 class Ledger:
@@ -120,9 +121,9 @@ class UsageMeter:
         self.log_path = Path(log_path) if log_path else None
         self.entries: list[Entry] = []
 
-    def record(self, turn: int, provider: str, model: str, usage: Usage, latency_s: float) -> Entry:
+    def record(self, turn: int, provider: str, model: str, usage: Usage, latency_s: float, phase: str = "tick") -> Entry:
         e = Entry(turn=turn, provider=provider, model=model, usage=usage, latency_s=round(latency_s, 3),
-                  cost_usd=round(self.prices.cost(model, usage), 6))
+                  cost_usd=round(self.prices.cost(model, usage), 6), phase=phase)
         self.entries.append(e)
         if self.log_path:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)

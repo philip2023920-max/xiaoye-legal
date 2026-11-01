@@ -67,6 +67,17 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/adr/` | 決策備忘卡 ADR-0001～0013 |
 | `CHANGELOG.md` | 每次同步紀錄 |
 
+## M0 指令速查
+
+| 指令 | 用途 |
+|---|---|
+| `uv run chief show samples/board_t0.json` | 看戰情板（`--compact` 看給 LLM 的壓縮版） |
+| `uv run chief sim --orders samples/orders_scripted.json --seed 7` | 無 LLM 的劇本會戰 |
+| `uv run chief play --provider ollama --model qwen2.5:3b --auto` | 參謀長自動指揮（`--provider anthropic --model claude-haiku-5-5` 換 Claude） |
+| `uv run chief play --provider ollama --model qwen2.5:3b` | 互動：Enter 採納、數字改令、+ 接管、- 放手、q 結束；戰後戰報卡 → 討論 → 採納準則 |
+| `--budget 0.5` `--effort low` `--aar-provider anthropic --aar-model claude-sonnet-5-5` `--skip-aar` | 預算、Anthropic 思考深度、戰後檢討模型、跳過戰後 |
+| `uv run chief doctrine show` / `undo` | 看準則／還原上一版 |
+
 ## Effort 慣例（老闆 2026-11-01 問，Claude 建議）
 
 - 預設 **High**。日常同步、文件、精靈步驟都用它。

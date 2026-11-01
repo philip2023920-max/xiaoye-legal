@@ -36,6 +36,25 @@ def test_badges_hand_examples():
 def test_first_sentences_truncates_to_two():
     assert first_sentences("第一句。第二句！第三句？") == "第一句。第二句！"
     assert first_sentences("Only one sentence") == "Only one sentence"
+    assert first_sentences("Hold B2. Then push. Done.") == "Hold B2. Then push."
+    assert first_sentences("Cost was $0.01 total. Next time hold. Third.") == "Cost was $0.01 total. Next time hold."
+    assert first_sentences("Use e.g. the MG platoon first. Then armor. Last.") == "Use e.g. the MG platoon first. Then armor."
+
+
+def test_remove_needs_exact_line_or_long_substring():
+    base = (Path(__file__).resolve().parent.parent / "harness" / "default" / "doctrine.md").read_text(encoding="utf-8")
+    new, rep = apply_diff(base, DoctrineDiff(summary="s", add=[], remove=["e", "the"]), stamp="d")
+    assert rep["removed"] == 0 and rep["ignored_removes"] == ["e", "the"] and "Seize the highest-value objective" in new
+    new, rep = apply_diff(base, DoctrineDiff(summary="s", add=[], remove=["Keep at least one platoon uncommitted"]), stamp="d")
+    assert rep["removed"] == 1 and "uncommitted" not in new
+
+
+def test_hand_edited_headings_are_recognised_and_notes_kept():
+    from chief.doctrine import _split_sections
+    title, buckets, last, notes = _split_sections("\ufeff# D\r\n\r\n## Rejected\r\n- r\r\n\r\n## Notes\r\n- keep me\r\n\r\n## Last adopted\r\n\r\n2026-11-01: 摘要\r\n")
+    assert buckets["rejected"] == ["- r"] and notes == ["## Notes", "- keep me"] and last == "- 2026-11-01: 摘要"
+    new, rep = apply_diff("# D\n\n## Rejected\n- r\n\n## Notes\n- keep me\n", DoctrineDiff(summary="x", add=[], remove=[]), stamp="d")
+    assert "- keep me" in new and "- r" in new
 
 
 def test_discussion_three_rounds_and_two_sentence_replies(tmp_path):
@@ -59,7 +78,7 @@ def test_apply_diff_adds_removes_and_limits(tmp_path):
     assert "- Prefers holding ground when behind" in new and "Seize the town early" not in new and "- (none yet)" not in new.split("## Rejected")[1].split("##")[0]
     assert "## Last adopted\n- 2026-11-01: 您偏好固守" in new
     store = DoctrineStore(tmp_path / "d.md"); store.save(base); store.save(new)
-    assert store.opening_line() == "2026-11-01: 您偏好固守"
+    assert store.opening_line() == "您偏好固守"                        # 開局引用不含日期戳
     assert store.undo() and store.load() == base and not store.undo()
 
 
@@ -68,3 +87,10 @@ def test_apply_diff_trims_hypotheses_first_when_over_limit():
     base = f"# D\n\n## Commander profile\n- p\n\n## Verified tactics\n- t\n\n## Rejected practices (do not propose)\n- r\n\n## Hypotheses to test\n{hyp}\n"
     new, rep = apply_diff(base, DoctrineDiff(summary="s", add=[DoctrineLine(section="tactic", text="new tactic")], remove=[]), stamp="d")
     assert rep["chars"] <= 2000 and rep["trimmed"] > 0 and "- t" in new and "- new tactic" in new and "hypothesis 0 " not in new
+
+
+def test_limit_holds_even_when_profile_is_huge_and_new_lines_survive():
+    prof = "\n".join(f"- profile {i} " + "y" * 90 for i in range(30))
+    base = f"# D\n\n## Commander profile\n{prof}\n\n## Verified tactics\n- t\n"
+    new, rep = apply_diff(base, DoctrineDiff(summary="s", add=[DoctrineLine(section="tactic", text="brand new")], remove=[]), stamp="d")
+    assert len(new) <= 2000 and "- brand new" in new

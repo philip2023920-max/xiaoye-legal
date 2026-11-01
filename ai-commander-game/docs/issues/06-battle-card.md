@@ -12,7 +12,7 @@
 - [x] 戰後自動顯示戰報卡；三幕優先挑推翻點，不足補轉折點（據點易手／潰散）；不呼叫 LLM（測試：關掉閘道也能出卡）
 - [x] 徽章至少 3 種（果斷總司令、放手型、省錢贏家），規則離線判定，手算例子當測試
 - [x] 討論：最多 3 回合，自動結束；每回合顯示 3 個快速回覆；AI 回覆超過 2 句時截斷並記錄
-- [x] 採納：顯示新增／刪除各 ≤ 3 條；採納後 `harness/<name>/doctrine.md` 更新且 ≤ 2,000 字；`--undo` 還原上一版
+- [x] 採納：顯示新增／刪除各 ≤ 3 條；採納後 `harness/<name>/doctrine.md` 更新且 ≤ 2,000 字；`chief doctrine undo` 還原上一版（一層）
 - [x] 下一場開局第一句引用最近一次採納的條目
 - [x] 戰後流程可 `--skip-aar` 跳過（互動中亦可按 s）
 
@@ -20,4 +20,4 @@
 打完一場 → 看到戰報卡 → 選一個快速回覆 → 看到準則 diff → 按採納 → 再開一場，參謀長開局引用剛採納的內容。
 
 ## 預估檔案
-`chief/report.py`、`chief/discussion.py`、`chief/doctrine.py`、`chief/badges.py`、`tests/test_report.py`、`tests/test_doctrine.py`
+`chief/report.py`、`chief/discussion.py`、`chief/doctrine.py`、`chief/badges.py`、`tests/test_report.py`（含準則測試）

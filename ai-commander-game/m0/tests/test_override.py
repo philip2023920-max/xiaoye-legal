@@ -140,12 +140,15 @@ def test_aar_flow_adopts_doctrine_and_next_game_quotes_it(tmp_path):
     assert "戰報卡" in text and "參謀長：「我學到您偏好固守。」" in text and "準則已更新：新增 1、刪除 0" in text
     assert "- Prefers holding before attacking" in doc.read_text(encoding="utf-8") and doc.with_suffix(".prev.md").exists()
     assert (tmp_path / "b" / "aar.json").exists() and res.card is not None and res.card.chief_line
+    aar_entries = [e for e in res.meter.entries if e.phase == "aar"]
+    assert len(aar_entries) == 3                                   # 一句話 + 討論 1 回合 + diff，全部計費
+    assert json.loads((tmp_path / "b" / "aar.json").read_text(encoding="utf-8"))["card"]["chief_line"] == "我學到您偏好固守。"
     # 下一場開局引用
     out2 = open(tmp_path / "o2.txt", "w", encoding="utf-8")
     run_play(FakeGateway([]), load_board(SAMPLES / "board_start.json"), enemy, doctrine="d", out_dir=tmp_path / "c", console=Console(file=out2, width=120),
              auto=False, input_fn=scripted_inputs(["q", "s"]), doctrine_path=doc)
     out2.close()
-    assert "上次您採納了「" in (tmp_path / "o2.txt").read_text(encoding="utf-8")
+    assert "上次您採納了「您偏好先守再攻」" in (tmp_path / "o2.txt").read_text(encoding="utf-8")   # 不含日期戳
 
 
 def test_aar_skip_and_decline(tmp_path):

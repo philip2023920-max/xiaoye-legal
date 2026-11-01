@@ -64,6 +64,17 @@ def test_markup_in_model_text_does_not_crash(tmp_path):
     assert res.battle.turns_played >= 1
 
 
+def test_auto_mode_makes_no_aar_llm_calls_and_skip_aar_has_no_card(tmp_path):
+    board = load_board(SAMPLES / "board_start.json"); enemy = load_script(SAMPLES / "enemy_script.json")
+    gw = FakeGateway([])
+    res = run_play(gw, board, enemy, doctrine="t", out_dir=tmp_path / "a", quiet=True, console=Console(file=open(tmp_path / "o.txt", "w", encoding="utf-8")),
+                   input_fn=lambda p="": (_ for _ in ()).throw(AssertionError("auto mode must not prompt")))
+    assert gw.chat_calls == [] and gw.parse_calls == [] and res.card is not None and (tmp_path / "a" / "aar.json").exists()
+    res2 = run_play(FakeGateway([]), load_board(SAMPLES / "board_start.json"), enemy, doctrine="t", out_dir=tmp_path / "s", quiet=True,
+                    console=Console(file=open(tmp_path / "o2.txt", "w", encoding="utf-8")), skip_aar=True)
+    assert res2.card is None and not (tmp_path / "s" / "aar.json").exists()
+
+
 def test_budget_pauses_chief(tmp_path):
     from chief.meter import Ledger, PriceTable
     prices = tmp_path / "p.json"

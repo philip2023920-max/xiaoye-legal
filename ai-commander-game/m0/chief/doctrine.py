@@ -69,43 +69,73 @@ class DoctrineStore:
         return True
 
     def opening_line(self) -> str:
-        """下一場開局引用最近一次採納（不花 token）。"""
-        text = self.load()
-        m = re.search(re.escape(LAST_ADOPTED) + r"[^\n]*\n- ([^\n]+)", text)
-        return m.group(1).strip() if m else ""
+        """下一場開局引用最近一次採納（不花 token）；只回摘要句，不含日期戳。"""
+        _, _, last, _ = _split_sections(self.load())
+        if not last:
+            return ""
+        body = last.lstrip("-• ").strip()
+        return re.sub(r"^\d{4}-\d{2}-\d{2}:\s*", "", body)
 
 
-def _split_sections(text: str) -> tuple[str, dict[str, list[str]], str]:
-    """回傳（標題行, {section_key: lines}, last_adopted 行）。未知段落併入 hypothesis 以免遺失。"""
+SECTION_KEYWORDS = {"profile": ("profile", "commander"), "tactic": ("verified", "tactic"), "rejected": ("rejected", "do not"), "hypothesis": ("hypothes", "to test")}
+PLACEHOLDER = re.compile(r"^-?\s*\(?none( yet)?\)?\.?$", re.I)
+MIN_REMOVE_NEEDLE = 8
+
+
+def _section_key(heading: str) -> str | None:
+    h = heading.strip().lstrip("#").strip().lower()
+    if h.startswith(LAST_ADOPTED.lstrip("# ").lower()):
+        return "__last__"
+    for k, words in SECTION_KEYWORDS.items():
+        if any(w in h for w in words):
+            return k
+    return None
+
+
+def _split_sections(text: str) -> tuple[str, dict[str, list[str]], str, list[str]]:
+    """回傳（標題行, {section_key: lines}, last_adopted 行, 其他段落原文）。手改檔的未知標題整段保留在 notes。"""
+    text = text.lstrip("\ufeff")
     title = ""
     buckets: dict[str, list[str]] = {k: [] for k in SECTIONS}
     last = ""
-    current = None
-    for line in text.splitlines():
+    notes: list[str] = []
+    current: str | None = None
+    for raw in text.splitlines():
+        line = raw.rstrip("\r")
         if line.startswith("# ") and not title:
             title = line.strip()
             continue
         if line.startswith("## "):
-            current = next((k for k, h in SECTIONS.items() if line.strip().lower().startswith(h.lower()[:12])), None)
-            if line.strip().startswith(LAST_ADOPTED):
-                current = "__last__"
+            current = _section_key(line)
+            if current is None:
+                current = "__notes__"
+                notes.append(line.strip())
             continue
         if not line.strip():
             continue
         if current == "__last__":
-            last = line.strip()
+            last = line.strip().lstrip("-• ").strip()
+            last = "- " + last if last else ""
+        elif current == "__notes__":
+            notes.append(line.strip())
         elif current:
-            buckets[current].append(line.strip())
+            if not PLACEHOLDER.match(line.strip()):
+                buckets[current].append(line.strip())
         else:
-            buckets["hypothesis"].append(line.strip())
-    return title or "# Doctrine", buckets, last
+            notes.append(line.strip())   # 標題前的段落也保留
+    return title or "# Doctrine", buckets, last, notes
 
 
-def _render(title: str, buckets: dict[str, list[str]], last: str) -> str:
+def _render(title: str, buckets: dict[str, list[str]], last: str, notes: list[str] | None = None) -> str:
     out = [title, ""]
     for k, h in SECTIONS.items():
         out.append(h)
         out.extend(buckets[k] or ["- (none yet)"])
+        out.append("")
+    if notes:
+        if not notes[0].startswith("## "):
+            out.append("## Notes")
+        out.extend(notes)
         out.append("")
     if last:
         out.append(LAST_ADOPTED)
@@ -115,41 +145,67 @@ def _render(title: str, buckets: dict[str, list[str]], last: str) -> str:
 
 
 def apply_diff(text: str, diff: DoctrineDiff, stamp: str | None = None) -> tuple[str, dict]:
-    """套用 diff；超過上限先砍假設、再砍最舊的已驗證戰術。回傳（新文字, 報告）。"""
-    title, buckets, _ = _split_sections(text)
+    """套用 diff。刪除：每個 needle 最多刪 1 行，先找整行相同、再找 ≥8 字的子字串（防止短字串誤殺）。
+    上限：超過 2,000 字先淘汰最舊的假設 → 戰術 → 被否決 → 畫像（剛新增的不淘汰），仍超過就硬截。"""
+    title, buckets, _, notes = _split_sections(text)
     removed = 0
-    for needle in diff.remove:
+    ignored: list[str] = []
+    for needle in diff.remove[:3]:
         n = needle.strip().lstrip("-• ").strip()
         if not n:
             continue
+        hit = None
         for k in buckets:
-            before = len(buckets[k])
-            buckets[k] = [l for l in buckets[k] if n.lower() not in l.lower()]
-            removed += before - len(buckets[k])
-    for k in buckets:
-        buckets[k] = [l for l in buckets[k] if l != "- (none yet)"]
+            for l in buckets[k]:
+                if l.lstrip("-• ").strip().lower() == n.lower():
+                    hit = (k, l)
+                    break
+            if hit:
+                break
+        if hit is None and len(n) >= MIN_REMOVE_NEEDLE:
+            for k in buckets:
+                for l in buckets[k]:
+                    if n.lower() in l.lower():
+                        hit = (k, l)
+                        break
+                if hit:
+                    break
+        if hit is None:
+            ignored.append(n)
+            continue
+        buckets[hit[0]].remove(hit[1])
+        removed += 1
     added = 0
-    for line in diff.add:
+    new_lines: set[str] = set()
+    for line in diff.add[:3]:
         entry = "- " + line.text
         if entry not in buckets[line.section]:
             buckets[line.section].append(entry)
+            new_lines.add(entry)
             added += 1
     stamp = stamp or time.strftime("%Y-%m-%d")
     last = f"- {stamp}: {diff.summary}" if diff.summary else f"- {stamp}: +{added} -{removed}"
     trimmed = 0
-    rendered = _render(title, buckets, last)
+    rendered = _render(title, buckets, last, notes)
     while len(rendered) > DOCTRINE_MAX_CHARS:
-        if buckets["hypothesis"]:
-            buckets["hypothesis"].pop(0)
-        elif buckets["tactic"]:
-            buckets["tactic"].pop(0)
-        elif buckets["rejected"]:
-            buckets["rejected"].pop(0)
-        else:
+        victim = None
+        for k in ("hypothesis", "tactic", "rejected", "profile"):
+            old = [l for l in buckets[k] if l not in new_lines]
+            if old:
+                victim = (k, old[0])
+                break
+        if victim is None:
+            if notes:
+                notes.pop()
+                trimmed += 1
+                rendered = _render(title, buckets, last, notes)
+                continue
+            rendered = rendered[:DOCTRINE_MAX_CHARS].rstrip() + "\n"   # 最後手段
             break
+        buckets[victim[0]].remove(victim[1])
         trimmed += 1
-        rendered = _render(title, buckets, last)
-    return rendered, {"added": added, "removed": removed, "trimmed": trimmed, "chars": len(rendered)}
+        rendered = _render(title, buckets, last, notes)
+    return rendered, {"added": added, "removed": removed, "trimmed": trimmed, "chars": len(rendered), "ignored_removes": ignored}
 
 
 def propose_diff(gateway, doctrine: str, card_summary: str, transcript: list[dict], lang: str):
@@ -168,8 +224,9 @@ def propose_diff(gateway, doctrine: str, card_summary: str, transcript: list[dic
     return gateway.parse([{"role": "system", "content": system}, {"role": "user", "content": user}], DoctrineDiff)
 
 
-def save_aar(path: str | Path, card_summary: str, transcript: list[dict], diff: DoctrineDiff | None, adopted: bool, report: dict | None) -> None:
+def save_aar(path: str | Path, card_summary: str, transcript: list[dict], diff: DoctrineDiff | None, adopted: bool, report: dict | None,
+             card: dict | None = None) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(json.dumps({"card": card_summary, "transcript": transcript,
+    Path(path).write_text(json.dumps({"card": card or {}, "card_summary": card_summary, "transcript": transcript,
                                       "diff": diff.model_dump() if diff else None, "adopted": adopted, "report": report},
                                      ensure_ascii=False, indent=2), encoding="utf-8")

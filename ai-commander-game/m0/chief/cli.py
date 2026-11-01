@@ -81,7 +81,9 @@ def cmd_play(args: argparse.Namespace) -> int:
         return 1
     doctrine = load_doctrine(args.doctrine)
     aar_gateway = None
-    if args.aar_model or args.aar_provider:
+    if args.skip_aar:
+        pass
+    elif args.aar_model or args.aar_provider:
         try:
             aar_gateway = make_gateway(args.aar_provider or args.provider, args.aar_model, effort=args.effort)
         except (ValueError, NotImplementedError) as err:
