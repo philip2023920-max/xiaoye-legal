@@ -107,6 +107,12 @@ def run_play(
         render_board(battle.board, console)
     console.print(f"[bold]{result.battle.summary()}[/]")
     console.print(f"參謀長：{gateway.provider} / {gateway.model}｜退回 {result.rejections} 條｜無回應 {result.gateway_errors} 回合")
+    rejected_lines = [f"t{tr['t']} {line}" for tr in result.turns for line in tr["rejected"]]
+    if rejected_lines:
+        console.print(Panel(Group(*[Text(l) for l in rejected_lines[:10]]), title="退回摘要（最多 10 條）", border_style="red"))
+    errors = [f"t{tr['t']} {tr['error']}" for tr in result.turns if tr.get("error") and tr["error"] != "budget"]
+    if errors:
+        console.print(Panel(Group(*[Text(e) for e in errors[:5]]), title="無回應原因（最多 5 條）", border_style="red"))
     console.print(meter.summary())
     if ledger:
         tot = ledger.totals()

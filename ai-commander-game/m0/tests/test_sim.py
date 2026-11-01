@@ -173,6 +173,14 @@ def test_company_order_does_not_touch_player_platoon(tmp_path):
     assert battle.board.unit("plt-A1").task.type == "seize"
 
 
+def test_platoon_explicit_order_beats_company_order_same_turn(tmp_path):
+    board = load_board(SAMPLES / "board_start.json")
+    battle = Battle(board, enemy_units=[], out_dir=tmp_path)
+    battle.step([Order(unit_id="plt-A3", task="hold", target="B2"), Order(unit_id="co-A", task="seize", target="C3")], [])
+    assert battle.board.unit("plt-A3").task.type == "hold" and battle.board.unit("plt-A3").task.target == "B2"
+    assert battle.board.unit("plt-A1").task.type == "seize" and battle.board.unit("plt-A2").task.type == "seize"
+
+
 def test_routed_unit_in_own_sector_stays_put():
     g = open_grid()
     u = plt("u", "A1", state="routed", strength=0.2)

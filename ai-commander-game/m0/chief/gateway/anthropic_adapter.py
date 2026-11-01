@@ -36,9 +36,10 @@ def usage_from_anthropic(u) -> Usage:
 class AnthropicGateway:
     provider = "anthropic"
 
-    def __init__(self, model: str | None = None, client=None, max_tokens: int = MAX_TOKENS) -> None:
+    def __init__(self, model: str | None = None, client=None, max_tokens: int = MAX_TOKENS, effort: str | None = None) -> None:
         self.model = model or DEFAULT_MODEL
         self.max_tokens = max_tokens
+        self.effort = effort   # low/medium/high：Haiku 5.5 預設 medium；下命令這種工作 low 通常夠（⚠️ 真機驗證）
         if client is None:
             import anthropic  # 延後匯入：沒有金鑰的人跑 ollama 不該被擋
             client = anthropic.Anthropic()   # 金鑰由環境變數 ANTHROPIC_API_KEY 提供
@@ -48,13 +49,13 @@ class AnthropicGateway:
         system_blocks, convo = _split(messages)
         t0 = time.perf_counter()
         try:
-            response = self.client.messages.parse(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                system=system_blocks,          # 系統提示＋準則在前並快取；每回合只換 user 訊息
-                messages=convo,
-                output_format=ChiefOrders,     # 結構化輸出：SDK 保證回來就是合法 ChiefOrders
-            )
+            kwargs = dict(model=self.model, max_tokens=self.max_tokens,
+                          system=system_blocks,          # 系統提示＋準則在前並快取；每回合只換 user 訊息
+                          messages=convo,
+                          output_format=ChiefOrders)     # 結構化輸出：SDK 保證回來就是合法 ChiefOrders
+            if self.effort:
+                kwargs["output_config"] = {"effort": self.effort}
+            response = self.client.messages.parse(**kwargs)
         except Exception as err:  # noqa: BLE001 - 金鑰錯、額度不足、網路、429、5xx 都走這裡
             import anthropic
             name = type(err).__name__

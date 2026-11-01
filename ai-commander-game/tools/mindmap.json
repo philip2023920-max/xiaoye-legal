@@ -742,17 +742,17 @@
               "children": []
             },
             {
-              "id": "n_e76dcb02",
-              "text": "施工單 03 參謀長下令：Ollama 路徑（真機首跑流程通；已加小模型容錯，待重跑）",
-              "status": "doing",
+              "id": "n_896901ea",
+              "text": "施工單 03 參謀長下令：Ollama 路徑（真機驗收：無回應 7→0，審查 16 項已修）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_14246e88",
-              "text": "施工單 04 Anthropic 路徑＋費用計量（adapter、HUD、預算、帳本完成；待真機驗收）",
-              "status": "doing",
+              "id": "n_4f2b2ea1",
+              "text": "施工單 04 Anthropic 路徑＋費用計量（真機驗收：Haiku 一場 $0.005）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -760,7 +760,7 @@
             {
               "id": "n_5bec66a4",
               "text": "施工單 05 總司令推翻與接管",
-              "status": "todo",
+              "status": "doing",
               "link": "",
               "note": "",
               "children": []
@@ -1362,8 +1362,8 @@
       ]
     }
   ],
-  "version": 16,
-  "updatedAt": "2026-11-01T23:06:52Z",
+  "version": 17,
+  "updatedAt": "2026-11-01T23:24:57Z",
   "updatedBy": "claude",
   "instructions": ""
 }

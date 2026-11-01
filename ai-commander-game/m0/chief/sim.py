@@ -181,18 +181,26 @@ class Battle:
         return None
 
     def apply_orders(self, side: str, orders: list[Order], report: TurnReport) -> None:
+        """同一回合：連的命令拆給子排，但「本回合有自己命令的排」以自己的為準（§3）。"""
         by_id = self._by_id(side)
         who = "參謀長" if side == "us" else "敵軍"
+        valid = [o for o in orders if self.order_problem(side, o) is None]
         for o in orders:
             problem = self.order_problem(side, o)
             if problem:
                 report.events.append(Event(t=self.t, kind="info", text=f"{who}的命令被引擎退回：{problem}"))
-                continue
+        explicit = {o.unit_id for o in valid}
+        # 先套連級（含更高層）命令，再套葉節點命令，確保排的明確命令最後生效
+        def has_children(uid: str) -> bool:
+            return any(c.parent == uid for c in self.units(side))
+        for o in sorted(valid, key=lambda x: 0 if has_children(x.unit_id) else 1):
             u = by_id[o.unit_id]
             task = Task(type=o.task, target=o.target)
             children = [c for c in self.units(side) if c.parent == u.id]
             if children:
                 for cid, ct in split_company_task(u, children, task).items():
+                    if cid in explicit:
+                        continue  # 這個排本回合有自己的命令，連令不覆蓋
                     by_id[cid].task = ct  # 直轄排已在 split 時排除
                 u.task = task
             else:

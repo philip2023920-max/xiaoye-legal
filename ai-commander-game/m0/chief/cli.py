@@ -78,7 +78,7 @@ def cmd_play(args: argparse.Namespace) -> int:
     try:
         board = load_board(args.board)
         enemy = load_script(args.enemy)
-        gateway = make_gateway(args.provider, args.model)
+        gateway = make_gateway(args.provider, args.model, effort=args.effort)
     except (BoardError, ValueError, NotImplementedError) as err:
         err_console.print(f"[red]{err}[/]")
         return 1
@@ -121,6 +121,7 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
     y.add_argument("--seed", type=int, default=None)
     y.add_argument("--prices", default=None, help="價格表 JSON（預設 chief/prices.json；覆寫 LiteLLM 內建表）")
+    y.add_argument("--effort", default=None, choices=["low", "medium", "high"], help="Anthropic 思考深度（預設 medium；下命令可試 low 省錢）")
     y.add_argument("--budget", type=float, default=None, help="本場預算（美元）：到 80%% 提醒，到 100%% 參謀長暫停")
     y.add_argument("--ledger", default="battles/ledger.jsonl", help="跨場帳本路徑（算今天／本月）；給空字串停用")
     y.add_argument("--out", default=None)

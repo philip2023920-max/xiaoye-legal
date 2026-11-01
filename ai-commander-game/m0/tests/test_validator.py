@@ -55,12 +55,10 @@ def test_v5_max_five_orders():
     assert any(r.rule == "V5" for r in rej) and rej[-1].rule == "V5"   # 第 6 條以 V5 退回
 
 
-def test_v7_company_and_its_platoon_cannot_both_be_ordered():
+def test_company_and_its_platoon_may_both_be_ordered():
     b = load_board(SAMPLE)
     acc, rej = validate_orders(b, [o("co-A", "seize", "C3"), o("plt-A1", "hold", "B2")])
-    assert [x.unit_id for x in acc] == ["co-A"] and rej[0].rule == "V7"
-    acc, rej = validate_orders(b, [o("plt-A1", "hold", "B2"), o("co-A", "seize", "C3")])   # 反過來也一樣，先到先贏
-    assert [x.unit_id for x in acc] == ["plt-A1"] and rej[0].rule == "V7"
+    assert [x.unit_id for x in acc] == ["co-A", "plt-A1"] and rej == []
 
 
 def test_rule_priority_six_orders_example():
@@ -69,7 +67,7 @@ def test_rule_priority_six_orders_example():
     orders = [o("co-A", "hold", "B2"), o("plt-A1", "hold", "B2"), o("plt-A2", "hold", "A2"),
               o("plt-A3", "hold", "B1"), o("ghost", "hold", "B2"), o("co-A", "seize", "C3")]
     acc, rej = validate_orders(b, orders)
-    assert len(acc) == 1 and [r.rule for r in rej] == ["V7", "V7", "V2", "V1", "V5"]   # co-A 先到，plt-A1/A2 同鏈退回
+    assert len(acc) == 3 and [r.rule for r in rej] == ["V2", "V1", "V5"]
 
 
 def test_v6_routed_unit_may_only_withdraw():

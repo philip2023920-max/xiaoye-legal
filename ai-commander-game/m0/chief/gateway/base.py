@@ -50,8 +50,9 @@ def make_gateway(provider: str, model: str | None = None, **kwargs) -> "Gateway"
         return FakeGateway(model=model or "fake/none")
     if provider == "anthropic":
         from .anthropic_adapter import AnthropicGateway
-        return AnthropicGateway(model=model, **kwargs)
+        return AnthropicGateway(model=model, effort=kwargs.get("effort"))
     from .litellm_adapter import LiteLLMGateway
+    kwargs.pop("effort", None)
     return LiteLLMGateway(provider=provider, model=model, **kwargs)
 
 

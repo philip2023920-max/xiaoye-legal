@@ -78,6 +78,6 @@ def test_refusal_and_truncation_are_reported():
 
 def test_make_gateway_builds_anthropic_without_network(monkeypatch):
     import chief.gateway.anthropic_adapter as mod
-    monkeypatch.setattr(mod.AnthropicGateway, "__init__", lambda self, model=None, client=None, max_tokens=2048: setattr(self, "model", model or "claude-haiku-5-5"))
+    monkeypatch.setattr(mod.AnthropicGateway, "__init__", lambda self, model=None, client=None, max_tokens=2048, effort=None: setattr(self, "model", model or "claude-haiku-5-5"))
     from chief.gateway import make_gateway
     assert make_gateway("anthropic", None).model == "claude-haiku-5-5"
