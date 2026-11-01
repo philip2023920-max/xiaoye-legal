@@ -66,6 +66,14 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/adr/` | 決策備忘卡 ADR-0001～0012 |
 | `CHANGELOG.md` | 每次同步紀錄 |
 
+## Effort 慣例（老闆 2026-11-01 問，Claude 建議）
+
+- 預設 **High**。日常同步、文件、精靈步驟都用它。
+- 寫難改的合約（戰情板格式、閘道介面、驗證器、成長迴圈）與疑難 bug → **Extra**。
+- 授權審核、商業化前安全檢查 → **Max**。
+- Ultracode 先關；M1 進 Godot 多檔並行時再評估。
+- 需要切換時，Claude 在該輪開頭用「⚙️ 建議切換 effort」提示。
+
 ## 注意
 
 - 本資料夾暫放在 `xiaoye-legal` repo 內（該 repo 原本是「小夜」App 的法律頁面）。D6 已拍板開新 repo，搬家時心智圖裡的 `docs/...` 路徑不變。
