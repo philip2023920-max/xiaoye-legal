@@ -352,8 +352,8 @@
         {
           "id": "n_126bac6a",
           "text": "M0 就要定好資料格式（所有層的共用合約）",
-          "status": "doing",
-          "link": "",
+          "status": "done",
+          "link": "docs/09-board-schema.md",
           "note": "Claude：這是 M0 的第一張施工單",
           "children": []
         }
@@ -726,18 +726,18 @@
           "note": "",
           "children": [
             {
-              "id": "n_fd9effdf",
-              "text": "施工單 01 戰情板合約＋靜態渲染",
-              "status": "todo",
-              "link": "",
+              "id": "n_32e191c9",
+              "text": "施工單 01 戰情板合約＋靜態渲染（審查 21 項已修，20 測試）",
+              "status": "done",
+              "link": "docs/09-board-schema.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_eeb0b64b",
-              "text": "施工單 02 模擬會戰可跑（無 LLM）",
-              "status": "todo",
-              "link": "",
+              "id": "n_8125ca0a",
+              "text": "施工單 02 模擬會戰可跑（無 LLM）（程式完成 13 測試，審查中）",
+              "status": "doing",
+              "link": "docs/10-sim-rules.md",
               "note": "",
               "children": []
             },
@@ -1362,8 +1362,8 @@
       ]
     }
   ],
-  "version": 12,
-  "updatedAt": "2026-11-01T22:39:58Z",
+  "version": 13,
+  "updatedAt": "2026-11-01T22:40:27Z",
   "updatedBy": "claude",
   "instructions": ""
 }
