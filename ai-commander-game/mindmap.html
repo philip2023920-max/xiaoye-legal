@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 16　🟡 0　✅ 9　❌ 1　❓ 12</span>
+  <span>⬜ 27　🟡 1　✅ 15　❌ 1　❓ 11</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -42,93 +42,118 @@ markmap:
 # AI 參謀長 RTS（代號 CHIEF）
 
 ## 0. 這張圖怎麼用 📖
-- 狀態符號：⬜ 未開始｜🟡 進行中｜✅ 完成｜❌ 作廢｜❓ 待老闆決策
-- **老闆改法**：直接編輯 `MINDMAP.md`（加節點、改狀態、寫備註），存檔
-- **Claude 施工法**：讀本圖 → 只做標 🟡 的節點 → 完成改 ✅ → 執行 `python tools/sync_mindmap.py` → 寫 `CHANGELOG.md`
-- 節點後的 `→ docs/...` 是對應說明書；改決策請改 `docs/05-decisions.md`
+- 備註寫法：以 💬 開頭的子節點是備註（老闆寫給 Claude 的話，或 Claude 的回覆）
+- 狀態符號：⬜ 未開始｜🟡 進行中（叫 Claude 做）｜✅ 完成｜❌ 作廢｜❓ 待老闆決策
+- 老闆改法 A：在互動心智圖 Artifact 裡直接改（加節點、改狀態、寫備註）；改完告訴 Claude「照心智圖做」
+- 老闆改法 B：直接編輯 `MINDMAP.md`；兩邊衝突時以 Artifact 為準
+- Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md
 - 階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳
 - 完整規則 → README.md
 
 ## 1. 願景與定位 🎯
-- 一句話：玩家是總司令，AI 是會越打越懂你的參謀長 ✅ → docs/02-prd.md
-- 核心賣點：成長迴圈，不是畫面 ✅ → docs/01-feasibility.md
+- 一句話：AI 參謀長全盤指揮，玩家是總司令，隨時可推翻；每次推翻都在訓練它 ✅ → docs/02-prd.md
+- 核心賣點：成長迴圈與參謀長生態，不是畫面 ✅ → docs/01-feasibility.md
 - 參考：Company of Heroes 3（指揮感）＋ TABS（畫面風格）
-- 同業：Pax Historia（LLM 顧問＋指令驗證器）✅ 已查證
-- 差異化：跨戰役成長的參謀長，目前無成品 ✅ 已查證
-- 可行性判定：✅ 高（技術無需突破；體驗需 M0 實測）
+- 聚焦：物理世界中的會戰，不做大戰略（ADR-0005） ✅
+- 同業：Pax Historia（LLM 顧問＋指令驗證器），已查證 ✅
+- 差異化：會成長、可打包、可對決的參謀長，目前無成品 ✅
+- 可行性判定：高（技術無需突破；體驗需 M0 實測） ✅
 
-## 2. 核心玩法：參謀長成長迴圈 🔁 → docs/03-architecture.md
-- 觀察 Observe：遊戲狀態 → 壓縮快照 JSON（< 2K token）⬜
-- 提案 Propose：Claude 以 strict tool `propose_orders` 提 1～3 條建議 ⬜
-- 裁決 Decide：玩家採納／否決／修改 ⬜
-- 執行 Act：指令驗證器把關，不合法退回 ⬜
-- 結果 Outcome：勝負、損失、時間線寫入 battle log ⬜
-- 反思 Reflect：AAR 檢討官更新 Doctrine（有字數上限）⬜
-- 評估 Evaluate：戰例庫回歸測試，退步就回滾 ⬜
-- 作戰準則 Doctrine 格式
+## 2. 核心玩法：指揮、推翻、成長 🔁 → docs/03-architecture.md
+- AI 自動指揮：每個決策節拍對編制層級下任務式命令 ⬜
+- 指揮鏈：LLM 管意圖（軍團旅連），編制 AI 管執行（排班） ⬜
+- 玩家推翻與接管：任一級（班排連旅軍團）隨時接管，放手後 AI 接回 ⬜
+- 推翻紀錄：AI 原令、玩家改令、當時快照、後果 ⬜
+- 指令驗證器：不合法的令退回並記錄 ⬜
+- 戰後檢討 AAR：推翻在哪、轉折、學到什麼；可一鍵撤銷 ⬜
+- 作戰準則 Doctrine（有結構、有上限 2,000 字） ⬜
   - 總司令風格畫像
-  - 已驗證戰術（採納率 > 70%、≥ 3 場）
-  - 被否決的做法
+  - 已驗證戰術
+  - 被推翻的做法
   - 待驗證假設
-- 成功定義：第 5 場採納率 > 70%；首字延遲 < 2 秒 → docs/02-prd.md
+- 戰例庫回歸：準則更新後重跑歷史快照，退步回滾 ⬜
+- 成功定義：第 5 場推翻率 < 15%；命令首字 < 2 秒 → docs/02-prd.md
 
-## 3. 戰鬥沙盤（畫面簡化）🎮 → docs/02-prd.md
+## 3. AI 戰情板（常駐沙盤）🗺️ → docs/03-architecture.md
+- 原則：人與 AI 看同一份；設計給 AI 讀，玩家側欄即時顯示（ADR-0002） ✅
+- 內容：分區地圖、部隊樹（班排連旅軍團）、事件流、目標、戰爭迷霧 ⬜
+- 更新：引擎每 100 ms 寫入；LLM 在節拍讀壓縮版（< 2K token） ⬜
+- 玩家直轄標記：接管中的部隊在板上標示，AI 不再對它下令 ⬜
+- M0 就要定好資料格式（所有層的共用合約） 🟡
+  - 💬 Claude：這是 M0 的第一張施工單
+
+## 4. 戰鬥沙盤（畫面簡化）🎮 → docs/02-prd.md
 - 風格：TABS 低多邊形、無貼圖、單色材質、固定俯視
-- 單位：膠囊體＋方塊頭，3 種（步兵／機槍／裝甲）⬜
-- 物理：走路簡單搖晃；死亡才切 ragdoll ⬜
-- 地圖：1 平面＋3 據點＋方塊掩體 ⬜
-- 敵方：固定劇本 AI ⬜
-- 效能目標：200 單位 60 FPS，2018 內顯筆電 ⬜
-- 本版不做：多人、資源採集、基地建造、語音、AI 自動接管
+- 規模階梯（D8） ❓ → docs/05-decisions.md
+  - 遭遇戰：班排，每人一個方塊人，死亡 ragdoll
+  - 會戰：連旅，一班一組三個方塊人
+  - 大會戰：旅軍團，棋子，拉近才展開
+- 單位：膠囊體＋方塊頭，3 種兵種起步 ⬜
+- 地圖：平面＋據點＋方塊掩體 ⬜
+- 敵方：固定劇本 AI（對決模式時換成另一個參謀長） ⬜
+- 效能目標：會戰規模 60 FPS，2018 內顯筆電 ⬜
+- 本版不做：多人、資源採集、基地建造、語音、純建議模式
 
-## 4. 技術架構 🧱 → docs/03-architecture.md
-- 引擎：Godot 4（建議，待 D1 拍板）❓
-  - Plan B：Three.js + Rapier
-- LLM 層
-  - 節拍模型 claude-haiku-5-5；AAR 模型 claude-sonnet-5-5 ❓ D3
-  - strict tool + tool_choice auto（新模型不支援強制 any/tool）
-  - prompt caching：系統提示＋Doctrine 在前，快照在後
-  - 串流 streaming
-  - ⚠️ Godot LLM Framework addon 需老闆實測；備案 HTTPRequest 直呼
-- 資料層：doctrine.md、profile.json、battles/*.jsonl、evals/
-- 金鑰：MVP BYOK 存 user://，不進 repo 不進對話 ❓ D4
-- 成本：每場約 US$0.1 ✅ 已估算
+## 5. 技術架構 🧱 → docs/03-architecture.md
+- 引擎（D1） ❓ → docs/06-engine-comparison.md
+  - Godot 4（建議；免費、輕、GDScript 好學）
+  - Unity 6（若要上主機）
+  - 純網頁 Three.js（Plan B／展示版）
+  - Unreal 5、Bevy：不建議
+- LLM 閘道（多供應商，ADR-0003） ✅
+  - Anthropic 原生 adapter：strict tool、快取、串流 ⬜
+  - OpenAI 相容 adapter：OpenAI／Gemini／Ollama／LM Studio／vLLM／OpenRouter ⬜
+  - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ⬜
+  - 供應商能力表 provider.json ⬜
+  - 第一個供應商（D9） ❓
+- 參謀長包 Harness：doctrine、prompts、provider.json、evals 打包 ⬜
+  - 匯出／匯入 ⬜
+  - 參謀長對決：兩個包各指揮一方，本地對戰 ⬜
+  - 官方挑戰包（GitHub Releases） ⬜
+  - 公平規則（D10） ❓
+- 資料層：harness/、battles/*.jsonl、evals/
+- 金鑰：BYOK 存本機加密設定，不進 repo 不進對話（ADR-0004） ✅
+- 三語：繁中／簡中／英文，字串抽資源檔（ADR-0007） ✅
+- 成本：Haiku 等級每場約 US$0.1；本地模型 0 ✅
 
-## 5. 里程碑 🗓️ → docs/04-roadmap.md
-- M0 文字版沙盤（2 週）⬜ ← 建議第一步 ❓ D2
-  - sandbox.py 回合制小戰局
-  - 參謀長呼叫 + 終端機裁決
-  - AAR + Doctrine diff
-  - 戰例庫回歸
-  - 驗收：5 場採納率上升
-- M1 Godot 戰鬥沙盤（4～6 週）⬜
-- M2 參謀長接入 Godot（4 週）⬜
-- M3 可玩 Demo + itch.io（2～3 週）⬜
-- M4 商業化（不排程）❌ 本版不做
+## 6. 里程碑 🗓️ → docs/04-roadmap.md
+- M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002） ⬜
+  - 戰情板資料格式與側欄文字渲染
+  - 模擬會戰（連級，10 回合）
+  - LLM 閘道：Anthropic 原生＋Ollama 本地
+  - 命令合約 issue_orders＋驗證器
+  - 終端機推翻介面
+  - AAR＋Doctrine diff＋戰例庫回歸
+  - 驗收：5 場推翻率下降；回歸能抓到壞準則
+- M1 引擎戰鬥沙盤（4～6 週，等 D1） ⬜
+- M2 參謀長接入＋玩家接管 UI（4 週） ⬜
+- M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
+- M4 商業化（不排程，本版不做） ❌
 
-## 6. 風險與待決策 ⚠️ → docs/05-decisions.md
+## 7. 風險與待決策 ⚠️ → docs/05-decisions.md
 - 風險
-  - LLM 延遲 → 決策節拍＋串流 ✅ 有解法
-  - 幻覺指令 → schema 合約＋驗證器 ✅ 有解法
-  - 「變強」變垃圾堆 → Doctrine 上限＋戰例庫回歸 ✅ 有解法
+  - LLM 延遲 → 決策節拍＋串流＋任務式命令，有解法 ✅
+  - 幻覺指令 → schema 合約＋驗證器，有解法 ✅
+  - 「變強」變垃圾堆 → Doctrine 上限＋戰例庫回歸，有解法 ✅
+  - 軍團規模 vs 低硬體 → 規模階梯（D8）❓
+  - 便宜或本地模型常被退回 → 能力表＋提示（D9）❓
   - 體驗是否夠爽 → 只能靠 M0 實測 ❓
-- 待老闆拍板（可整批回「全照建議」）
-  - D1 引擎 Godot 4 ❓
-  - D2 先做 M0 文字版 ❓
-  - D3 模型 Haiku 節拍／Sonnet AAR ❓
-  - D4 金鑰 BYOK ❓
-  - D5 即時＋決策節拍 ❓
-  - D6 開新 repo ❓
-  - D7 介面繁中、Doctrine 雙語 ❓
+- 第一輪已拍板：D2 M0 戰情板、D3 多供應商、D4 BYOK、D5 AI 主控可推翻、D6 新 repo、D7 三語 ✅
+- 第二輪待拍板（可整批回「全照建議」）
+  - D1 引擎：建議 Godot 4 ❓
+  - D8 規模階梯：建議採用 ❓
+  - D9 首批供應商：建議 Anthropic＋Ollama ❓
+  - D10 對決公平：建議排名賽同模型同戰例 ❓
 
-## 7. 文件索引 📂
+## 8. 文件索引 📂
 - README.md（規則與工作流程）
 - docs/01-feasibility.md（可行性＋來源）
-- docs/02-prd.md（PRD＋商業評分 6/10）
-- docs/03-architecture.md（架構＋資料格式）
+- docs/02-prd.md（PRD v0.2）
+- docs/03-architecture.md（架構 v0.2）
 - docs/04-roadmap.md（M0～M4）
-- docs/05-decisions.md（D1～D7）
-- docs/adr/（拍板後的決策備忘卡，目前空）
+- docs/05-decisions.md（拍板紀錄＋第二輪）
+- docs/06-engine-comparison.md（引擎比較）
+- docs/adr/（ADR-0002～0007）
 - CHANGELOG.md（每次同步紀錄）
 
 </script>

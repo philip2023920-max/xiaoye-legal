@@ -1,0 +1,866 @@
+{
+  "title": "AI 參謀長 RTS（代號 CHIEF）",
+  "nodes": [
+    {
+      "id": "n_30811c5b",
+      "text": "0. 這張圖怎麼用 📖",
+      "status": "",
+      "link": "",
+      "note": "",
+      "children": [
+        {
+          "id": "n_478917fe",
+          "text": "備註寫法：以 💬 開頭的子節點是備註（老闆寫給 Claude 的話，或 Claude 的回覆）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_2b27d256",
+          "text": "狀態符號：⬜ 未開始｜🟡 進行中（叫 Claude 做）｜✅ 完成｜❌ 作廢｜❓ 待老闆決策",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_bc1eb9c9",
+          "text": "老闆改法 A：在互動心智圖 Artifact 裡直接改（加節點、改狀態、寫備註）；改完告訴 Claude「照心智圖做」",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_3af11d3e",
+          "text": "老闆改法 B：直接編輯 `MINDMAP.md`；兩邊衝突時以 Artifact 為準",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_ddabc799",
+          "text": "Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_349fd2a6",
+          "text": "階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_01bedb96",
+          "text": "完整規則",
+          "status": "",
+          "link": "README.md",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_278a75da",
+      "text": "1. 願景與定位 🎯",
+      "status": "",
+      "link": "",
+      "note": "",
+      "children": [
+        {
+          "id": "n_642feb03",
+          "text": "一句話：AI 參謀長全盤指揮，玩家是總司令，隨時可推翻；每次推翻都在訓練它",
+          "status": "done",
+          "link": "docs/02-prd.md",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_82aef193",
+          "text": "核心賣點：成長迴圈與參謀長生態，不是畫面",
+          "status": "done",
+          "link": "docs/01-feasibility.md",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_23077883",
+          "text": "參考：Company of Heroes 3（指揮感）＋ TABS（畫面風格）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_24fdb5ec",
+          "text": "聚焦：物理世界中的會戰，不做大戰略（ADR-0005）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_9aae24ff",
+          "text": "同業：Pax Historia（LLM 顧問＋指令驗證器），已查證",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_17add89d",
+          "text": "差異化：會成長、可打包、可對決的參謀長，目前無成品",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_310209b9",
+          "text": "可行性判定：高（技術無需突破；體驗需 M0 實測）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_3668be67",
+      "text": "2. 核心玩法：指揮、推翻、成長 🔁",
+      "status": "",
+      "link": "docs/03-architecture.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_8417b211",
+          "text": "AI 自動指揮：每個決策節拍對編制層級下任務式命令",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_ec881714",
+          "text": "指揮鏈：LLM 管意圖（軍團旅連），編制 AI 管執行（排班）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_e787ee5e",
+          "text": "玩家推翻與接管：任一級（班排連旅軍團）隨時接管，放手後 AI 接回",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_30522019",
+          "text": "推翻紀錄：AI 原令、玩家改令、當時快照、後果",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_90cf52fb",
+          "text": "指令驗證器：不合法的令退回並記錄",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_dfa8055f",
+          "text": "戰後檢討 AAR：推翻在哪、轉折、學到什麼；可一鍵撤銷",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_bdf4c343",
+          "text": "作戰準則 Doctrine（有結構、有上限 2,000 字）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_2eba473c",
+              "text": "總司令風格畫像",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_14d656a8",
+              "text": "已驗證戰術",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_993f0b63",
+              "text": "被推翻的做法",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_ca6d6bd5",
+              "text": "待驗證假設",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_c49acd45",
+          "text": "戰例庫回歸：準則更新後重跑歷史快照，退步回滾",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_6a99a27d",
+          "text": "成功定義：第 5 場推翻率 < 15%；命令首字 < 2 秒",
+          "status": "",
+          "link": "docs/02-prd.md",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_08d1c708",
+      "text": "3. AI 戰情板（常駐沙盤）🗺️",
+      "status": "",
+      "link": "docs/03-architecture.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_870b8d67",
+          "text": "原則：人與 AI 看同一份；設計給 AI 讀，玩家側欄即時顯示（ADR-0002）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_066ecdce",
+          "text": "內容：分區地圖、部隊樹（班排連旅軍團）、事件流、目標、戰爭迷霧",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_7a425a9f",
+          "text": "更新：引擎每 100 ms 寫入；LLM 在節拍讀壓縮版（< 2K token）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_e9324a20",
+          "text": "玩家直轄標記：接管中的部隊在板上標示，AI 不再對它下令",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_126bac6a",
+          "text": "M0 就要定好資料格式（所有層的共用合約）",
+          "status": "doing",
+          "link": "",
+          "note": "Claude：這是 M0 的第一張施工單",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_4f6267ee",
+      "text": "4. 戰鬥沙盤（畫面簡化）🎮",
+      "status": "",
+      "link": "docs/02-prd.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_53ebdab0",
+          "text": "風格：TABS 低多邊形、無貼圖、單色材質、固定俯視",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_ddd71c43",
+          "text": "規模階梯（D8）",
+          "status": "decide",
+          "link": "docs/05-decisions.md",
+          "note": "",
+          "children": [
+            {
+              "id": "n_c710192f",
+              "text": "遭遇戰：班排，每人一個方塊人，死亡 ragdoll",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f1a6a610",
+              "text": "會戰：連旅，一班一組三個方塊人",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_68bf27d5",
+              "text": "大會戰：旅軍團，棋子，拉近才展開",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_bbe85e27",
+          "text": "單位：膠囊體＋方塊頭，3 種兵種起步",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_6462613c",
+          "text": "地圖：平面＋據點＋方塊掩體",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_ffa03c5c",
+          "text": "敵方：固定劇本 AI（對決模式時換成另一個參謀長）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_956414c0",
+          "text": "效能目標：會戰規模 60 FPS，2018 內顯筆電",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_b10d069a",
+          "text": "本版不做：多人、資源採集、基地建造、語音、純建議模式",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_a30bfd27",
+      "text": "5. 技術架構 🧱",
+      "status": "",
+      "link": "docs/03-architecture.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_a5ed8a28",
+          "text": "引擎（D1）",
+          "status": "decide",
+          "link": "docs/06-engine-comparison.md",
+          "note": "",
+          "children": [
+            {
+              "id": "n_dac5671e",
+              "text": "Godot 4（建議；免費、輕、GDScript 好學）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_8afa3948",
+              "text": "Unity 6（若要上主機）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_6bd985d0",
+              "text": "純網頁 Three.js（Plan B／展示版）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_7adb7f7a",
+              "text": "Unreal 5、Bevy：不建議",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_e2bd94ae",
+          "text": "LLM 閘道（多供應商，ADR-0003）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_edf7cbae",
+              "text": "Anthropic 原生 adapter：strict tool、快取、串流",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_3154751e",
+              "text": "OpenAI 相容 adapter：OpenAI／Gemini／Ollama／LM Studio／vLLM／OpenRouter",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_92be1c05",
+              "text": "最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_186dfdd4",
+              "text": "供應商能力表 provider.json",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_7087b77c",
+              "text": "第一個供應商（D9）",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_3e272164",
+          "text": "參謀長包 Harness：doctrine、prompts、provider.json、evals 打包",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_5b5744cf",
+              "text": "匯出／匯入",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_eec5b968",
+              "text": "參謀長對決：兩個包各指揮一方，本地對戰",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_ccd26ae5",
+              "text": "官方挑戰包（GitHub Releases）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_233ff8ae",
+              "text": "公平規則（D10）",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_d8517259",
+          "text": "資料層：harness/、battles/*.jsonl、evals/",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_568123f2",
+          "text": "金鑰：BYOK 存本機加密設定，不進 repo 不進對話（ADR-0004）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_71309969",
+          "text": "三語：繁中／簡中／英文，字串抽資源檔（ADR-0007）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_384f1531",
+          "text": "成本：Haiku 等級每場約 US$0.1；本地模型 0",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_69fcd4fb",
+      "text": "6. 里程碑 🗓️",
+      "status": "",
+      "link": "docs/04-roadmap.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_ae8bcf3c",
+          "text": "M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_4a4216c4",
+              "text": "戰情板資料格式與側欄文字渲染",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_86c907ba",
+              "text": "模擬會戰（連級，10 回合）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_593ac071",
+              "text": "LLM 閘道：Anthropic 原生＋Ollama 本地",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_dc5f003e",
+              "text": "命令合約 issue_orders＋驗證器",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_894fc8c6",
+              "text": "終端機推翻介面",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_7af40c54",
+              "text": "AAR＋Doctrine diff＋戰例庫回歸",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_827e3bbf",
+              "text": "驗收：5 場推翻率下降；回歸能抓到壞準則",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_8fdf1653",
+          "text": "M1 引擎戰鬥沙盤（4～6 週，等 D1）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_3b8b7681",
+          "text": "M2 參謀長接入＋玩家接管 UI（4 週）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_b0a537f2",
+          "text": "M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_96acc7c6",
+          "text": "M4 商業化（不排程，本版不做）",
+          "status": "dropped",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_819a216e",
+      "text": "7. 風險與待決策 ⚠️",
+      "status": "",
+      "link": "docs/05-decisions.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_4f7be29a",
+          "text": "風險",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_3ce7dcad",
+              "text": "LLM 延遲 → 決策節拍＋串流＋任務式命令，有解法",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_ef6b0eb1",
+              "text": "幻覺指令 → schema 合約＋驗證器，有解法",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_18d0e5c5",
+              "text": "「變強」變垃圾堆 → Doctrine 上限＋戰例庫回歸，有解法",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f644f067",
+              "text": "軍團規模 vs 低硬體",
+              "status": "",
+              "link": "規模階梯（D8）❓",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_11a14975",
+              "text": "便宜或本地模型常被退回",
+              "status": "",
+              "link": "能力表＋提示（D9）❓",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f3276f5c",
+              "text": "體驗是否夠爽 → 只能靠 M0 實測",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_196ccd31",
+          "text": "第一輪已拍板：D2 M0 戰情板、D3 多供應商、D4 BYOK、D5 AI 主控可推翻、D6 新 repo、D7 三語",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_16f03ac7",
+          "text": "第二輪待拍板（可整批回「全照建議」）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_382d30b5",
+              "text": "D1 引擎：建議 Godot 4",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_2cdefc3f",
+              "text": "D8 規模階梯：建議採用",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_32549603",
+              "text": "D9 首批供應商：建議 Anthropic＋Ollama",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_15fd7e20",
+              "text": "D10 對決公平：建議排名賽同模型同戰例",
+              "status": "decide",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n_045c0a9d",
+      "text": "8. 文件索引 📂",
+      "status": "",
+      "link": "",
+      "note": "",
+      "children": [
+        {
+          "id": "n_927b10ac",
+          "text": "README.md（規則與工作流程）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_0e569bad",
+          "text": "docs/01-feasibility.md（可行性＋來源）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_78630ddd",
+          "text": "docs/02-prd.md（PRD v0.2）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_12f6e434",
+          "text": "docs/03-architecture.md（架構 v0.2）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_497cd261",
+          "text": "docs/04-roadmap.md（M0～M4）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_3ac970e0",
+          "text": "docs/05-decisions.md（拍板紀錄＋第二輪）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_10184cb5",
+          "text": "docs/06-engine-comparison.md（引擎比較）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_b1912b70",
+          "text": "docs/adr/（ADR-0002～0007）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_1c316e19",
+          "text": "CHANGELOG.md（每次同步紀錄）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "version": 2,
+  "updatedAt": "2026-11-01T21:00:28Z",
+  "updatedBy": "claude",
+  "instructions": ""
+}
