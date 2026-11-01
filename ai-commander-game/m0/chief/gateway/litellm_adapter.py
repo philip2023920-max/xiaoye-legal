@@ -1,22 +1,25 @@
-"""OpenAI 相容路徑：LiteLLM（統一呼叫與 usage）＋ instructor JSON 模式（schema 驗證、把錯誤回饋給模型重試）。
+"""OpenAI 相容路徑：LiteLLM（統一呼叫與 usage）＋ instructor（schema 驗證、把錯誤回饋給模型重試）。
 
 適用 Ollama、OpenAI、DeepSeek、OpenRouter、LM Studio、vLLM…凡是 LiteLLM 認得的都行。
 最低公分母策略：schema 進提示 → 回 JSON → 本地驗證 → 不合格重試最多 2 次（共 3 次）。
+Ollama 另走 json_schema → json_object → 純提示 三段降級（端點不支援時自動降級）。
 """
 from __future__ import annotations
 
 import logging
 import os
 import time
+from typing import Type
+
+from pydantic import BaseModel
 
 from ..board import estimate_tokens
 from ..meter import Usage
 from ..orders import ChiefOrders
-from .base import ChiefResponse
+from .base import ChatResponse, ChiefResponse, ParsedResponse
 
 os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")  # 不要每次 import 都上網抓價格表
 DEFAULT_TIMEOUT_S = 120
-
 DEFAULT_MODELS = {
     "ollama": "ollama/qwen2.5:3b",
     "openai": "openai/gpt-4o-mini",
@@ -46,12 +49,13 @@ def _connection_problem(err: BaseException) -> str | None:
     while cur is not None and seen < 6:
         name = type(cur).__name__
         text = str(cur)
+        low = text.lower()
         if name in ("APIConnectionError", "ConnectionError", "ConnectError", "Timeout", "APITimeoutError", "ReadTimeout", "ConnectTimeout") \
-                or "Connection refused" in text or "connection" in text.lower() and "refused" in text.lower():
+                or "connection refused" in low or ("connection" in low and "refused" in low):
             return f"連不上模型服務：{text[:160]}"
-        if name in ("NotFoundError",) or "not found" in text.lower() and "model" in text.lower():
+        if name == "NotFoundError" or ("not found" in low and "model" in low):
             return f"模型不存在：{text[:160]}"
-        if name in ("AuthenticationError",):
+        if name == "AuthenticationError":
             return "金鑰無效或未設定"
         cur = cur.__cause__ or cur.__context__
         seen += 1
@@ -82,41 +86,46 @@ class LiteLLMGateway:
         logging.getLogger("instructor").setLevel(logging.CRITICAL)   # 重試時的英文錯誤不要夾在面板中間
         # MD_JSON：容忍模型把 JSON 包在 ```json 圍欄或前後加話（小模型常見）
         self._client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.MD_JSON)
-        # Ollama ≥0.5 支援 schema 強制輸出；LiteLLM 把 json_schema 轉成 Ollama 的 format=<schema>。
-        # 退回順序：json_schema → json_object → 純提示（端點不支援時自動降級）。
-        self.response_format: dict | None = None
-        if provider == "ollama" and "response_format" not in self.extra:
-            self.response_format = {"type": "json_schema", "json_schema": {"name": "chief_orders", "schema": ChiefOrders.model_json_schema()}}
+        self.schema_level = 2 if (provider == "ollama" and "response_format" not in self.extra) else 0  # 2=json_schema 1=json_object 0=無
 
-    def issue_orders(self, messages: list[dict]) -> ChiefResponse:
+    def _response_format(self, response_model: Type[BaseModel]) -> dict | None:
+        if self.schema_level == 2:
+            return {"type": "json_schema", "json_schema": {"name": response_model.__name__.lower(), "schema": response_model.model_json_schema()}}
+        if self.schema_level == 1:
+            return {"type": "json_object"}
+        return None
+
+    def parse(self, messages: list[dict], response_model: Type[BaseModel]) -> ParsedResponse:
+        """通用結構化呼叫：schema 驗證 + 把錯誤回饋給模型重試（instructor）。"""
         from instructor.core.exceptions import InstructorRetryException
 
-        kwargs = dict(model=self.model, messages=messages, response_model=ChiefOrders, max_retries=MAX_RETRIES,
+        kwargs = dict(model=self.model, messages=messages, response_model=response_model, max_retries=MAX_RETRIES,
                       timeout=self.timeout_s, **self.extra)
         if self.api_base:
             kwargs["api_base"] = self.api_base
-        if self.response_format:
-            kwargs["response_format"] = self.response_format
+        rf = self._response_format(response_model)
+        if rf:
+            kwargs["response_format"] = rf
         t0 = time.perf_counter()
         try:
             try:
-                orders, completion = self._client.chat.completions.create_with_completion(**kwargs)
+                obj, completion = self._client.chat.completions.create_with_completion(**kwargs)
             except Exception as first:  # noqa: BLE001
-                if self.response_format and _connection_problem(first) is None and "format" in str(first).lower():
-                    # 端點不吃這種 response_format：降一級再試一次
-                    self.response_format = {"type": "json_object"} if self.response_format.get("type") == "json_schema" else None
+                if rf and _connection_problem(first) is None and "format" in str(first).lower():
+                    self.schema_level -= 1          # 端點不吃這種 response_format：降一級再試一次
                     kwargs.pop("response_format", None)
-                    if self.response_format:
-                        kwargs["response_format"] = self.response_format
-                    orders, completion = self._client.chat.completions.create_with_completion(**kwargs)
+                    rf = self._response_format(response_model)
+                    if rf:
+                        kwargs["response_format"] = rf
+                    obj, completion = self._client.chat.completions.create_with_completion(**kwargs)
                 else:
                     raise
         except InstructorRetryException as err:
             problem = _connection_problem(err)
             attempts = getattr(err, "n_attempts", MAX_RETRIES + 1)
             if problem:
-                return ChiefResponse(orders=None, usage=Usage(), attempts=attempts, latency_s=time.perf_counter() - t0,
-                                     error=f"呼叫 {self.model} 失敗：{problem}")
+                return ParsedResponse(parsed=None, usage=Usage(), attempts=attempts, latency_s=time.perf_counter() - t0,
+                                      error=f"呼叫 {self.model} 失敗：{problem}")
             last = getattr(err, "last_completion", None)
             text = ""
             try:
@@ -124,16 +133,41 @@ class LiteLLMGateway:
             except Exception:  # noqa: BLE001
                 text = ""
             usage = _usage_from(last, messages, text) if last else Usage(estimated=True)
-            return ChiefResponse(orders=None, usage=usage, attempts=attempts, latency_s=time.perf_counter() - t0,
-                                 error=f"模型連續 {attempts} 次沒有回傳合法的命令 JSON，本回合無新命令", raw=text[:500])
+            return ParsedResponse(parsed=None, usage=usage, attempts=attempts, latency_s=time.perf_counter() - t0,
+                                  error=f"模型連續 {attempts} 次沒有回傳合法的 JSON（{response_model.__name__}）", raw=text[:500])
         except Exception as err:  # noqa: BLE001 - 連線／金鑰／模型不存在等
             problem = _connection_problem(err) or f"{type(err).__name__}: {str(err)[:200]}"
-            return ChiefResponse(orders=None, usage=Usage(), latency_s=time.perf_counter() - t0, attempts=1,
-                                 error=f"呼叫 {self.model} 失敗：{problem}")
+            return ParsedResponse(parsed=None, usage=Usage(), latency_s=time.perf_counter() - t0, attempts=1,
+                                  error=f"呼叫 {self.model} 失敗：{problem}")
         text = ""
         try:
             text = completion.choices[0].message.content or ""
         except Exception:  # noqa: BLE001
             pass
-        return ChiefResponse(orders=orders, usage=_usage_from(completion, messages, text),
-                             latency_s=time.perf_counter() - t0, raw=text[:500])
+        return ParsedResponse(parsed=obj, usage=_usage_from(completion, messages, text), latency_s=time.perf_counter() - t0, raw=text[:500])
+
+    def issue_orders(self, messages: list[dict]) -> ChiefResponse:
+        r = self.parse(messages, ChiefOrders)
+        error = r.error
+        if error and "合法的 JSON" in error:
+            error = f"模型連續 {r.attempts} 次沒有回傳合法的命令 JSON，本回合無新命令"
+        return ChiefResponse(orders=r.parsed, usage=r.usage, attempts=r.attempts, latency_s=r.latency_s, error=error, raw=r.raw)
+
+    def chat(self, messages: list[dict]) -> ChatResponse:
+        """純文字回覆（討論用）。"""
+        import litellm
+        kwargs = dict(model=self.model, messages=messages, timeout=self.timeout_s, **self.extra)
+        if self.api_base:
+            kwargs["api_base"] = self.api_base
+        t0 = time.perf_counter()
+        try:
+            completion = litellm.completion(**kwargs)
+        except Exception as err:  # noqa: BLE001
+            problem = _connection_problem(err) or f"{type(err).__name__}: {str(err)[:200]}"
+            return ChatResponse(text="", latency_s=time.perf_counter() - t0, error=f"呼叫 {self.model} 失敗：{problem}")
+        text = ""
+        try:
+            text = completion.choices[0].message.content or ""
+        except Exception:  # noqa: BLE001
+            pass
+        return ChatResponse(text=text, usage=_usage_from(completion, messages, text), latency_s=time.perf_counter() - t0)

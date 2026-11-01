@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import time
+from typing import Type
+
+from pydantic import BaseModel
 
 from ..meter import Usage
 from ..orders import ChiefOrders
-from .base import ChiefResponse
+from .base import ChatResponse, ChiefResponse, ParsedResponse
 
 DEFAULT_MODEL = "claude-haiku-5-5"   # 節拍用（D3）；AAR 用 claude-sonnet-5-5
 MAX_TOKENS = 2048
@@ -45,48 +48,72 @@ class AnthropicGateway:
             client = anthropic.Anthropic()   # 金鑰由環境變數 ANTHROPIC_API_KEY 提供
         self.client = client
 
-    def issue_orders(self, messages: list[dict]) -> ChiefResponse:
+    def _error(self, err: Exception) -> str:
+        import anthropic
+        name = type(err).__name__
+        hint = {
+            "AuthenticationError": "金鑰無效或未設定（檢查 .env 的 ANTHROPIC_API_KEY）",
+            "PermissionDeniedError": "金鑰沒有權限或帳戶需要儲值",
+            "RateLimitError": "被限流，稍後重試",
+            "APIConnectionError": "連不上 Anthropic API（網路或代理）",
+            "NotFoundError": f"模型 {self.model} 不存在",
+            "BadRequestError": "請求格式被拒（可能是模型不支援某參數）",
+        }.get(name, "")
+        detail = str(err)
+        if isinstance(err, anthropic.APIStatusError):
+            detail = f"HTTP {err.status_code}: {detail}"
+        return f"呼叫 {self.model} 失敗：{name}{'（' + hint + '）' if hint else ''}: {detail[:200]}"
+
+    def parse(self, messages: list[dict], response_model: Type[BaseModel]) -> ParsedResponse:
         system_blocks, convo = _split(messages)
         t0 = time.perf_counter()
         try:
             kwargs = dict(model=self.model, max_tokens=self.max_tokens,
                           system=system_blocks,          # 系統提示＋準則在前並快取；每回合只換 user 訊息
                           messages=convo,
-                          output_format=ChiefOrders)     # 結構化輸出：SDK 保證回來就是合法 ChiefOrders
+                          output_format=response_model)  # 結構化輸出：SDK 保證回來就是合法的 response_model
             if self.effort:
                 kwargs["output_config"] = {"effort": self.effort}
             response = self.client.messages.parse(**kwargs)
         except Exception as err:  # noqa: BLE001 - 金鑰錯、額度不足、網路、429、5xx 都走這裡
-            import anthropic
-            name = type(err).__name__
-            hint = {
-                "AuthenticationError": "金鑰無效或未設定（檢查 .env 的 ANTHROPIC_API_KEY）",
-                "PermissionDeniedError": "金鑰沒有權限或帳戶需要儲值",
-                "RateLimitError": "被限流，稍後重試",
-                "APIConnectionError": "連不上 Anthropic API（網路或代理）",
-                "NotFoundError": f"模型 {self.model} 不存在",
-                "BadRequestError": "請求格式被拒（可能是模型不支援某參數）",
-            }.get(name, "")
-            detail = str(err)
-            if isinstance(err, anthropic.APIStatusError):
-                detail = f"HTTP {err.status_code}: {detail}"
-            return ChiefResponse(orders=None, latency_s=time.perf_counter() - t0,
-                                 error=f"呼叫 {self.model} 失敗：{name}{'（' + hint + '）' if hint else ''}: {detail[:200]}")
+            return ParsedResponse(parsed=None, latency_s=time.perf_counter() - t0, error=self._error(err))
         latency = time.perf_counter() - t0
         stop = getattr(response, "stop_reason", None)
         usage = usage_from_anthropic(getattr(response, "usage", None))
         if stop == "refusal":
-            return ChiefResponse(orders=None, usage=usage, latency_s=latency,
-                                 error="模型因安全分類拒絕了這個請求（stop_reason=refusal），本回合無新命令")
+            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error="模型因安全分類拒絕了這個請求（stop_reason=refusal）")
         if stop == "max_tokens":
-            return ChiefResponse(orders=None, usage=usage, latency_s=latency,
-                                 error=f"回覆被 max_tokens={self.max_tokens} 截斷，本回合無新命令")
+            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error=f"回覆被 max_tokens={self.max_tokens} 截斷")
         parsed = getattr(response, "parsed_output", None)
         if parsed is None:
-            return ChiefResponse(orders=None, usage=usage, latency_s=latency, error="SDK 沒有回傳可解析的結構化輸出")
+            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error="SDK 沒有回傳可解析的結構化輸出")
         raw = ""
         try:
             raw = next(b.text for b in response.content if getattr(b, "type", "") == "text")
         except Exception:  # noqa: BLE001
             pass
-        return ChiefResponse(orders=parsed, usage=usage, latency_s=latency, raw=raw[:500])
+        return ParsedResponse(parsed=parsed, usage=usage, latency_s=latency, raw=raw[:500])
+
+    def issue_orders(self, messages: list[dict]) -> ChiefResponse:
+        r = self.parse(messages, ChiefOrders)
+        error = r.error
+        if error and ("refusal" in error or "max_tokens" in error):
+            error += "，本回合無新命令"
+        return ChiefResponse(orders=r.parsed, usage=r.usage, attempts=r.attempts, latency_s=r.latency_s, error=error, raw=r.raw)
+
+    def chat(self, messages: list[dict]) -> ChatResponse:
+        system_blocks, convo = _split(messages)
+        t0 = time.perf_counter()
+        try:
+            kwargs = dict(model=self.model, max_tokens=self.max_tokens, system=system_blocks, messages=convo)
+            if self.effort:
+                kwargs["output_config"] = {"effort": self.effort}
+            response = self.client.messages.create(**kwargs)
+        except Exception as err:  # noqa: BLE001
+            return ChatResponse(text="", latency_s=time.perf_counter() - t0, error=self._error(err))
+        text = ""
+        try:
+            text = "".join(b.text for b in response.content if getattr(b, "type", "") == "text")
+        except Exception:  # noqa: BLE001
+            pass
+        return ChatResponse(text=text, usage=usage_from_anthropic(getattr(response, "usage", None)), latency_s=time.perf_counter() - t0)

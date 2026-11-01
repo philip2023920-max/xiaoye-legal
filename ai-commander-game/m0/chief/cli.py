@@ -80,14 +80,40 @@ def cmd_play(args: argparse.Namespace) -> int:
         err_console.print(f"[red]{err}[/]")
         return 1
     doctrine = load_doctrine(args.doctrine)
+    aar_gateway = None
+    if args.aar_model or args.aar_provider:
+        try:
+            aar_gateway = make_gateway(args.aar_provider or args.provider, args.aar_model, effort=args.effort)
+        except (ValueError, NotImplementedError) as err:
+            err_console.print(f"[red]AAR 模型設定錯誤：{err}[/]")
+            return 1
+    elif args.provider == "anthropic":
+        aar_gateway = make_gateway("anthropic", "claude-sonnet-5-5", effort=args.effort)   # 戰後檢討用中階模型（D3）
     from .meter import Ledger
     prices_path = args.prices or (os.path.join(os.path.dirname(__file__), "prices.json"))
     prices = PriceTable(prices_path)
     ledger = Ledger(args.ledger) if args.ledger else None
     run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
              prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
-             budget_usd=args.budget, ledger=ledger, auto=args.auto)
+             budget_usd=args.budget, ledger=ledger, auto=args.auto,
+             doctrine_path=args.doctrine, aar_gateway=aar_gateway, skip_aar=args.skip_aar)
     return 0
+
+
+def cmd_doctrine(args: argparse.Namespace) -> int:
+    from .doctrine import DoctrineStore
+    console = Console()
+    store = DoctrineStore(args.path)
+    if args.action == "show":
+        console.print(store.load(), markup=False)
+        return 0
+    if args.action == "undo":
+        if store.undo():
+            console.print("[green]已還原上一版準則。[/]")
+            return 0
+        console.print("[yellow]沒有可還原的版本。[/]")
+        return 1
+    return 2
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -118,6 +144,9 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
     y.add_argument("--seed", type=int, default=None)
     y.add_argument("--prices", default=None, help="價格表 JSON（預設 chief/prices.json；覆寫 LiteLLM 內建表）")
+    y.add_argument("--skip-aar", action="store_true", help="戰後不出戰報卡與討論")
+    y.add_argument("--aar-provider", default=None, help="戰後檢討用的供應商（預設同參謀長）")
+    y.add_argument("--aar-model", default=None, help="戰後檢討用的模型（anthropic 預設 claude-sonnet-5-5）")
     y.add_argument("--effort", default=None, choices=["low", "medium", "high"], help="Anthropic 思考深度（預設 medium；下命令可試 low 省錢）")
     y.add_argument("--budget", type=float, default=None, help="本場預算（美元）：到 80%% 提醒，到 100%% 參謀長暫停")
     y.add_argument("--ledger", default="battles/ledger.jsonl", help="跨場帳本路徑（算今天／本月）；給空字串停用")
@@ -125,6 +154,10 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--quiet", action="store_true")
     y.add_argument("--verbose", action="store_true")
     y.set_defaults(func=cmd_play)
+    d = sub.add_parser("doctrine", help="看或還原作戰準則（施工單 06）")
+    d.add_argument("action", choices=["show", "undo"])
+    d.add_argument("--path", default="harness/default/doctrine.md")
+    d.set_defaults(func=cmd_doctrine)
     return p
 
 

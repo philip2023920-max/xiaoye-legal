@@ -124,6 +124,41 @@ def test_judge_boundary_is_strict():
     assert judge_outcome(b, rec(strength=0.85), owner_before="us") == "➖"      # 掉 0.05 不算 < 0.05
 
 
+def test_aar_flow_adopts_doctrine_and_next_game_quotes_it(tmp_path):
+    doc = tmp_path / "doctrine.md"
+    doc.write_text((Path(__file__).resolve().parent.parent / "harness" / "default" / "doctrine.md").read_text(encoding="utf-8"), encoding="utf-8")
+    board = load_board(SAMPLES / "board_start.json")
+    enemy = load_script(SAMPLES / "enemy_script.json")
+    gw = FakeGateway([], chats=["我學到您偏好固守。", "因為城鎮價值最高。"],
+                     parsed=[{"summary": "您偏好先守再攻", "add": [{"section": "profile", "text": "Prefers holding before attacking"}], "remove": []}])
+    inputs = ["q", "", "1", "", ""]         # q 結束戰鬥 → Enter 討論 → 快速回覆 1 → Enter 結束討論 → Enter 採納
+    out = open(tmp_path / "o.txt", "w", encoding="utf-8")
+    res = run_play(gw, board, enemy, doctrine=doc.read_text(encoding="utf-8"), out_dir=tmp_path / "b", console=Console(file=out, width=120),
+                   auto=False, input_fn=scripted_inputs(inputs), doctrine_path=doc)
+    out.close()
+    text = (tmp_path / "o.txt").read_text(encoding="utf-8")
+    assert "戰報卡" in text and "參謀長：「我學到您偏好固守。」" in text and "準則已更新：新增 1、刪除 0" in text
+    assert "- Prefers holding before attacking" in doc.read_text(encoding="utf-8") and doc.with_suffix(".prev.md").exists()
+    assert (tmp_path / "b" / "aar.json").exists() and res.card is not None and res.card.chief_line
+    # 下一場開局引用
+    out2 = open(tmp_path / "o2.txt", "w", encoding="utf-8")
+    run_play(FakeGateway([]), load_board(SAMPLES / "board_start.json"), enemy, doctrine="d", out_dir=tmp_path / "c", console=Console(file=out2, width=120),
+             auto=False, input_fn=scripted_inputs(["q", "s"]), doctrine_path=doc)
+    out2.close()
+    assert "上次您採納了「" in (tmp_path / "o2.txt").read_text(encoding="utf-8")
+
+
+def test_aar_skip_and_decline(tmp_path):
+    doc = tmp_path / "doctrine.md"; doc.write_text("# D\n\n## Commander profile\n- x\n", encoding="utf-8")
+    board = load_board(SAMPLES / "board_start.json"); enemy = load_script(SAMPLES / "enemy_script.json")
+    gw = FakeGateway([], parsed=[{"summary": "s", "add": [{"section": "tactic", "text": "t"}], "remove": []}])
+    out = open(tmp_path / "o.txt", "w", encoding="utf-8")
+    run_play(gw, board, enemy, doctrine="d", out_dir=tmp_path / "b", console=Console(file=out, width=120), auto=False,
+             input_fn=scripted_inputs(["q", "a", "n"]), doctrine_path=doc)      # a＝直接採納提案 → n 不採納
+    out.close()
+    assert "未採納" in (tmp_path / "o.txt").read_text(encoding="utf-8") and "- t" not in doc.read_text(encoding="utf-8")
+
+
 def test_quit_ends_battle_early(tmp_path):
     res, gw, out = run_interactive(tmp_path, [], ["", "q"])
     assert res.battle.turns_played == 1 and res.battle.end_reason == "quit"

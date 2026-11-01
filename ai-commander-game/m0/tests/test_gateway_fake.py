@@ -48,9 +48,17 @@ def test_fenced_json_and_sloppy_fields_are_normalized():
 
 
 def test_ollama_requests_schema_mode_by_default():
+    from chief.orders import ChiefOrders
     g = LiteLLMGateway(provider="ollama", model="qwen2.5:3b")
-    assert g.response_format["type"] == "json_schema" and "properties" in g.response_format["json_schema"]["schema"]
+    rf = g._response_format(ChiefOrders)
+    assert rf["type"] == "json_schema" and "properties" in rf["json_schema"]["schema"]
     assert g.timeout_s == 120
+
+
+def test_chat_returns_text_with_mock():
+    g = LiteLLMGateway(provider="ollama", model="qwen2.5:3b", extra={"mock_response": "記住了，下次先問您。"})
+    r = g.chat([{"role": "user", "content": "hi"}])
+    assert r.error is None and r.text == "記住了，下次先問您。" and r.usage.prompt_tokens == 10
 
 
 def test_connection_refused_is_reported_as_connection_not_bad_json():

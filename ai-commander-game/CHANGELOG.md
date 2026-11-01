@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第十六次）— 06 戰報卡＋討論＋採納準則
+- 閘道通用化：`parse(messages, model)` 與 `chat(messages)`（LiteLLM／Anthropic／Fake 三者），`issue_orders` 改為其上的薄層
+- `badges.py`（四種離線徽章）、`report.py`（戰報卡、關鍵三幕、參謀長一句話）、`discussion.py`（三回合、快速回覆、兩句截斷）、`doctrine.py`（DoctrineDiff、套用、上限淘汰、undo、開局引用、aar.json）
+- `play.py` 戰後流程：卡 → 一句話 → 討論 → diff 提案 → 一鍵採納；`--skip-aar`、`--aar-provider/--aar-model`（anthropic 預設 Sonnet 5.5 做檢討）；`chief doctrine show|undo`
+- 規則 §11 徽章與戰報卡；測試 86 → 95
+
 ## 2026-11-01（第十五次）— 05 審查修正；第四輪拍板 D11～D14
 - 05 審查員 10 項：Ctrl+C／Ctrl+D 視同結束、玩家輸入不當 Rich 標記、接管連含所有下級（放手亦同）、玩家連令可拆給直轄排（Order 加 issuer）、編號固定不位移、開局快照 t0.json、推翻率分母不計提前結束回合、浮點邊界、未判定計數；測試 82 → 86
 - 老闆提出兵種配比、二戰～冷戰科技、天氣地形 → D11～D14 全照建議 → ADR-0013；PRD v0.4 加 F15 部署配比、F16 世代與天氣；施工單 08 戰鬥模型 v1（在 07 之後、M1 之前）；目前戰鬥模型標為替身

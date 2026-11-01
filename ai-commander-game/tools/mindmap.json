@@ -195,22 +195,22 @@
           "children": []
         },
         {
-          "id": "n_dfa8055f",
-          "text": "戰後檢討 AAR：推翻在哪、轉折、學到什麼；可一鍵撤銷",
-          "status": "todo",
+          "id": "n_ff68637b",
+          "text": "戰後檢討 AAR：推翻在哪、轉折、學到什麼；可一鍵撤銷（chief doctrine undo）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
         },
         {
-          "id": "n_bdf4c343",
-          "text": "作戰準則 Doctrine（有結構、有上限 2,000 字）",
-          "status": "todo",
+          "id": "n_0ff0d279",
+          "text": "作戰準則 Doctrine（有結構、有上限 2,000 字；超限先淘汰假設）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": [
             {
-              "id": "n_2eba473c",
+              "id": "n_6e081b8e",
               "text": "總司令風格畫像",
               "status": "",
               "link": "",
@@ -218,7 +218,7 @@
               "children": []
             },
             {
-              "id": "n_14d656a8",
+              "id": "n_d9bb8c61",
               "text": "已驗證戰術",
               "status": "",
               "link": "",
@@ -226,7 +226,7 @@
               "children": []
             },
             {
-              "id": "n_993f0b63",
+              "id": "n_70d17ea3",
               "text": "被推翻的做法",
               "status": "",
               "link": "",
@@ -234,7 +234,7 @@
               "children": []
             },
             {
-              "id": "n_ca6d6bd5",
+              "id": "n_6e95a951",
               "text": "待驗證假設",
               "status": "",
               "link": "",
@@ -261,7 +261,7 @@
             {
               "id": "n_abe5081d",
               "text": "戰報卡：戰果、推翻次數、花費、徽章；程式產生不花 token",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -269,7 +269,7 @@
             {
               "id": "n_26bc618e",
               "text": "關鍵三幕：玩家 vs AI 決策對照＋後果 👍👎",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -277,7 +277,7 @@
             {
               "id": "n_b8b776bd",
               "text": "討論：最多三回合，快速回覆選項，AI 回覆限兩句",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -285,14 +285,14 @@
             {
               "id": "n_f3168332",
               "text": "採納畫面：準則 diff 一鍵採納／不採納；下一場開局引用",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_4e7cea5d",
-              "text": "徽章與信任計量條：果斷總司令、放手型、省錢贏家",
+              "id": "n_2f73a5b7",
+              "text": "徽章：果斷總司令、放手型、省錢贏家、守土有責（離線判定）✅；信任計量條留 M2",
               "status": "todo",
               "link": "",
               "note": "",
@@ -815,9 +815,9 @@
               "children": []
             },
             {
-              "id": "n_df4ee326",
-              "text": "施工單 06 戰報卡＋討論＋採納",
-              "status": "todo",
+              "id": "n_589f5443",
+              "text": "施工單 06 戰報卡＋討論＋採納（程式＋8 測試完成；待審查與真機驗收）",
+              "status": "doing",
               "link": "",
               "note": "",
               "children": []
@@ -1427,8 +1427,8 @@
       ]
     }
   ],
-  "version": 21,
-  "updatedAt": "2026-11-01T23:39:48Z",
+  "version": 22,
+  "updatedAt": "2026-11-01T23:46:51Z",
   "updatedBy": "claude",
   "instructions": ""
 }
