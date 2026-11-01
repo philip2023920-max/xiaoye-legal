@@ -35,6 +35,23 @@ def test_ollama_model_name_and_api_base_defaults(monkeypatch):
     assert g.model == "ollama/qwen2.5:3b" and g.api_base == "http://127.0.0.1:11434"
 
 
+def test_fenced_json_and_sloppy_fields_are_normalized():
+    fenced = "好的：\n```json\n" + json.dumps({"assessment": "守" * 260, "orders": [
+        {"unit_id": " plt-A1 ", "task": "Attack", "target": "c3", "reason": "x" * 300},
+        {"unit_id": "plt-A2", "task": "fall back", "target": "A1"}]}, ensure_ascii=False) + "\n```"
+    resp = gw(fenced).issue_orders(build_messages("d", {"t": 1}, 1))
+    assert resp.error is None and resp.orders is not None
+    o = resp.orders.sim_orders()
+    assert len(resp.orders.assessment) == 200                       # 太長截斷，不退回
+    assert (o[0].unit_id, o[0].task, o[0].target, len(o[0].reason)) == ("plt-A1", "seize", "C3", 120)
+    assert o[1].task == "withdraw"
+
+
+def test_ollama_requests_json_mode():
+    g = gw(VALID)
+    assert g.force_json is True
+
+
 def test_prompt_contains_board_and_feedback():
     msgs = build_messages("MY-DOCTRINE", {"t": 2, "friendly": []}, 2, "zh-TW", ["V2 plt-A3 seize C3：直轄"])
     assert msgs[0]["role"] == "system" and "MY-DOCTRINE" in msgs[0]["content"] and "Traditional Chinese" in msgs[0]["content"]

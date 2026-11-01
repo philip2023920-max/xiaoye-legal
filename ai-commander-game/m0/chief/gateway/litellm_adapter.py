@@ -53,7 +53,10 @@ class LiteLLMGateway:
                 self.model = "ollama/" + self.model
         self.api_base = api_base
         self.extra = extra or {}
-        self._client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.JSON)
+        # MD_JSON：容忍模型把 JSON 包在 ```json 圍欄或前後加話（小模型常見）
+        self._client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.MD_JSON)
+        # Ollama 支援 JSON 強制模式（format=json）；LiteLLM 以 response_format 轉譯。不支援時自動退回。
+        self.force_json = provider == "ollama" and "response_format" not in self.extra
 
     def issue_orders(self, messages: list[dict]) -> ChiefResponse:
         from instructor.core.exceptions import InstructorRetryException
@@ -61,9 +64,21 @@ class LiteLLMGateway:
         kwargs = dict(model=self.model, messages=messages, response_model=ChiefOrders, max_retries=MAX_RETRIES, **self.extra)
         if self.api_base:
             kwargs["api_base"] = self.api_base
+        if self.force_json:
+            kwargs["response_format"] = {"type": "json_object"}
         t0 = time.perf_counter()
         try:
-            orders, completion = self._client.chat.completions.create_with_completion(**kwargs)
+            try:
+                orders, completion = self._client.chat.completions.create_with_completion(**kwargs)
+            except InstructorRetryException:
+                raise
+            except Exception as first:  # noqa: BLE001
+                if self.force_json and "format" in str(first).lower():
+                    self.force_json = False          # 這個端點不吃 response_format，退回純提示模式
+                    kwargs.pop("response_format", None)
+                    orders, completion = self._client.chat.completions.create_with_completion(**kwargs)
+                else:
+                    raise
         except InstructorRetryException as err:
             attempts = getattr(err, "n_attempts", MAX_RETRIES + 1)
             last = getattr(err, "last_completion", None)

@@ -1,0 +1,10 @@
+{
+  "updated_at": "2026-11-01",
+  "note": "每百萬 token 美元。覆寫 LiteLLM 內建表；玩家可改。來源：claude-api skill 2026-10 價格表（Anthropic 官方）；DeepSeek 為聚合站數字，⚠️ 請核對官方頁面。畫面一律標「估算值，以供應商帳單為準」。",
+  "models": {
+    "claude-haiku-5-5":  {"input_per_m": 0.10, "output_per_m": 0.50, "cache_read_per_m": 0.01, "cache_write_per_m": 0.125},
+    "claude-sonnet-5-5": {"input_per_m": 2.00, "output_per_m": 10.00, "cache_read_per_m": 0.20, "cache_write_per_m": 2.50},
+    "claude-opus-5-5":   {"input_per_m": 4.00, "output_per_m": 20.00, "cache_read_per_m": 0.20, "cache_write_per_m": 5.00},
+    "deepseek/deepseek-chat": {"input_per_m": 0.28, "output_per_m": 0.42}
+  }
+}

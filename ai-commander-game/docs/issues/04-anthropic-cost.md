@@ -10,10 +10,10 @@
 
 ## 驗收清單
 - [ ] `uv run chief play --provider anthropic --model claude-haiku-5-5 --auto` 打完一場，命令格式與 03 相同
-- [ ] 系統提示＋準則放前面並設快取；第 2 回合起 `cache_read_input_tokens` > 0（測試用假回應驗證欄位讀取；真實呼叫由老闆驗收時看 HUD）
-- [ ] `prices.json` 含 claude-haiku-5-5、claude-sonnet-5-5、deepseek-chat、ollama/*（$0）；費用＝token×單價，手算一例當測試期望值
-- [ ] HUD：本場／今天／本月；`--budget 0.5` 到 80% 印提醒、到 100% 印「已達預算，參謀長暫停」並改為無新命令
-- [ ] 流式輸出：第一個字出現時間印在事件流（< 2 秒為目標，不做硬性測試）
+- [x] 系統提示＋準則放前面並設快取；第 2 回合起 `cache_read_input_tokens` > 0（測試用假回應驗證欄位讀取；真實呼叫由老闆驗收時看 HUD）
+- [x] `prices.json` 含 claude-haiku-5-5、claude-sonnet-5-5、deepseek-chat、ollama/*（$0）；費用＝token×單價，手算一例當測試期望值
+- [x] HUD：本場／今天／本月；`--budget 0.5` 到 80% 印提醒、到 100% 印「已達預算，參謀長暫停」並改為無新命令
+- [ ] 流式輸出：第一個字出現時間印在事件流（< 2 秒為目標，不做硬性測試）—— 本版用 `messages.parse()` 非串流，串流延後到 M2 的畫面
 - [ ] `.env.example` ↔ 程式讀取名稱逐字一致（靜態對照列在 QA 報告）
 
 ## 30 秒驗收腳本

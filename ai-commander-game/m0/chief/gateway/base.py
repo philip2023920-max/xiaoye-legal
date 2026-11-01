@@ -49,7 +49,8 @@ def make_gateway(provider: str, model: str | None = None, **kwargs) -> "Gateway"
     if provider == "fake":
         return FakeGateway(model=model or "fake/none")
     if provider == "anthropic":
-        raise NotImplementedError("Anthropic 原生路徑在施工單 04")
+        from .anthropic_adapter import AnthropicGateway
+        return AnthropicGateway(model=model, **kwargs)
     from .litellm_adapter import LiteLLMGateway
     return LiteLLMGateway(provider=provider, model=model, **kwargs)
 

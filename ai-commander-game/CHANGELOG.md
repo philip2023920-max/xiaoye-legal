@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第十一次）— 03 真機首跑後的容錯、04 完成
+- 老闆真機（Ollama qwen2.5:3b）首跑：10 回合、計量、快照皆正常，但 7 回合無合法 JSON → 用假回應重現四種失敗（圍欄、評估太長、同義詞、超過 5 條）全部被嚴格 schema 打回
+- 修正：`orders.py` 改「寬進嚴出」（截斷、同義詞、大小寫正規化）；閘道改 instructor MD_JSON（容忍圍欄）＋ Ollama JSON 強制模式（不支援自動退回）；`play.py` 寫 `llm_log.jsonl` 留原始回覆、解析失敗回饋下一回合；提示明列可下令單位
+- 04：`gateway/anthropic_adapter.py`（`messages.parse` 結構化輸出、系統提示快取、錯誤翻人話、refusal／max_tokens 處理）、`prices.json`、跨場帳本 `Ledger`、`--budget`（80% 提醒、100% 暫停）、HUD 本場／今天／本月、`.env` 自動載入
+- 測試 57 → 67 全綠
+
 ## 2026-11-01（第十次）— 02 審查修正、03 程式完成
 - 02 審查員回報 22 項（引擎不檢查目標會寫壞快照、潰散來回踱步、engaged 不復原、連令蓋直轄排、潰散永不受損等）全部修正；規則文件升 v0.2 補齊實作備註；補 11 個手算測試；移除誤入 repo 的暫存快照
 - 03：`orders.py`（輸出合約）、`validator.py`（V1～V6）、`meter.py`（計量＋LiteLLM 內建價格表）、`prompts.py`＋`prompts/chief_system.md`、`gateway/`（介面、Fake、LiteLLM＋instructor JSON 模式）、`play.py`（自動指揮迴圈，退回回饋進下一回合）、`harness/default/doctrine.md`、`provider.json`；`chief play --provider ollama --auto`

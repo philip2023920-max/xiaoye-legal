@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from rich.console import Console
@@ -82,9 +83,13 @@ def cmd_play(args: argparse.Namespace) -> int:
         err_console.print(f"[red]{err}[/]")
         return 1
     doctrine = load_doctrine(args.doctrine)
-    prices = PriceTable(args.prices) if args.prices else PriceTable()
+    from .meter import Ledger
+    prices_path = args.prices or (os.path.join(os.path.dirname(__file__), "prices.json"))
+    prices = PriceTable(prices_path)
+    ledger = Ledger(args.ledger) if args.ledger else None
     run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
-             prices=prices, console=console, verbose=args.verbose, quiet=args.quiet)
+             prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
+             budget_usd=args.budget, ledger=ledger)
     return 0
 
 
@@ -115,7 +120,9 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--doctrine", default="harness/default/doctrine.md")
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
     y.add_argument("--seed", type=int, default=None)
-    y.add_argument("--prices", default=None, help="prices.json 覆寫價格表（04）")
+    y.add_argument("--prices", default=None, help="價格表 JSON（預設 chief/prices.json；覆寫 LiteLLM 內建表）")
+    y.add_argument("--budget", type=float, default=None, help="本場預算（美元）：到 80%% 提醒，到 100%% 參謀長暫停")
+    y.add_argument("--ledger", default="battles/ledger.jsonl", help="跨場帳本路徑（算今天／本月）；給空字串停用")
     y.add_argument("--out", default=None)
     y.add_argument("--quiet", action="store_true")
     y.add_argument("--verbose", action="store_true")
@@ -124,6 +131,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()  # 讀 .env（ANTHROPIC_API_KEY、OLLAMA_HOST…），金鑰不經聊天
+    except Exception:  # noqa: BLE001
+        pass
     args = build_parser().parse_args(argv)
     return args.func(args)
 

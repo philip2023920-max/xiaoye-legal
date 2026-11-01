@@ -18,8 +18,18 @@ def system_prompt(doctrine: str, lang: str = "zh-TW") -> str:
     return template.replace("{language}", LANG_NAME.get(lang, lang)).replace("{doctrine}", doctrine.strip())
 
 
+def _orderable(snapshot: dict) -> list[str]:
+    return [u["id"] for u in snapshot.get("friendly", []) if u.get("ctrl") != "player"]
+
+
+def _sector_range(snapshot: dict) -> str:
+    ids = list(snapshot.get("map", {}).get("sectors", {}).keys())
+    return f"{ids[0]}..{ids[-1]}" if ids else "(none)"
+
+
 def user_prompt(snapshot: dict, turn: int, feedback: list[str] | None = None) -> str:
     parts = [f"Turn {turn}. Situation board (JSON):", json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"))]
+    parts.append(f"Units you may order this turn: {', '.join(_orderable(snapshot)) or '(none)'}. Sector ids: {_sector_range(snapshot)}.")
     if feedback:
         parts.append("Your orders rejected last turn (do not repeat the mistake):")
         parts.extend(f"- {f}" for f in feedback)

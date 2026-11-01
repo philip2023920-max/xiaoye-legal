@@ -24,6 +24,19 @@ def test_ollama_is_free_but_tokens_counted(tmp_path):
     assert "$0.0000" in m.summary() and "估算值" in m.summary()
 
 
+def test_ledger_today_and_month(tmp_path):
+    import time
+    from chief.meter import Ledger
+    led = Ledger(tmp_path / "ledger.jsonl")
+    now = time.time()
+    led.add("b1", "anthropic", "claude-haiku-5-5", 0.10, Usage(1, 1), at=now)
+    led.add("b0", "anthropic", "claude-haiku-5-5", 0.05, Usage(1, 1), at=now - 2 * 86400)      # 前天
+    led.add("old", "anthropic", "claude-haiku-5-5", 1.00, Usage(1, 1), at=now - 40 * 86400)   # 上個月以前
+    tot = led.totals(now)
+    assert tot["today"] == pytest.approx(0.10)
+    assert 0.10 - 1e-9 <= tot["month"] <= 0.15 + 1e-9        # 前天是否同月看日期；40 天前一定不算
+
+
 def test_prices_json_overrides_builtin(tmp_path):
     p = tmp_path / "prices.json"
     p.write_text(json.dumps({"updated_at": "2026-11-01", "models": {"claude-haiku-5-5": {"input_per_m": 1.0, "output_per_m": 2.0}}}), encoding="utf-8")

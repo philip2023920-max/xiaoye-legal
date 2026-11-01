@@ -505,9 +505,9 @@
           "note": "",
           "children": [
             {
-              "id": "n_edf7cbae",
-              "text": "Anthropic 原生 adapter：strict tool、快取、串流",
-              "status": "todo",
+              "id": "n_d8b9d33e",
+              "text": "Anthropic 原生 adapter：messages.parse 結構化輸出＋prompt caching（串流延後 M2）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -611,9 +611,9 @@
               "children": []
             },
             {
-              "id": "n_3c104d4b",
-              "text": "HUD：本場／今天／本月；預算上限與警示",
-              "status": "todo",
+              "id": "n_8ff2deb7",
+              "text": "HUD：本場／今天／本月（ledger.jsonl）；預算 80% 提醒、100% 暫停",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -742,17 +742,17 @@
               "children": []
             },
             {
-              "id": "n_43a27105",
-              "text": "施工單 03 參謀長下令：Ollama 路徑（程式＋14 離線測試完成；待老闆真機驗收）",
+              "id": "n_e76dcb02",
+              "text": "施工單 03 參謀長下令：Ollama 路徑（真機首跑流程通；已加小模型容錯，待重跑）",
               "status": "doing",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_2b76cf3a",
-              "text": "施工單 04 Anthropic 路徑＋費用計量",
-              "status": "todo",
+              "id": "n_14246e88",
+              "text": "施工單 04 Anthropic 路徑＋費用計量（adapter、HUD、預算、帳本完成；待真機驗收）",
+              "status": "doing",
               "link": "",
               "note": "",
               "children": []
@@ -1362,8 +1362,8 @@
       ]
     }
   ],
-  "version": 14,
-  "updatedAt": "2026-11-01T22:51:56Z",
+  "version": 15,
+  "updatedAt": "2026-11-01T23:01:36Z",
   "updatedBy": "claude",
   "instructions": ""
 }

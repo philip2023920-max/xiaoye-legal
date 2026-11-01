@@ -82,6 +82,38 @@ class Entry:
     at: float = field(default_factory=time.time)
 
 
+class Ledger:
+    """跨場帳本（battles/ledger.jsonl）：每次呼叫一行，用來算「今天／本月」累計。"""
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+
+    def add(self, battle_id: str, provider: str, model: str, cost_usd: float, usage: Usage, at: float | None = None) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        row = {"at": at if at is not None else time.time(), "battle_id": battle_id, "provider": provider, "model": model,
+               "cost_usd": round(cost_usd, 6), "prompt_tokens": usage.prompt_tokens, "completion_tokens": usage.completion_tokens}
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    def totals(self, now: float | None = None) -> dict[str, float]:
+        now = now if now is not None else time.time()
+        lt = time.localtime(now)
+        day_start = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
+        month_start = time.mktime((lt.tm_year, lt.tm_mon, 1, 0, 0, 0, 0, 0, -1))
+        today = month = 0.0
+        if self.path.exists():
+            for line in self.path.read_text(encoding="utf-8").splitlines():
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("at", 0) >= month_start:
+                    month += row.get("cost_usd", 0.0)
+                if row.get("at", 0) >= day_start:
+                    today += row.get("cost_usd", 0.0)
+        return {"today": round(today, 6), "month": round(month, 6)}
+
+
 class UsageMeter:
     def __init__(self, prices: PriceTable | None = None, log_path: str | Path | None = None) -> None:
         self.prices = prices or PriceTable()

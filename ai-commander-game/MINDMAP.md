@@ -76,7 +76,7 @@ markmap:
   - 純網頁 Three.js（Plan B／展示版）
   - Unreal 5、Bevy：排除 ❌
 - LLM 閘道（多供應商，ADR-0003） ✅
-  - Anthropic 原生 adapter：strict tool、快取、串流 ⬜
+  - Anthropic 原生 adapter：messages.parse 結構化輸出＋prompt caching（串流延後 M2） ✅
   - OpenAI 相容 adapter：LiteLLM＋instructor JSON 模式（Ollama 先驗，其餘同路徑） ✅
   - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ✅
   - 供應商能力表 provider.json ✅
@@ -89,7 +89,7 @@ markmap:
 - Token 計量與費用估算 ⬜ → docs/03-architecture.md
   - UsageMeter 記錄每次呼叫的輸入／輸出／快取 token ✅
   - 價格表：LiteLLM 內建表＋prices.json 覆寫（附更新日期） ✅
-  - HUD：本場／今天／本月；預算上限與警示 ⬜
+  - HUD：本場／今天／本月（ledger.jsonl）；預算 80% 提醒、100% 暫停 ✅
   - 本地模型顯示 $0 但仍顯示 token 與秒數 ✅
 - M0 技術棧（ADR-0012，沙盒實測安裝通過） ✅ → docs/08-stage2-architecture.md
   - uv 管 Python 與套件；版本鎖在 m0/uv.lock
@@ -106,8 +106,8 @@ markmap:
 - M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002） 🟡 → docs/issues/README.md
   - 施工單 01 戰情板合約＋靜態渲染（審查 21 項已修，20 測試） ✅ → docs/09-board-schema.md
   - 施工單 02 模擬會戰可跑（無 LLM）（審查 22 項已修，24 測試） ✅ → docs/10-sim-rules.md
-  - 施工單 03 參謀長下令：Ollama 路徑（程式＋14 離線測試完成；待老闆真機驗收） 🟡
-  - 施工單 04 Anthropic 路徑＋費用計量 ⬜
+  - 施工單 03 參謀長下令：Ollama 路徑（真機首跑流程通；已加小模型容錯，待重跑） 🟡
+  - 施工單 04 Anthropic 路徑＋費用計量（adapter、HUD、預算、帳本完成；待真機驗收） 🟡
   - 施工單 05 總司令推翻與接管 ⬜
   - 施工單 06 戰報卡＋討論＋採納 ⬜
   - 施工單 07 參謀長包＋戰例庫回歸＋5 場驗收 ⬜
