@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 55　🟡 2　✅ 36　❌ 3　❓ 2</span>
+  <span>⬜ 46　🟡 2　✅ 45　❌ 3　❓ 2</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -62,11 +62,11 @@ markmap:
 - 可行性判定：高（技術無需突破；體驗需 M0 實測） ✅
 
 ## 2. 核心玩法：指揮、推翻、成長 🔁 → docs/03-architecture.md
-- AI 自動指揮：每個決策節拍對編制層級下任務式命令 ⬜
+- AI 自動指揮：每個決策節拍對編制層級下任務式命令（M0 文字版完成） ✅
 - 指揮鏈：LLM 管意圖（軍團旅連），編制 AI 管執行（排班） ⬜
 - 玩家推翻與接管：任一級（班排連旅軍團）隨時接管，放手後 AI 接回 ⬜
 - 推翻紀錄：AI 原令、玩家改令、當時快照、後果 ⬜
-- 指令驗證器：不合法的令退回並記錄 ⬜
+- 指令驗證器：不合法的令退回並記錄（V1～V6） ✅
 - 戰後檢討 AAR：推翻在哪、轉折、學到什麼；可一鍵撤銷 ⬜
 - 作戰準則 Doctrine（有結構、有上限 2,000 字） ⬜
   - 總司令風格畫像
@@ -110,9 +110,9 @@ markmap:
   - Unreal 5、Bevy：排除 ❌
 - LLM 閘道（多供應商，ADR-0003） ✅
   - Anthropic 原生 adapter：strict tool、快取、串流 ⬜
-  - OpenAI 相容 adapter：OpenAI／Gemini／Ollama／LM Studio／vLLM／OpenRouter ⬜
-  - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ⬜
-  - 供應商能力表 provider.json ⬜
+  - OpenAI 相容 adapter：LiteLLM＋instructor JSON 模式（Ollama 先驗，其餘同路徑） ✅
+  - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ✅
+  - 供應商能力表 provider.json ✅
   - 首批：Anthropic 原生＋Ollama 本地（ADR-0009） ✅
 - 參謀長包 Harness：doctrine、prompts、provider.json、evals 打包 ⬜
   - 匯出／匯入 ⬜
@@ -120,10 +120,10 @@ markmap:
   - 官方挑戰包（GitHub Releases） ⬜
   - 對決不設限制，任何包搭任何模型；畫面並列雙方模型與花費（ADR-0010） ✅
 - Token 計量與費用估算 ⬜ → docs/03-architecture.md
-  - UsageMeter 記錄每次呼叫的輸入／輸出／快取 token ⬜
-  - 價格表 prices.json：玩家可編輯，附更新日期 ⬜
+  - UsageMeter 記錄每次呼叫的輸入／輸出／快取 token ✅
+  - 價格表：LiteLLM 內建表＋prices.json 覆寫（附更新日期） ✅
   - HUD：本場／今天／本月；預算上限與警示 ⬜
-  - 本地模型顯示 $0 但仍顯示 token 與秒數 ⬜
+  - 本地模型顯示 $0 但仍顯示 token 與秒數 ✅
 - M0 技術棧（ADR-0012，沙盒實測安裝通過） ✅ → docs/08-stage2-architecture.md
   - uv 管 Python 與套件；版本鎖在 m0/uv.lock
   - Textual 8.2.8 終端機戰情板
@@ -138,8 +138,8 @@ markmap:
 ## 6. 里程碑 🗓️ → docs/04-roadmap.md
 - M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002） 🟡 → docs/issues/README.md
   - 施工單 01 戰情板合約＋靜態渲染（審查 21 項已修，20 測試） ✅ → docs/09-board-schema.md
-  - 施工單 02 模擬會戰可跑（無 LLM）（程式完成 13 測試，審查中） 🟡 → docs/10-sim-rules.md
-  - 施工單 03 參謀長下令：Ollama 路徑 ⬜
+  - 施工單 02 模擬會戰可跑（無 LLM）（審查 22 項已修，24 測試） ✅ → docs/10-sim-rules.md
+  - 施工單 03 參謀長下令：Ollama 路徑（程式＋14 離線測試完成；待老闆真機驗收） 🟡
   - 施工單 04 Anthropic 路徑＋費用計量 ⬜
   - 施工單 05 總司令推翻與接管 ⬜
   - 施工單 06 戰報卡＋討論＋採納 ⬜

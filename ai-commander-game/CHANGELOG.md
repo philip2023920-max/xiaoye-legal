@@ -2,6 +2,11 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第十次）— 02 審查修正、03 程式完成
+- 02 審查員回報 22 項（引擎不檢查目標會寫壞快照、潰散來回踱步、engaged 不復原、連令蓋直轄排、潰散永不受損等）全部修正；規則文件升 v0.2 補齊實作備註；補 11 個手算測試；移除誤入 repo 的暫存快照
+- 03：`orders.py`（輸出合約）、`validator.py`（V1～V6）、`meter.py`（計量＋LiteLLM 內建價格表）、`prompts.py`＋`prompts/chief_system.md`、`gateway/`（介面、Fake、LiteLLM＋instructor JSON 模式）、`play.py`（自動指揮迴圈，退回回饋進下一回合）、`harness/default/doctrine.md`、`provider.json`；`chief play --provider ollama --auto`
+- 測試 33 → 57 全綠；03 審查中；待老闆真機 Ollama 驗收
+
 ## 2026-11-01（第九次）— 施工單 01、02 完成
 - 01 戰情板合約：`chief/board.py`、`render.py`、`cli.py`、`samples/board_t0.json`、`docs/09-board-schema.md`；審查員回報 21 項（含範例敵方少一排、任務目標檢查過寬、懸空 parent、版本不檢查、Windows 字元）全部修正，測試 10 → 20
 - 02 模擬會戰：`chief/grid.py`、`formation_ai.py`、`sim.py`、`samples/board_start.json`、`orders_scripted.json`、`enemy_script.json`、`docs/10-sim-rules.md`（手算範例為測試期望值）；`chief sim` 子命令；測試 13 個；共 33 個全綠

@@ -10,13 +10,13 @@
 - [ ] T0.0 重用檢查：逐項驗證 `07-reuse-catalog.md` 中 M0 會用到的套件（Textual、LiteLLM、instructor）授權與版本，建立 `THIRD_PARTY.md`
 - [x] T0.1 戰情板資料格式（JSON schema）＋終端機側欄渲染（分區地圖、部隊樹、事件流）
 - [x] T0.2 `chief sim`（原 sandbox.py）：連級模擬會戰，10 回合，3 兵種，分區地圖，編制 AI 執行任務式命令
-- [ ] T0.3 LLM 閘道介面＋Anthropic 原生 adapter＋OpenAI 相容 adapter（先用 Ollama 本地測）
-- [ ] T0.4 命令合約 `issue_orders`＋驗證器＋重試
+- [x] T0.3 LLM 閘道介面＋Anthropic 原生 adapter＋OpenAI 相容 adapter（先用 Ollama 本地測）
+- [x] T0.4 命令合約 `issue_orders`＋驗證器＋重試
 - [ ] T0.5 終端機推翻介面：每回合顯示 AI 的令，按鍵接管某一級並改令；記錄推翻紀錄
 - [ ] T0.6 AAR 檢討官：讀推翻紀錄＋戰果，輸出 Doctrine diff
 - [ ] T0.7 戰例庫回歸：存 10 個快照，準則更新後重跑，印推翻率預測
 - [ ] T0.8 參謀長包最小格式（manifest＋doctrine＋prompts＋provider.json）
-- [ ] T0.9 Token 計量：UsageMeter、prices.json、每場費用小結（終端機印出）
+- [x] T0.9 Token 計量：UsageMeter、價格表（LiteLLM 內建＋prices.json 覆寫）、每場費用小結（終端機印出）
 - [ ] T0.10 戰報卡文字版：從推翻紀錄自動挑三幕＋後果判定（不呼叫 LLM）；討論三回合（終端機）；採納 diff
 - [ ] 驗收：同一人連打 5 場推翻率下降；回歸能抓到人為的壞準則；同一個包在 Anthropic 與 Ollama 都能打完
 

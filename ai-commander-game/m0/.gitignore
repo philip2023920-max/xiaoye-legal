@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 battles/
 .pytest_cache/
+.pytest_tmp*/

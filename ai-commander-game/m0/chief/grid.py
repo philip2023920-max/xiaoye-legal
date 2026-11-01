@@ -32,10 +32,11 @@ def distance(a: str, b: str) -> int:
     return abs(ax - bx) + abs(ay - by)
 
 
-def next_step(grid: MapGrid, start: str, goal: str) -> str | None:
-    """BFS 最短路徑的第一步；已到達或無路回 None。所有地形可通行。"""
+def next_step(grid: MapGrid, start: str, goal: str, avoid: set[str] | None = None) -> str | None:
+    """BFS 最短路徑的第一步；已到達或無路回 None。所有地形可通行；avoid 內的格子不當中繼（goal 除外）。"""
     if start == goal:
         return None
+    avoid = avoid or set()
     prev: dict[str, str | None] = {start: None}
     q = deque([start])
     while q:
@@ -43,7 +44,7 @@ def next_step(grid: MapGrid, start: str, goal: str) -> str | None:
         if cur == goal:
             break
         for n in neighbors(grid, cur):
-            if n not in prev:
+            if n not in prev and (n == goal or n not in avoid):
                 prev[n] = cur
                 q.append(n)
     if goal not in prev:

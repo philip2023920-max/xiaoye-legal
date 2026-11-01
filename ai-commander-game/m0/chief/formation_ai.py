@@ -10,8 +10,8 @@ from .grid import distance, neighbors, next_step
 
 
 def split_company_task(company: Unit, children: list[Unit], task: Task) -> dict[str, Task]:
-    """連的任務拆給存活子排。flank：第一個排正面固守，其餘側翼。"""
-    alive = [c for c in children if c.state != "destroyed"]
+    """連的任務拆給「可行動」子排（排除殲滅、潰散、總司令直轄）。flank：第一個排正面固守，其餘側翼。"""
+    alive = [c for c in children if c.state not in ("destroyed", "routed") and c.controlled_by != "player"]
     out: dict[str, Task] = {}
     if task.type == "flank" and len(alive) >= 2:
         out[alive[0].id] = Task(type="hold", target=alive[0].sector)
@@ -48,11 +48,12 @@ def decide_move(
     if unit.state == "destroyed":
         return None
     if unit.state == "routed":
-        # 潰散：往最近的我方分區退一格
-        targets = [s for s in own_sectors if s != unit.sector]
-        if not targets:
+        # 潰散：有 withdraw 令就照令；否則往最近的我方分區退一格，已在我方分區就不動
+        if unit.task is not None and unit.task.type == "withdraw":
+            return next_step(grid, unit.sector, unit.task.target)
+        if unit.sector in own_sectors or not own_sectors:
             return None
-        goal = min(targets, key=lambda s: (distance(unit.sector, s), s))
+        goal = min(own_sectors, key=lambda s: (distance(unit.sector, s), s))
         return next_step(grid, unit.sector, goal)
     task = unit.task
     if task is None:
@@ -64,8 +65,8 @@ def decide_move(
         buddy = unit_by_id.get(task.target)
         if buddy is None or buddy.state == "destroyed":
             return None
-        if unit.sector in neighbors(grid, buddy.sector):
-            return None  # 已在友軍相鄰格，固守
+        if unit.sector == buddy.sector or unit.sector in neighbors(grid, buddy.sector):
+            return None  # 已在友軍同格或相鄰格，固守
         goal = min(neighbors(grid, buddy.sector), key=lambda s: (distance(unit.sector, s), s))
         return next_step(grid, unit.sector, goal)
     if t == "flank":
@@ -78,5 +79,5 @@ def decide_move(
             return next_step(grid, unit.sector, task.target)
         if unit.sector == approach:
             return task.target  # 從側翼進入目標
-        return next_step(grid, unit.sector, approach)
+        return next_step(grid, unit.sector, approach, avoid={task.target})  # 繞路時不穿過目標
     return None

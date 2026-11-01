@@ -63,6 +63,31 @@ def cmd_sim(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_play(args: argparse.Namespace) -> int:
+    from .gateway import make_gateway
+    from .meter import PriceTable
+    from .play import run_play
+    from .prompts import load_doctrine
+
+    console = Console()
+    err_console = Console(stderr=True)
+    if not args.auto:
+        err_console.print("[yellow]互動推翻模式在施工單 05；目前請加 --auto。[/]")
+        return 2
+    try:
+        board = load_board(args.board)
+        enemy = load_script(args.enemy)
+        gateway = make_gateway(args.provider, args.model)
+    except (BoardError, ValueError, NotImplementedError) as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
+    doctrine = load_doctrine(args.doctrine)
+    prices = PriceTable(args.prices) if args.prices else PriceTable()
+    run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
+             prices=prices, console=console, verbose=args.verbose, quiet=args.quiet)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="chief", description="AI 參謀長 RTS — M0 文字版沙盤")
     p.add_argument("--version", action="version", version=f"chief {__version__}")
@@ -81,6 +106,20 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--quiet", action="store_true", help="只印結果")
     m.add_argument("--verbose", action="store_true", help="每回合印完整戰情板")
     m.set_defaults(func=cmd_sim)
+    y = sub.add_parser("play", help="讓參謀長（LLM）指揮一場會戰（施工單 03）")
+    y.add_argument("--provider", default="ollama", help="ollama / openai / deepseek / openrouter / anthropic（04）/ fake")
+    y.add_argument("--model", default=None, help="模型名稱，例如 qwen2.5:3b（ollama）或 claude-haiku-5-5（anthropic）")
+    y.add_argument("--auto", action="store_true", help="全自動：參謀長的命令直接執行（03）；不加則為互動推翻（05）")
+    y.add_argument("--board", default="samples/board_start.json")
+    y.add_argument("--enemy", default="samples/enemy_script.json")
+    y.add_argument("--doctrine", default="harness/default/doctrine.md")
+    y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
+    y.add_argument("--seed", type=int, default=None)
+    y.add_argument("--prices", default=None, help="prices.json 覆寫價格表（04）")
+    y.add_argument("--out", default=None)
+    y.add_argument("--quiet", action="store_true")
+    y.add_argument("--verbose", action="store_true")
+    y.set_defaults(func=cmd_play)
     return p
 
 

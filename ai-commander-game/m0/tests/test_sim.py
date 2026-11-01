@@ -82,10 +82,9 @@ def test_support_stops_adjacent_to_buddy():
     assert decide_move(u, g, [u, buddy], ["A1"], by_id) is None
 
 
-def test_reserve_reaches_target_and_idles():
+def test_reserve_reaches_target_and_idles(tmp_path):
     b = mini_board([plt("u", "A1", Task(type="reserve", target="A3"))])
-    battle = Battle(b, enemy_units=[], out_dir=None)
-    battle.out_dir = Path(".pytest_tmp_reserve")
+    battle = Battle(b, enemy_units=[], out_dir=tmp_path)
     battle.step([], [])
     battle.step([], [])
     u = battle.board.unit("u")
@@ -98,9 +97,104 @@ def test_flank_enters_via_far_side_neighbor():
     u = plt("u", "C1", Task(type="flank", target="C3"), strength=0.5)
     by_id = {"main": main, "u": u}
     first = decide_move(u, g, [u, main], ["A3"], by_id)
-    assert first == "C2"                                # 離 A3 最遠的鄰格，同距取「上」
+    assert first == "C2"                                # §3：離主力最遠的鄰格，同距依上、左、右、下取第一個
     u.sector = first
     assert decide_move(u, g, [u, main], ["A3"], by_id) == "C3"
+
+
+def test_flank_detour_does_not_pass_through_target():
+    g = open_grid()
+    main = plt("main", "A3", strength=1.0)
+    u = plt("u", "B3", Task(type="flank", target="C3"), strength=0.5)   # 側翼點是 D3，繞路不可穿過 C3
+    by_id = {"main": main, "u": u}
+    assert decide_move(u, g, [u, main], ["A3"], by_id) != "C3"
+
+
+# ---- 審查員補測（手算自 §4～§6）----
+def test_armor_takes_reduced_damage_and_hits_harder():
+    us = [plt("u", "C3", typ="infantry")]
+    en = [plt("e", "C3", typ="armor")]
+    dmg = resolve_sector_combat(us, en, cover=0.6, rng=None)
+    assert dmg["e"] == pytest.approx(0.060)   # 1.0×1.0×0.4×0.25×0.6
+    assert dmg["u"] == pytest.approx(0.150)   # 1.0×1.5×0.4×0.25
+
+
+def test_damage_split_by_strength_and_thresholds(tmp_path):
+    us = [plt("u1", "C3", Task(type="hold", target="C3")), plt("u2", "C3", Task(type="hold", target="C3"))]
+    b = mini_board(us); b.map.sectors["C3"].cover = 0.0
+    en = [plt("e1", "C3", Task(type="hold", target="C3"), strength=0.60), plt("e2", "C3", Task(type="hold", target="C3"), strength=0.20)]
+    battle = Battle(b, enemy_units=en, out_dir=tmp_path)
+    rep = battle.step([], [])
+    e1 = next(u for u in battle.enemy if u.id == "e1"); e2 = next(u for u in battle.enemy if u.id == "e2")
+    assert e1.strength == pytest.approx(0.225, abs=1e-4) and e1.state == "routed"   # 0.5×0.75 = 0.375
+    assert e2.strength == pytest.approx(0.075, abs=1e-4) and e2.state == "routed"   # 0.5×0.25 = 0.125，未殲滅
+    assert sum(1 for e in rep.events if e.kind == "routed") == 2
+
+
+def test_destroyed_unit_logs_event_and_sector_changes_hands(tmp_path):
+    us = [plt(f"u{i}", "C3", Task(type="hold", target="C3")) for i in range(3)]
+    b = mini_board(us); b.map.sectors["C3"].cover = 0.0; b.map.sectors["C3"].owner = "enemy"
+    en = [plt("e", "C3", Task(type="hold", target="C3"), strength=0.10)]
+    battle = Battle(b, enemy_units=en, out_dir=tmp_path)
+    rep = battle.step([], [])
+    assert battle.enemy[0].state == "destroyed"                     # 受 0.75 > 0.10
+    assert any(e.kind == "destroyed" for e in rep.events)
+    assert battle.board.map.sectors["C3"].owner == "us" and any(e.kind == "seized" for e in rep.events)
+
+
+def test_contested_sector_keeps_owner(tmp_path):
+    b = mini_board([plt("u", "B2", Task(type="hold", target="B2"))])
+    b.map.sectors["B2"].owner = "us"; b.map.sectors["B2"].cover = 0.4
+    en = [plt("e", "B2", Task(type="seize", target="B2"))]
+    battle = Battle(b, enemy_units=en, out_dir=tmp_path)
+    rep = battle.step([], [])
+    s = battle.board.map.sectors["B2"]
+    assert s.owner == "us" and s.contested is True
+    assert not any(e.kind == "seized" for e in rep.events)
+    assert battle.board.unit("u").strength == pytest.approx(0.85)   # 1.0×1.0×0.6×0.25 = 0.15
+
+
+def test_engine_rejects_bad_target_instead_of_corrupting_snapshot(tmp_path):
+    b = mini_board([plt("u", "A1")])
+    battle = Battle(b, enemy_units=[], out_dir=tmp_path)
+    rep = battle.step([Order(unit_id="u", task="flank", target="z9")], [])
+    assert any("退回" in e.text for e in rep.events) and battle.board.unit("u").task is None
+    from chief.board import load_board as lb
+    assert lb(tmp_path / "t1.json").t == 1                            # 快照仍可重讀
+
+
+def test_company_order_does_not_touch_player_platoon(tmp_path):
+    board = load_board(SAMPLES / "board_start.json")
+    board.unit("plt-A3").controlled_by = "player"
+    board.unit("plt-A3").task = Task(type="hold", target="B1")
+    battle = Battle(board, enemy_units=[], out_dir=tmp_path)
+    battle.step([Order(unit_id="co-A", task="seize", target="C3")], [])
+    assert battle.board.unit("plt-A3").task.type == "hold" and battle.board.unit("plt-A3").task.target == "B1"
+    assert battle.board.unit("plt-A1").task.type == "seize"
+
+
+def test_routed_unit_in_own_sector_stays_put():
+    g = open_grid()
+    u = plt("u", "A1", state="routed", strength=0.2)
+    assert decide_move(u, g, [u], ["A1", "A2"], {"u": u}) is None
+
+
+def test_engaged_state_resets_when_fighting_stops(tmp_path):
+    b = mini_board([plt("u", "C3", Task(type="hold", target="C3"))]); b.map.sectors["C3"].cover = 0.0
+    en = [plt("e", "C3", Task(type="hold", target="C3"), strength=0.10)]
+    battle = Battle(b, enemy_units=en, out_dir=tmp_path)
+    battle.step([], [])                                             # 敵被殲滅
+    assert battle.board.unit("u").state == "engaged"
+    battle.step([], [])
+    assert battle.board.unit("u").state == "idle"
+
+
+def test_cli_sim_runs(tmp_path, capsys):
+    from chief.cli import main
+    rc = main(["sim", "--orders", str(SAMPLES / "orders_scripted.json"), "--seed", "7", "--quiet", "--out", str(tmp_path / "cli")])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "結果：" in out and (tmp_path / "cli" / "t1.json").exists()
 
 
 # ---- §6 歸屬、§5 門檻、§7 結束 ----

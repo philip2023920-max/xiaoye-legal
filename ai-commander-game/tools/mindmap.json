@@ -155,9 +155,9 @@
       "note": "",
       "children": [
         {
-          "id": "n_8417b211",
-          "text": "AI 自動指揮：每個決策節拍對編制層級下任務式命令",
-          "status": "todo",
+          "id": "n_22e2edba",
+          "text": "AI 自動指揮：每個決策節拍對編制層級下任務式命令（M0 文字版完成）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
@@ -187,9 +187,9 @@
           "children": []
         },
         {
-          "id": "n_90cf52fb",
-          "text": "指令驗證器：不合法的令退回並記錄",
-          "status": "todo",
+          "id": "n_9a4c9c2d",
+          "text": "指令驗證器：不合法的令退回並記錄（V1～V6）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
@@ -513,9 +513,9 @@
               "children": []
             },
             {
-              "id": "n_3154751e",
-              "text": "OpenAI 相容 adapter：OpenAI／Gemini／Ollama／LM Studio／vLLM／OpenRouter",
-              "status": "todo",
+              "id": "n_1c23916c",
+              "text": "OpenAI 相容 adapter：LiteLLM＋instructor JSON 模式（Ollama 先驗，其餘同路徑）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -523,7 +523,7 @@
             {
               "id": "n_92be1c05",
               "text": "最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -531,7 +531,7 @@
             {
               "id": "n_186dfdd4",
               "text": "供應商能力表 provider.json",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -597,15 +597,15 @@
             {
               "id": "n_ad3700c4",
               "text": "UsageMeter 記錄每次呼叫的輸入／輸出／快取 token",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_418547e4",
-              "text": "價格表 prices.json：玩家可編輯，附更新日期",
-              "status": "todo",
+              "id": "n_44324085",
+              "text": "價格表：LiteLLM 內建表＋prices.json 覆寫（附更新日期）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -621,7 +621,7 @@
             {
               "id": "n_28de5ac5",
               "text": "本地模型顯示 $0 但仍顯示 token 與秒數",
-              "status": "todo",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
@@ -734,17 +734,17 @@
               "children": []
             },
             {
-              "id": "n_8125ca0a",
-              "text": "施工單 02 模擬會戰可跑（無 LLM）（程式完成 13 測試，審查中）",
-              "status": "doing",
+              "id": "n_a2512724",
+              "text": "施工單 02 模擬會戰可跑（無 LLM）（審查 22 項已修，24 測試）",
+              "status": "done",
               "link": "docs/10-sim-rules.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_a325adaf",
-              "text": "施工單 03 參謀長下令：Ollama 路徑",
-              "status": "todo",
+              "id": "n_43a27105",
+              "text": "施工單 03 參謀長下令：Ollama 路徑（程式＋14 離線測試完成；待老闆真機驗收）",
+              "status": "doing",
               "link": "",
               "note": "",
               "children": []
@@ -1362,8 +1362,8 @@
       ]
     }
   ],
-  "version": 13,
-  "updatedAt": "2026-11-01T22:40:27Z",
+  "version": 14,
+  "updatedAt": "2026-11-01T22:51:56Z",
   "updatedBy": "claude",
   "instructions": ""
 }

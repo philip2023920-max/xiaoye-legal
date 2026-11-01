@@ -106,7 +106,7 @@ def resolve_sector_combat(
         return total
 
     def distribute(total: float, targets: list[Unit]) -> dict[str, float]:
-        alive = [u for u in targets if u.state != "destroyed"]
+        alive = [u for u in targets if u.state != "destroyed"]  # 潰散單位也是目標
         pool = sum(u.strength for u in alive)
         out: dict[str, float] = {}
         if pool <= 0 or total <= 0:  # 沒人開火就不記 0 傷害
@@ -142,6 +142,7 @@ class Battle:
         self.variance = variance if variance is not None else (seed is not None)
         self.out_dir = Path(out_dir) if out_dir is not None else Path("battles") / board.battle_id
         self.t = self.board.t
+        self.start_t = self.board.t
         self.initial = {"us": self.total_strength("us"), "enemy": self.total_strength("enemy")}
         self.snapshots: list[Path] = []
         self.end_reason: Optional[str] = None
@@ -165,24 +166,40 @@ class Battle:
         return {u.id: u for u in self.units(side)}
 
     # ---- 回合 ----
+    def order_problem(self, side: str, o: Order) -> str | None:
+        """引擎自己的最後防線（驗證器 V1/V3 的子集）：壞令不准進引擎，否則快照會寫壞。"""
+        by_id = self._by_id(side)
+        u = by_id.get(o.unit_id)
+        if u is None or u.state == "destroyed":
+            return f"單位 {o.unit_id} 不存在或已殲滅"
+        if o.task == "support":
+            b = by_id.get(o.target)
+            if b is None or b.state == "destroyed" or o.target == o.unit_id:
+                return f"support 目標 {o.target} 不是存活的其他友軍"
+        elif o.target not in self.board.map.sectors:
+            return f"任務 {o.task} 的目標「{o.target}」不是分區 id"
+        return None
+
     def apply_orders(self, side: str, orders: list[Order], report: TurnReport) -> None:
         by_id = self._by_id(side)
         who = "參謀長" if side == "us" else "敵軍"
         for o in orders:
-            u = by_id.get(o.unit_id)
-            if u is None or u.state == "destroyed":
-                report.events.append(Event(t=self.t, kind="info", text=f"{who}的命令指向不存在或已殲滅的單位 {o.unit_id}，略過"))
+            problem = self.order_problem(side, o)
+            if problem:
+                report.events.append(Event(t=self.t, kind="info", text=f"{who}的命令被引擎退回：{problem}"))
                 continue
+            u = by_id[o.unit_id]
             task = Task(type=o.task, target=o.target)
             children = [c for c in self.units(side) if c.parent == u.id]
             if children:
                 for cid, ct in split_company_task(u, children, task).items():
-                    by_id[cid].task = ct
+                    by_id[cid].task = ct  # 直轄排已在 split 時排除
                 u.task = task
             else:
                 u.task = task
             if side == "us":
-                report.events.append(Event(t=self.t, kind="order", text=f"{who}令 {u.name} {o.task} {o.target}", unit=u.id, sector=o.target if o.target in self.board.map.sectors else None))
+                task_zh = {"seize": "奪取", "hold": "固守", "flank": "側翼包抄", "withdraw": "撤往", "support": "支援", "reserve": "預備於"}[o.task]
+                report.events.append(Event(t=self.t, kind="order", text=f"{who}令 {u.name} {task_zh} {o.target}", unit=u.id, sector=o.target if o.target in self.board.map.sectors else None))
 
     def movement(self, report: TurnReport) -> None:
         grid = self.board.map
@@ -191,6 +208,8 @@ class Battle:
             by_id = self._by_id(side)
             leaves = self.leaves(side)
             for u in sorted(leaves, key=lambda x: x.id):
+                if u.state not in ("routed", "destroyed"):
+                    u.state = "idle"  # 每回合先歸零，交戰階段再標 engaged
                 dest = decide_move(u, grid, leaves, own, by_id)
                 if dest and dest != u.sector:
                     u.sector = dest
@@ -199,23 +218,23 @@ class Battle:
                         # 到達任務目標那回合就算「到位」→ idle；還在路上 → moving（§5）
                         arrived = u.task is not None and u.task.type != "support" and dest == u.task.target
                         u.state = "idle" if arrived else "moving"
-                elif u.state == "moving":
-                    u.state = "idle"
 
     def combat(self, report: TurnReport) -> None:
         sectors = {u.sector for u in self.leaves("us")} | {u.sector for u in self.leaves("enemy")}
         all_units = {u.id: u for u in self.leaves("us")} | {u.id: u for u in self.leaves("enemy")}
         damages: dict[str, float] = {}
         for sid in sorted(sectors):
-            us = [u for u in self.leaves("us") if u.sector == sid and u.state not in ("routed", "destroyed")]
-            en = [u for u in self.leaves("enemy") if u.sector == sid and u.state not in ("routed", "destroyed")]
-            if not us or not en:
-                continue
+            us_all = [u for u in self.leaves("us") if u.sector == sid and u.state != "destroyed"]
+            en_all = [u for u in self.leaves("enemy") if u.sector == sid and u.state != "destroyed"]
+            us_active = [u for u in us_all if u.state != "routed"]
+            en_active = [u for u in en_all if u.state != "routed"]
+            if not us_active or not en_active:
+                continue  # 要有雙方「能戰鬥」的單位才交火；潰散單位只會被打
             cover = self.board.map.sectors[sid].cover
-            dmg = resolve_sector_combat(us, en, cover, self.rng if self.variance else None)
+            dmg = resolve_sector_combat(us_all, en_all, cover, self.rng if self.variance else None)
             for uid, d in dmg.items():
                 damages[uid] = damages.get(uid, 0.0) + d
-            for u in us + en:
+            for u in us_active + en_active:
                 u.state = "engaged"
         for uid, d in damages.items():
             u = all_units[uid]
@@ -265,7 +284,11 @@ class Battle:
         self.board.fog.visible_sectors = sorted(visible)
         known = {c.id: c for c in self.board.enemy_known}
         for e in self.leaves("enemy"):
-            if e.state == "destroyed" or e.sector not in visible:
+            if e.state == "destroyed":
+                if e.sector in visible and e.id in known:
+                    del known[e.id]  # 親眼看到被殲滅，從敵情拿掉
+                continue
+            if e.sector not in visible:
                 continue
             new = e.id not in known
             known[e.id] = Contact(id=e.id, echelon=e.echelon, type=e.type, sector=e.sector,
@@ -315,11 +338,12 @@ class Battle:
         path = self.out_dir / f"t{self.t}.json"
         save_board(self.board, path)
         self.snapshots.append(path)
-        if self.t >= MAX_TURNS:
-            self.end_reason = "turns"
+        # 結束判定：戰力崩潰優先於回合數（§7）
         for side in ("us", "enemy"):
             if self.initial[side] > 0 and self.total_strength(side) < END_STRENGTH_RATIO * self.initial[side]:
                 self.end_reason = "strength"
+        if self.end_reason is None and self.t >= MAX_TURNS:
+            self.end_reason = "turns"
         return report
 
     def finished(self) -> bool:
@@ -340,7 +364,7 @@ class Battle:
         else:
             winner = "draw"
         return BattleResult(
-            battle_id=self.board.battle_id, turns_played=self.t - 0, end_reason=self.end_reason or "turns",
+            battle_id=self.board.battle_id, turns_played=self.t - self.start_t, end_reason=self.end_reason or "turns",
             winner=winner, score_us=su, score_enemy=se, strength_us=round(stu, 3), strength_enemy=round(ste, 3),
             snapshots=list(self.snapshots),
         )
