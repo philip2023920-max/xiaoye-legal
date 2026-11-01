@@ -408,8 +408,8 @@
           ]
         },
         {
-          "id": "n_bbe85e27",
-          "text": "單位：膠囊體＋方塊頭，3 種兵種起步",
+          "id": "n_0e854df1",
+          "text": "單位：膠囊體＋方塊頭；兵種七種（步兵、機槍、迫砲、反戰車、戰車、偵察、工兵）",
           "status": "todo",
           "link": "",
           "note": "",
@@ -440,8 +440,57 @@
           "children": []
         },
         {
-          "id": "n_b10d069a",
-          "text": "本版不做：多人、資源採集、基地建造、語音、純建議模式",
+          "id": "n_5f370216",
+          "text": "戰鬥模型 v1（ADR-0013，資料表驅動）",
+          "status": "todo",
+          "link": "docs/issues/08-combat-model-v1.md",
+          "note": "",
+          "children": [
+            {
+              "id": "n_0a861734",
+              "text": "兵種七種 × 屬性；點數預算部署配比＋三種範本（D11）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_71112cdc",
+              "text": "科技世代：二戰 1944 先做；早期／晚期冷戰預留表格（D12）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_0e3d52e2",
+              "text": "天氣四種 × 日夜：影響視距、移動、掩蔽、裝甲通行；一場中可變（D13）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_d5561bc4",
+              "text": "場內砲兵（迫砲、砲兵連）；空中支援留 M3（D14）",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_98ca844f",
+              "text": "目前的 3 兵種與簡化公式是替身，只用來驗證迴圈",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_71f6a68a",
+          "text": "本版不做：多人、資源採集、基地建造、語音、純建議模式、空中支援",
           "status": "",
           "link": "",
           "note": "",
@@ -758,8 +807,8 @@
               "children": []
             },
             {
-              "id": "n_bb6a9c0a",
-              "text": "施工單 05 總司令推翻與接管（程式＋7 測試完成，審查中；待真機驗收）",
+              "id": "n_f9045bbd",
+              "text": "施工單 05 總司令推翻與接管（審查 10 項已修，11 測試；待真機驗收）",
               "status": "doing",
               "link": "",
               "note": "",
@@ -782,10 +831,18 @@
               "children": []
             },
             {
-              "id": "n_e0907292",
-              "text": "執行順序：01",
+              "id": "n_e0812a03",
+              "text": "施工單 08 戰鬥模型 v1：兵種、世代、天氣、部署配比（ADR-0013）",
+              "status": "todo",
+              "link": "docs/issues/08-combat-model-v1.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_c098f334",
+              "text": "執行順序：01、02、03、（04∥05 並行）、06、07、08，然後 M1",
               "status": "",
-              "link": "02→03→（04∥05）→06→07",
+              "link": "",
               "note": "",
               "children": []
             },
@@ -985,10 +1042,10 @@
               "children": []
             },
             {
-              "id": "n_f644f067",
-              "text": "軍團規模 vs 低硬體",
-              "status": "",
-              "link": "規模階梯（ADR-0008）✅",
+              "id": "n_8710ee0c",
+              "text": "軍團規模 vs 低硬體 → 規模階梯（ADR-0008）",
+              "status": "done",
+              "link": "",
               "note": "",
               "children": []
             },
@@ -1029,6 +1086,14 @@
         {
           "id": "n_0608cbed",
           "text": "第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_b0f03a77",
+          "text": "第四輪已拍板（全照建議）：D11 兵種配比、D12 世代、D13 天氣時段、D14 砲兵（ADR-0013）",
           "status": "done",
           "link": "",
           "note": "",
@@ -1344,8 +1409,8 @@
           "children": []
         },
         {
-          "id": "n_eefac934",
-          "text": "docs/adr/（ADR-0001～0012）",
+          "id": "n_edd19c97",
+          "text": "docs/adr/（ADR-0001～0013）",
           "status": "",
           "link": "",
           "note": "",
@@ -1362,8 +1427,8 @@
       ]
     }
   ],
-  "version": 20,
-  "updatedAt": "2026-11-01T23:39:02Z",
+  "version": 21,
+  "updatedAt": "2026-11-01T23:39:48Z",
   "updatedBy": "claude",
   "instructions": ""
 }

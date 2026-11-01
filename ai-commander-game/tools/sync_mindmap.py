@@ -99,8 +99,12 @@ def split_status(text: str) -> tuple[str, str]:
     return t, ""
 
 
+LINK_TARGET = r"(docs/\S+|README\.md|CHANGELOG\.md|THIRD_PARTY\.md|tools/\S+|m0/\S+|https?://\S+)"
+
+
 def split_link(text: str) -> tuple[str, str]:
-    m = re.search(r"\s*" + LINK_MARK + r"\s*(\S+)\s*$", text)
+    """只把「→ 檔案路徑／網址」當連結；節點文字裡其他的 → 保留為文字。"""
+    m = re.search(r"\s*" + LINK_MARK + r"\s*" + LINK_TARGET + r"\s*$", text)
     if m:
         return text[: m.start()].strip(), m.group(1)
     return text.strip(), ""
