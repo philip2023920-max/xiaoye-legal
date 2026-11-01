@@ -14,6 +14,23 @@ def validate_orders(board: Board, orders: list[Order]) -> tuple[list[Order], lis
     rejected: list[Rejection] = []
     seen: set[str] = set()
 
+    def ancestors(uid: str) -> set[str]:
+        out, cur = set(), by_id.get(uid)
+        while cur is not None and cur.parent:
+            out.add(cur.parent)
+            cur = by_id.get(cur.parent)
+        return out
+
+    def descendants(uid: str) -> set[str]:
+        out, stack = set(), [uid]
+        while stack:
+            x = stack.pop()
+            for u in board.orbat:
+                if u.parent == x and u.id not in out:
+                    out.add(u.id)
+                    stack.append(u.id)
+        return out
+
     for i, o in enumerate(orders):
         if i >= MAX_ORDERS_PER_TURN:
             rejected.append(Rejection(order=o, rule="V5", reason=f"本回合命令超過 {MAX_ORDERS_PER_TURN} 條"))
@@ -38,6 +55,11 @@ def validate_orders(board: Board, orders: list[Order]) -> tuple[list[Order], lis
             continue
         if u.state == "routed" and o.task != "withdraw":
             rejected.append(Rejection(order=o, rule="V6", reason=f"單位 {o.unit_id} 潰散中，只能撤退"))
+            continue
+        chain = ancestors(o.unit_id) | descendants(o.unit_id)
+        clash = sorted(seen & chain)
+        if clash:
+            rejected.append(Rejection(order=o, rule="V7", reason=f"單位 {o.unit_id} 與同回合已下令的 {clash[0]} 在同一指揮鏈，後者退回"))
             continue
         seen.add(o.unit_id)
         accepted.append(o)

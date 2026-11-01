@@ -37,6 +37,33 @@ def test_auto_play_completes_and_logs_usage(tmp_path):
     assert "Units you may order this turn: co-A, plt-A1, plt-A2." in gw.calls[0][1]["content"]   # 直轄排不列入
 
 
+def test_gateway_errors_do_not_crash_and_are_logged(tmp_path):
+    from chief.gateway.base import ChiefResponse
+
+    class DeadGateway:
+        provider, model = "ollama", "ollama/qwen2.5:3b"
+        def issue_orders(self, messages):
+            return ChiefResponse(orders=None, error="連不上 Ollama")
+
+    board = load_board(SAMPLES / "board_start.json")
+    enemy = load_script(SAMPLES / "enemy_script.json")
+    res = run_play(DeadGateway(), board, enemy, doctrine="t", out_dir=tmp_path / "d", quiet=False,
+                   console=Console(file=open(tmp_path / "o.txt", "w", encoding="utf-8")))
+    assert res.gateway_errors == res.battle.turns_played
+    first = json.loads((tmp_path / "d" / "t1.json").read_text(encoding="utf-8"))
+    assert any(e["kind"] == "info" and e["text"] == "連不上 Ollama" for e in first["events"])
+    assert len((tmp_path / "d" / "usage.jsonl").read_text(encoding="utf-8").splitlines()) == res.battle.turns_played
+
+
+def test_markup_in_model_text_does_not_crash(tmp_path):
+    board = load_board(SAMPLES / "board_start.json")
+    enemy = load_script(SAMPLES / "enemy_script.json")
+    gw = FakeGateway([ChiefOrders(assessment="[/bold] 惡意標記", orders=[{"unit_id": "plt-A1", "task": "hold", "target": "B2", "reason": "[/x] 理由"}])])
+    res = run_play(gw, board, enemy, doctrine="t", out_dir=tmp_path / "m", quiet=False,
+                   console=Console(file=open(tmp_path / "o.txt", "w", encoding="utf-8")))
+    assert res.battle.turns_played >= 1
+
+
 def test_budget_pauses_chief(tmp_path):
     from chief.meter import Ledger, PriceTable
     prices = tmp_path / "p.json"

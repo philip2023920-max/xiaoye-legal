@@ -47,9 +47,26 @@ def test_fenced_json_and_sloppy_fields_are_normalized():
     assert o[1].task == "withdraw"
 
 
-def test_ollama_requests_json_mode():
-    g = gw(VALID)
-    assert g.force_json is True
+def test_ollama_requests_schema_mode_by_default():
+    g = LiteLLMGateway(provider="ollama", model="qwen2.5:3b")
+    assert g.response_format["type"] == "json_schema" and "properties" in g.response_format["json_schema"]["schema"]
+    assert g.timeout_s == 120
+
+
+def test_connection_refused_is_reported_as_connection_not_bad_json():
+    g = LiteLLMGateway(provider="ollama", model="qwen2.5:3b", api_base="http://127.0.0.1:9", timeout_s=3)
+    resp = g.issue_orders(build_messages("d", {"t": 1}, 1))
+    assert resp.orders is None and "連不上" in (resp.error or "") and resp.usage.estimated is False
+
+
+def test_usage_fallback_counts_cjk_like_board():
+    from types import SimpleNamespace
+    from chief.gateway.litellm_adapter import _usage_from
+    msgs = [{"role": "user", "content": "a" * 400 + "中" * 100}]
+    u = _usage_from(SimpleNamespace(usage=None), msgs, "字" * 40)
+    assert (u.prompt_tokens, u.completion_tokens, u.estimated) == (200, 40, True)
+    u2 = _usage_from(SimpleNamespace(usage=SimpleNamespace(prompt_tokens=1200, completion_tokens=80, prompt_tokens_details=SimpleNamespace(cached_tokens=1000))), msgs, "")
+    assert (u2.prompt_tokens, u2.cache_read_tokens, u2.estimated) == (1200, 1000, False)
 
 
 def test_prompt_contains_board_and_feedback():

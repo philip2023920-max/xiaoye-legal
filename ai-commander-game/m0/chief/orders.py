@@ -71,7 +71,7 @@ class ChiefOrders(BaseModel):
         return [o.to_order() for o in self.orders]
 
 
-RuleCode = Literal["V1", "V2", "V3", "V4", "V5", "V6"]
+RuleCode = Literal["V1", "V2", "V3", "V4", "V5", "V6", "V7"]
 
 
 class Rejection(BaseModel):

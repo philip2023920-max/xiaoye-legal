@@ -10,7 +10,11 @@ SYSTEM_TEMPLATE_PATH = Path(__file__).parent / "prompts" / "chief_system.md"
 
 def load_doctrine(path: str | Path) -> str:
     p = Path(path)
-    return p.read_text(encoding="utf-8-sig") if p.exists() else "(no doctrine yet)"
+    if not p.exists():
+        import sys
+        print(f"⚠️ 找不到作戰準則 {p}，本場用空準則", file=sys.stderr)
+        return "(no doctrine yet)"
+    return p.read_text(encoding="utf-8-sig")
 
 
 def system_prompt(doctrine: str, lang: str = "zh-TW") -> str:

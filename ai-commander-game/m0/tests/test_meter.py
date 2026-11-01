@@ -37,6 +37,12 @@ def test_ledger_today_and_month(tmp_path):
     assert 0.10 - 1e-9 <= tot["month"] <= 0.15 + 1e-9        # 前天是否同月看日期；40 天前一定不算
 
 
+def test_price_key_alias_with_provider_prefix():
+    pt = PriceTable()
+    assert pt.lookup("anthropic/claude-haiku-5-5").input_per_m == pytest.approx(pt.lookup("claude-haiku-5-5").input_per_m)
+    assert pt.lookup("claude-haiku-5-5").input_per_m == pytest.approx(0.10)
+
+
 def test_prices_json_overrides_builtin(tmp_path):
     p = tmp_path / "prices.json"
     p.write_text(json.dumps({"updated_at": "2026-11-01", "models": {"claude-haiku-5-5": {"input_per_m": 1.0, "output_per_m": 2.0}}}), encoding="utf-8")

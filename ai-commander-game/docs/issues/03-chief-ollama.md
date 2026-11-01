@@ -11,8 +11,8 @@
 ## 驗收清單
 - [ ] `uv run chief play --provider ollama --auto` 用本地模型打完一場（10 回合或提前結束）
 - [x] 每回合顯示 assessment、orders、被驗證器退回的條目與原因
-- [x] 閘道介面 `Gateway.issue_orders(snapshot, doctrine) -> Orders` 不依賴任何供應商細節；`provider.json` 記錄供應商能力（strict schema、串流、價格）
-- [x] 驗證器測試：單位不存在、玩家直轄、任務層級不符、重複下令，四種各一個測試（期望值來自 `docs/10-sim-rules.md` 的規則表）
+- [x] 閘道介面 `Gateway.issue_orders(messages) -> ChiefResponse`（提示組裝在 `prompts.py`，閘道只管呼叫與 usage）不依賴任何供應商細節；`provider.json` 記錄供應商能力
+- [x] 驗證器測試：單位不存在、玩家直轄、目標不合法、重複下令、超過 5 條、潰散只能撤退、指揮鏈衝突（V1～V7），每條一個測試（期望值來自 `docs/10-sim-rules.md` 的規則表）
 - [x] 模型回傳壞 JSON 時重試最多 2 次，仍失敗則本回合「無新命令」並記事件，不崩潰
 - [x] UsageMeter 記錄每回合 prompt／completion token，本地模型費用顯示 $0
 

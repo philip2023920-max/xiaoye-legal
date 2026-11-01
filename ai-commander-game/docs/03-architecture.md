@@ -84,7 +84,7 @@ TABS 式「每個人都是布娃娃」只在遭遇戰規模成立；會戰以上
     "required": ["assessment", "orders"],
     "properties": {
       "assessment": {"type": "string", "maxLength": 200},
-      "orders": {"type": "array", "maxItems": 5,
+      "orders": {"type": "array",
         "items": {"type": "object", "additionalProperties": false,
           "required": ["unit_id", "task", "target", "reason"],
           "properties": {
@@ -98,21 +98,23 @@ TABS 式「每個人都是布娃娃」只在遭遇戰規模成立；會戰以上
 }
 ```
 
-驗證器檢查：單位存在且不是玩家直轄、目標分區存在、任務與編制層級相符、同一單位一次只有一個令。
+驗證器檢查（V1～V7，見 `10-sim-rules.md` §10）：單位存在且未殲滅、不是玩家直轄、目標型別正確、一單位一令、一回合最多 5 條（第 6 條起退回）、潰散只能撤退、同一指揮鏈一回合一條令。
 
 ## LLM 閘道（多供應商，ADR-0003；首批 Anthropic＋Ollama，ADR-0009）
 
 ```
-遊戲 ──▶ LLMGateway.issue_orders(snapshot, doctrine)
-             ├─ AnthropicAdapter      原生 Messages API；strict tool；prompt caching；串流
-             ├─ OpenAICompatAdapter   /v1/chat/completions；OpenAI、Gemini（OpenAI 相容端點）、
-             │                        Ollama、LM Studio、vLLM、OpenRouter、DeepSeek…
-             └─ （預留）GeminiNative、本地 llama.cpp
+遊戲 ──▶ prompts.build_messages(doctrine, snapshot, turn, lang, feedback)
+     ──▶ Gateway.issue_orders(messages) -> ChiefResponse(orders | None, usage, attempts, error)
+             ├─ AnthropicGateway   官方 SDK messages.parse() 結構化輸出；系統提示＋準則 cache_control；串流延後 M2
+             └─ LiteLLMGateway     instructor MD_JSON（容忍圍欄）；Ollama 走 json_schema → json_object → 純提示 三段降級；
+                                   OpenAI、DeepSeek、OpenRouter、LM Studio、vLLM… 同一路徑
 ```
+（M0 實作，2026-11-01；原草案的 `issue_orders(snapshot, doctrine)` 已改為上述分工）
 
 - **重用**：OpenAI 相容 adapter 以 **LiteLLM** 實作（統一 usage、價格表）；結構化輸出與重試以 **instructor** 實作；Anthropic 原生 adapter 自寫以用 strict tool 與 prompt caching（⚠️ 進 Stage 2 驗證）。
-- **最低公分母**：所有供應商都走「系統提示附 JSON Schema → 回傳 JSON → 本地驗證 → 不合格重試最多 2 次」。有原生 strict 模式的（Anthropic strict tool、OpenAI `json_schema`）就開，沒有的靠驗證器。
-- **供應商能力表** `provider.json`：是否支援 strict schema、串流、快取、最大 context、每千 token 價格；介面據此顯示「此模型可能較常被退回」提示。
+- **最低公分母**：所有供應商都走「系統提示附 JSON Schema → 回傳 JSON → 本地驗證 → 不合格重試最多 2 次」。有原生 strict 模式的（Anthropic 結構化輸出、Ollama `format=<schema>`、OpenAI `json_schema`）就開，沒有的靠驗證器。
+- **寬進嚴出**：schema 層只做正規化（截斷、同義詞、大小寫），不因小毛病整筆打回；硬規則由驗證器 V1～V7 執行（否則 3B 小模型一回合裡任何一點不合就「整回合無命令」）。
+- **供應商能力表** `provider.json`：adapter、strict schema、json mode、串流、費用類型；價格另在 `chief/prices.json`（每百萬 token 美元，覆寫 LiteLLM 內建表）。
 - **研究結果**：OpenAI 相容端點的 schema 強制程度參差（有的接受 `response_format` 但不強制；Gemini 對 `items` 要明確型別；本地模型最不可預測）→ 客戶端驗證是必備，不是加分。⚠️ Anthropic 的 OpenAI 相容端點是否支援 `response_format` 未查證，本專案對 Anthropic 一律走原生 API。
 - **金鑰**：每個供應商一個欄位，存 `user://` 加密設定；本地模型不需金鑰。
 
@@ -143,7 +145,7 @@ harness/<名稱>/
                       └─ 價格表 prices.json（每百萬 token 輸入／輸出／快取讀寫；玩家可編輯；
                          附「最後更新日期」提醒）
                       ▼
-            battles/<id>.usage.jsonl ──▶ HUD：本場 $0.04｜今天 $0.31｜本月 $2.10
+            battles/<id>/usage.jsonl（本場）＋ battles/ledger.jsonl（跨場帳本）──▶ HUD：本場 $0.04｜今天 $0.31｜本月 $2.10
                                        ──▶ 預算：玩家設上限，到 80% 提醒，到 100% 可選「暫停參謀長」
 ```
 

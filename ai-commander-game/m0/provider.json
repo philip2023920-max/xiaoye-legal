@@ -1,11 +1,11 @@
 {
   "updated_at": "2026-11-01",
-  "note": "供應商能力表。strict_schema=原生保證 JSON 符合 schema；json_mode=只保證是 JSON；沒有兩者就靠本地驗證與重試。價格由 LiteLLM 內建表或 prices.json 提供。",
+  "note": "供應商能力表。strict_schema=端點可強制輸出符合 schema（Ollama ≥0.5 的 format=<schema>、OpenAI json_schema、Anthropic 結構化輸出）；json_mode=只保證是 JSON；兩者都沒有就靠本地驗證與重試。價格由 chief/prices.json 覆寫 LiteLLM 內建表，單位＝每百萬 token 美元。",
   "providers": {
-    "ollama":     {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "local", "note": "小模型常被驗證器退回，屬正常"},
-    "openai":     {"adapter": "litellm", "strict_schema": true,  "json_mode": true,  "streaming": true, "cost": "paid"},
-    "deepseek":   {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "paid"},
-    "openrouter": {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "paid"},
-    "anthropic":  {"adapter": "anthropic", "strict_schema": true, "json_mode": false, "streaming": true, "cost": "paid", "note": "施工單 04：strict tool、prompt caching"}
+    "ollama":     {"adapter": "litellm",   "strict_schema": true,  "json_mode": true,  "streaming": false, "cost": "local", "note": "程式用 json_schema → json_object → 純提示 三段降級；小模型仍可能被驗證器退回"},
+    "openai":     {"adapter": "litellm",   "strict_schema": true,  "json_mode": true,  "streaming": false, "cost": "paid"},
+    "deepseek":   {"adapter": "litellm",   "strict_schema": false, "json_mode": true,  "streaming": false, "cost": "paid"},
+    "openrouter": {"adapter": "litellm",   "strict_schema": false, "json_mode": true,  "streaming": false, "cost": "paid", "note": "依底層模型而定"},
+    "anthropic":  {"adapter": "anthropic", "strict_schema": true,  "json_mode": false, "streaming": false, "cost": "paid", "note": "messages.parse 結構化輸出＋prompt caching；串流延後 M2"}
   }
 }

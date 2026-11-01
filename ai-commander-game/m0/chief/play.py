@@ -125,10 +125,10 @@ def _print_turn(console, battle, t, resp, accepted, rejected: list[Rejection], e
         console.print(Panel(Text(resp.error or "無回應", style="red"), title="參謀長", border_style="red"))
     table = Table(box=box.SIMPLE, title="本回合命令")
     table.add_column("單位"); table.add_column("任務"); table.add_column("目標"); table.add_column("理由"); table.add_column("狀態")
-    for o in accepted:
-        table.add_row(o.unit_id, TASK_ZH.get(o.task, o.task), o.target, o.reason, Text("放行", style="green"))
+    for o in accepted:   # 模型回的字串一律包 Text()，避免 [/x] 之類被當 Rich 標記
+        table.add_row(Text(o.unit_id), Text(TASK_ZH.get(o.task, o.task)), Text(o.target), Text(o.reason), Text("放行", style="green"))
     for r in rejected:
-        table.add_row(r.order.unit_id, TASK_ZH.get(r.order.task, r.order.task), r.order.target, r.order.reason, Text(f"退回 {r.rule}：{r.reason}", style="red"))
+        table.add_row(Text(r.order.unit_id), Text(TASK_ZH.get(r.order.task, r.order.task)), Text(r.order.target), Text(r.order.reason), Text(f"退回 {r.rule}：{r.reason}", style="red"))
     if accepted or rejected:
         console.print(table)
     if verbose:
@@ -137,6 +137,8 @@ def _print_turn(console, battle, t, resp, accepted, rejected: list[Rejection], e
         console.print(map_table(battle.board, console))
     lines = [Text(f"[{e.kind}] {e.text}") for e in report.events] or [Text("（本回合無事件）", style="dim")]
     console.print(Panel(Group(*lines), title=f"第 {t} 回合事件", border_style="blue"))
+    if resp.orders is None:
+        return
     est = "（粗估）" if entry.usage.estimated else ""
     cache = f"｜快取讀 {entry.usage.cache_read_tokens}" if entry.usage.cache_read_tokens else ""
     hud = f"本場 ${running_cost:.4f}"
