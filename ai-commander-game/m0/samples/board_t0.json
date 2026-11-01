@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1",
+  "battle_id": "sample-hill-town",
+  "t": 3,
+  "time_unit": "turn",
+  "phase": "mid",
+  "scale": "battle",
+  "map": {
+    "cols": 5,
+    "rows": 5,
+    "sectors": {
+      "A1": {"id": "A1", "terrain": "open",   "owner": "us"},
+      "B1": {"id": "B1", "terrain": "open",   "owner": "us"},
+      "C1": {"id": "C1", "terrain": "open",   "owner": "none"},
+      "D1": {"id": "D1", "terrain": "open",   "owner": "none"},
+      "E1": {"id": "E1", "terrain": "forest", "owner": "none", "cover": 0.5},
+      "A2": {"id": "A2", "terrain": "open",   "owner": "us"},
+      "B2": {"id": "B2", "terrain": "hill",   "owner": "us", "cover": 0.4, "objective": "O1"},
+      "C2": {"id": "C2", "terrain": "open",   "owner": "none"},
+      "D2": {"id": "D2", "terrain": "hill",   "owner": "none", "cover": 0.4},
+      "E2": {"id": "E2", "terrain": "open",   "owner": "none"},
+      "A3": {"id": "A3", "terrain": "open",   "owner": "none"},
+      "B3": {"id": "B3", "terrain": "open",   "owner": "none"},
+      "C3": {"id": "C3", "terrain": "town",   "owner": "none", "contested": true, "cover": 0.6, "objective": "O2"},
+      "D3": {"id": "D3", "terrain": "open",   "owner": "none"},
+      "E3": {"id": "E3", "terrain": "open",   "owner": "none"},
+      "A4": {"id": "A4", "terrain": "forest", "owner": "none", "cover": 0.5},
+      "B4": {"id": "B4", "terrain": "open",   "owner": "none"},
+      "C4": {"id": "C4", "terrain": "open",   "owner": "none"},
+      "D4": {"id": "D4", "terrain": "river",  "owner": "enemy", "cover": 0.1, "objective": "O3"},
+      "E4": {"id": "E4", "terrain": "open",   "owner": "enemy"},
+      "A5": {"id": "A5", "terrain": "open",   "owner": "none"},
+      "B5": {"id": "B5", "terrain": "open",   "owner": "none"},
+      "C5": {"id": "C5", "terrain": "open",   "owner": "none"},
+      "D5": {"id": "D5", "terrain": "river",  "owner": "enemy", "cover": 0.1},
+      "E5": {"id": "E5", "terrain": "open",   "owner": "enemy"}
+    }
+  },
+  "orbat": [
+    {"id": "co-A",   "name": "A 連",   "echelon": "company", "type": "mixed",    "parent": null,   "strength": 0.82, "state": "engaged", "sector": "B2", "task": {"type": "hold",  "target": "B2"}},
+    {"id": "plt-A1", "name": "A1 排",  "echelon": "platoon", "type": "infantry", "parent": "co-A", "strength": 0.90, "state": "engaged", "sector": "B2", "task": {"type": "hold",  "target": "B2"}},
+    {"id": "plt-A2", "name": "A2 排",  "echelon": "platoon", "type": "infantry", "parent": "co-A", "strength": 0.75, "state": "moving",  "sector": "A2", "task": {"type": "seize", "target": "C3"}},
+    {"id": "plt-A3", "name": "A3 機槍排", "echelon": "platoon", "type": "mg",    "parent": "co-A", "strength": 0.80, "state": "idle",    "sector": "B1", "task": {"type": "hold",  "target": "B1"}, "controlled_by": "player"}
+  ],
+  "enemy_known": [
+    {"id": "e-co-1",   "echelon": "company", "type": "mixed",    "sector": "D4", "strength_est": 0.9, "last_seen": 2, "confidence": 0.6},
+    {"id": "e-plt-11", "echelon": "platoon", "type": "infantry", "sector": "C4", "strength_est": 0.7, "last_seen": 3, "confidence": 0.8},
+    {"id": "e-plt-12", "echelon": "platoon", "type": "mg",       "sector": "C3", "strength_est": 0.6, "last_seen": 3, "confidence": 0.5}
+  ],
+  "objectives": [
+    {"id": "O1", "sector": "B2", "value": 3, "owner": "us"},
+    {"id": "O2", "sector": "C3", "value": 5, "owner": "none"},
+    {"id": "O3", "sector": "D4", "value": 3, "owner": "enemy"}
+  ],
+  "events": [
+    {"t": 1, "kind": "contact",  "text": "A1 排在 C4 發現敵步兵排 e-plt-11", "unit": "plt-A1", "sector": "C4"},
+    {"t": 2, "kind": "order",    "text": "參謀長令 A 連固守 B2 高地", "unit": "co-A", "sector": "B2"},
+    {"t": 3, "kind": "order",    "text": "參謀長令 A2 排奪取 C3 城鎮", "unit": "plt-A2", "sector": "C3"},
+    {"t": 3, "kind": "override", "text": "總司令接管 A3 機槍排，改為固守 B1", "unit": "plt-A3", "sector": "B1"}
+  ],
+  "fog": {"visible_sectors": ["A1", "A2", "A3", "B1", "B2", "B3", "C2", "C3", "C4"]},
+  "overrides_this_battle": 1
+}
