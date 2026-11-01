@@ -65,9 +65,9 @@
           "children": []
         },
         {
-          "id": "n_4e13a305",
-          "text": "目前階段：Stage 2 架構＋環境建置",
-          "status": "doing",
+          "id": "n_eb377ed3",
+          "text": "目前階段：Stage 2 完成，等老闆說「進入 Stage 3」",
+          "status": "done",
           "link": "docs/08-stage2-architecture.md",
           "note": "",
           "children": []
@@ -798,14 +798,14 @@
               "children": []
             },
             {
-              "id": "n_f4556405",
-              "text": "Stage 2 環境建置",
-              "status": "doing",
+              "id": "n_00046bd8",
+              "text": "Stage 2 環境建置（Windows，體檢全部通過）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": [
                 {
-                  "id": "n_33bd300e",
+                  "id": "n_14bad7e7",
                   "text": "環境骨架 m0/（pyproject、uv.lock、.env.example、doctor）",
                   "status": "done",
                   "link": "",
@@ -813,7 +813,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_18a71acf",
+                  "id": "n_3b5866a9",
                   "text": "金鑰捕捉腳本 macOS／Windows（金鑰不進聊天）",
                   "status": "done",
                   "link": "",
@@ -821,7 +821,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_4f96bac0",
+                  "id": "n_7015f7c7",
                   "text": "實體護欄 .claude/hooks 已裝並自測",
                   "status": "done",
                   "link": "",
@@ -829,15 +829,15 @@
                   "children": []
                 },
                 {
-                  "id": "n_99f862bf",
-                  "text": "環境建置精靈 7 步導覽：等老闆說「開始」",
-                  "status": "decide",
+                  "id": "n_ba1daa68",
+                  "text": "環境建置精靈 7/7：uv、Git、Ollama qwen2.5:3b、金鑰、.env、doctor",
+                  "status": "done",
                   "link": "",
                   "note": "",
                   "children": []
                 },
                 {
-                  "id": "n_eb4cf7e5",
+                  "id": "n_d3308c7b",
                   "text": "THIRD_PARTY.md（M0 部分）",
                   "status": "done",
                   "link": "",
@@ -987,9 +987,17 @@
           "children": []
         },
         {
-          "id": "n_f6e84986",
-          "text": "環境建置精靈（Windows）進行中：第 1 步安裝 uv",
-          "status": "doing",
+          "id": "n_0f65712a",
+          "text": "環境建置精靈完成，老闆電腦 doctor 全部通過",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_d2054dc1",
+          "text": "待老闆下令：「進入 Stage 3」（M0 施工單拆票、重用檢查、開始寫程式）",
+          "status": "decide",
           "link": "",
           "note": "",
           "children": []
@@ -1266,8 +1274,8 @@
       ]
     }
   ],
-  "version": 9,
-  "updatedAt": "2026-11-01T22:15:40Z",
+  "version": 10,
+  "updatedAt": "2026-11-01T22:16:02Z",
   "updatedBy": "claude",
   "instructions": ""
 }

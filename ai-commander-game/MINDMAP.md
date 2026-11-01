@@ -16,7 +16,7 @@ markmap:
 - Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md
 - 重用優先（ADR-0011）：每張施工單先找現成素材／模板／套件，能用就用、能改就改，最後才自製
 - 階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳
-- 目前階段：Stage 2 架構＋環境建置 🟡 → docs/08-stage2-architecture.md
+- 目前階段：Stage 2 完成，等老闆說「進入 Stage 3」 ✅ → docs/08-stage2-architecture.md
 - 完整規則 → README.md
 
 ## 1. 願景與定位 🎯
@@ -113,11 +113,11 @@ markmap:
   - Token 計量與每場費用小結
   - 戰報卡文字版＋討論三回合＋採納 diff
   - 驗收：5 場推翻率下降；回歸能抓到壞準則
-  - Stage 2 環境建置 🟡
+  - Stage 2 環境建置（Windows，體檢全部通過） ✅
     - 環境骨架 m0/（pyproject、uv.lock、.env.example、doctor） ✅
     - 金鑰捕捉腳本 macOS／Windows（金鑰不進聊天） ✅
     - 實體護欄 .claude/hooks 已裝並自測 ✅
-    - 環境建置精靈 7 步導覽：等老闆說「開始」 ❓
+    - 環境建置精靈 7/7：uv、Git、Ollama qwen2.5:3b、金鑰、.env、doctor ✅
     - THIRD_PARTY.md（M0 部分） ✅
 - M1 Godot 4 戰鬥沙盤（4～6 週） ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
@@ -137,7 +137,8 @@ markmap:
 - 第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama ✅
 - Stage 2 已啟動 ✅
 - 護欄不擋 git push（老闆決定） ✅
-- 環境建置精靈（Windows）進行中：第 1 步安裝 uv 🟡
+- 環境建置精靈完成，老闆電腦 doctor 全部通過 ✅
+- 待老闆下令：「進入 Stage 3」（M0 施工單拆票、重用檢查、開始寫程式） ❓
 
 ## 8. 素材與模板庫 🧰 → docs/07-reuse-catalog.md
 - 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅

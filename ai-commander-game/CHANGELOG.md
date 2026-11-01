@@ -2,6 +2,10 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第七次）— 環境建置精靈完成
+- 老闆決定護欄不擋 git push；Windows 環境 7 步全部完成（uv、Git clone 到 C:\dev、Ollama qwen2.5:3b、Anthropic 金鑰、捕捉腳本寫入 .env、uv sync、doctor 全部通過）
+- `docs/08` 進度表更新、心智圖 Stage 2 節點改 ✅；回寫 Artifact 資料庫
+
 ## 2026-11-01（第六次）— 進入 Stage 2
 - 選型比價（WebSearch 降級＋沙盒 uv 實測）：uv、Textual 8.2.8、LiteLLM 1.106.6＋instructor 1.17.0、anthropic 2.3.0 → ADR-0012；`docs/08-stage2-architecture.md`
 - M0 環境骨架 `m0/`：pyproject、uv.lock、.env.example、.gitignore、金鑰捕捉腳本（sh／ps1）、`chief/doctor.py` 體檢（已煙霧測試）
