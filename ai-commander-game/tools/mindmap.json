@@ -65,10 +65,10 @@
           "children": []
         },
         {
-          "id": "n_eb377ed3",
-          "text": "目前階段：Stage 2 完成，等老闆說「進入 Stage 3」",
-          "status": "done",
-          "link": "docs/08-stage2-architecture.md",
+          "id": "n_2d264696",
+          "text": "目前階段：Stage 3 程式碼實作",
+          "status": "doing",
+          "link": "docs/issues/README.md",
           "note": "",
           "children": []
         },
@@ -721,10 +721,74 @@
         {
           "id": "n_ae8bcf3c",
           "text": "M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002）",
-          "status": "todo",
-          "link": "",
+          "status": "doing",
+          "link": "docs/issues/README.md",
           "note": "",
           "children": [
+            {
+              "id": "n_fd9effdf",
+              "text": "施工單 01 戰情板合約＋靜態渲染",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_eeb0b64b",
+              "text": "施工單 02 模擬會戰可跑（無 LLM）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_a325adaf",
+              "text": "施工單 03 參謀長下令：Ollama 路徑",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_2b76cf3a",
+              "text": "施工單 04 Anthropic 路徑＋費用計量",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_5bec66a4",
+              "text": "施工單 05 總司令推翻與接管",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_df4ee326",
+              "text": "施工單 06 戰報卡＋討論＋採納",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_8e065442",
+              "text": "施工單 07 參謀長包＋戰例庫回歸＋5 場驗收",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_e0907292",
+              "text": "執行順序：01",
+              "status": "",
+              "link": "02→03→（04∥05）→06→07",
+              "note": "",
+              "children": []
+            },
             {
               "id": "n_4a4216c4",
               "text": "戰情板資料格式與側欄文字渲染",
@@ -995,10 +1059,10 @@
           "children": []
         },
         {
-          "id": "n_d2054dc1",
-          "text": "待老闆下令：「進入 Stage 3」（M0 施工單拆票、重用檢查、開始寫程式）",
+          "id": "n_37bd699c",
+          "text": "Stage 3 已啟動；M0 拆成 7 張曳光彈施工單，等老闆點頭後動工",
           "status": "decide",
-          "link": "",
+          "link": "docs/issues/README.md",
           "note": "",
           "children": []
         }
@@ -1240,6 +1304,14 @@
           "children": []
         },
         {
+          "id": "n_1d6e48a7",
+          "text": "docs/issues/（M0 施工單 01～07）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_368f013e",
           "text": "THIRD_PARTY.md（第三方元件與授權）",
           "status": "",
@@ -1274,8 +1346,8 @@
       ]
     }
   ],
-  "version": 10,
-  "updatedAt": "2026-11-01T22:16:02Z",
+  "version": 11,
+  "updatedAt": "2026-11-01T22:22:55Z",
   "updatedBy": "claude",
   "instructions": ""
 }

@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 51　🟡 1　✅ 34　❌ 3　❓ 2</span>
+  <span>⬜ 57　🟡 2　✅ 34　❌ 3　❓ 2</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -49,7 +49,7 @@ markmap:
 - Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md
 - 重用優先（ADR-0011）：每張施工單先找現成素材／模板／套件，能用就用、能改就改，最後才自製
 - 階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳
-- 目前階段：Stage 2 完成，等老闆說「進入 Stage 3」 ✅ → docs/08-stage2-architecture.md
+- 目前階段：Stage 3 程式碼實作 🟡 → docs/issues/README.md
 - 完整規則 → README.md
 
 ## 1. 願景與定位 🎯
@@ -136,7 +136,15 @@ markmap:
 - 成本：Haiku 等級每場約 US$0.1；本地模型 0 ✅
 
 ## 6. 里程碑 🗓️ → docs/04-roadmap.md
-- M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002） ⬜
+- M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002） 🟡 → docs/issues/README.md
+  - 施工單 01 戰情板合約＋靜態渲染 ⬜
+  - 施工單 02 模擬會戰可跑（無 LLM） ⬜
+  - 施工單 03 參謀長下令：Ollama 路徑 ⬜
+  - 施工單 04 Anthropic 路徑＋費用計量 ⬜
+  - 施工單 05 總司令推翻與接管 ⬜
+  - 施工單 06 戰報卡＋討論＋採納 ⬜
+  - 施工單 07 參謀長包＋戰例庫回歸＋5 場驗收 ⬜
+  - 執行順序：01 → 02→03→（04∥05）→06→07
   - 戰情板資料格式與側欄文字渲染
   - 模擬會戰（連級，10 回合）
   - LLM 閘道：Anthropic 原生＋Ollama 本地
@@ -171,7 +179,7 @@ markmap:
 - Stage 2 已啟動 ✅
 - 護欄不擋 git push（老闆決定） ✅
 - 環境建置精靈完成，老闆電腦 doctor 全部通過 ✅
-- 待老闆下令：「進入 Stage 3」（M0 施工單拆票、重用檢查、開始寫程式） ❓
+- Stage 3 已啟動；M0 拆成 7 張曳光彈施工單，等老闆點頭後動工 ❓ → docs/issues/README.md
 
 ## 8. 素材與模板庫 🧰 → docs/07-reuse-catalog.md
 - 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅
@@ -203,6 +211,7 @@ markmap:
 - docs/06-engine-comparison.md（引擎比較）
 - docs/07-reuse-catalog.md（素材與模板目錄）
 - docs/08-stage2-architecture.md（Stage 2 選型與環境建置）
+- docs/issues/（M0 施工單 01～07）
 - THIRD_PARTY.md（第三方元件與授權）
 - m0/（M0 環境骨架）
 - docs/adr/（ADR-0001～0012）

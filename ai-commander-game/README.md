@@ -61,6 +61,7 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/06-engine-comparison.md` | 引擎五選項比較（D1 用） |
 | `docs/07-reuse-catalog.md` | 可重用素材與模板目錄（ADR-0011 重用優先） |
 | `docs/08-stage2-architecture.md` | Stage 2：選型比價、流程圖、環境建置精靈、金鑰表、故障排除 |
+| `docs/issues/` | M0 施工單（曳光彈切片，附驗收清單與 30 秒驗收腳本） |
 | `m0/` | M0 Python 環境骨架（pyproject、uv.lock、.env.example、金鑰捕捉腳本、doctor 體檢） |
 | `THIRD_PARTY.md` | 進專案的第三方元件與授權 |
 | `docs/adr/` | 決策備忘卡 ADR-0001～0012 |
