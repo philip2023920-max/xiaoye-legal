@@ -9,9 +9,9 @@ from .board import MapGrid, Task, Unit
 from .grid import distance, neighbors, next_step
 
 
-def split_company_task(company: Unit, children: list[Unit], task: Task) -> dict[str, Task]:
-    """連的任務拆給「可行動」子排（排除殲滅、潰散、總司令直轄）。flank：第一個排正面固守，其餘側翼。"""
-    alive = [c for c in children if c.state not in ("destroyed", "routed") and c.controlled_by != "player"]
+def split_company_task(company: Unit, children: list[Unit], task: Task, include_player: bool = False) -> dict[str, Task]:
+    """連的任務拆給「可行動」子排（排除殲滅、潰散；參謀長的令也排除總司令直轄的排）。flank：第一個排正面固守，其餘側翼。"""
+    alive = [c for c in children if c.state not in ("destroyed", "routed") and (include_player or c.controlled_by != "player")]
     out: dict[str, Task] = {}
     if task.type == "flank" and len(alive) >= 2:
         out[alive[0].id] = Task(type="hold", target=alive[0].sector)

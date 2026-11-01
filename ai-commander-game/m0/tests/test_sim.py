@@ -261,7 +261,8 @@ def test_same_seed_same_result(tmp_path):
 
 def test_snapshot_per_turn_is_written(tmp_path):
     r = run_scripted(tmp_path)
-    files = sorted((tmp_path / "run-7").glob("t*.json"))
+    files = sorted(p for p in (tmp_path / "run-7").glob("t*.json") if p.name != "t0.json")
     assert len(files) == r.turns_played
+    assert (tmp_path / "run-7" / "t0.json").exists()               # 開局快照
     first = json.loads(files[0].read_text(encoding="utf-8"))
     assert first["t"] == 1 and first["battle_id"] == "hill-town-start"

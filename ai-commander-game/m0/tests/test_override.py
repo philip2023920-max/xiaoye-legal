@@ -75,7 +75,8 @@ def test_override_marks_unit_player_and_blocks_chief_next_turn(tmp_path):
     recs = [json.loads(l) for l in (tmp_path / "b" / "overrides.jsonl").read_text(encoding="utf-8").splitlines()]
     assert recs[0]["ai_order"]["task"] == "seize" and recs[0]["player_order"]["target"] == "B2" and recs[0]["turn"] == 1
     assert recs[0]["outcome"] in ("👍", "👎", "➖") and recs[0]["judged_turn"] == 2   # t+1 回合結束判定
-    assert "推翻率：1/" in out and "推翻後果：t1 plt-A3" in out
+    assert Path(recs[0]["snapshot_ref"]).exists()                                     # 指向開局快照 t0.json
+    assert "推翻率：1/2" in out and "推翻後果：t1 plt-A3" in out                       # 第 1 回合參謀長放行 2 條，推翻 1
 
 
 def test_take_over_and_release(tmp_path):
@@ -86,6 +87,41 @@ def test_take_over_and_release(tmp_path):
     b2 = json.loads((tmp_path / "b" / "t2.json").read_text(encoding="utf-8"))
     assert next(u for u in b2["orbat"] if u["id"] == "plt-A2")["controlled_by"] == "ai"
     assert res.overrides == 1
+
+
+def test_take_over_company_marks_platoons_and_blocks_chief(tmp_path):
+    turn2 = ChiefOrders(assessment="t2", orders=[{"unit_id": "plt-A1", "task": "seize", "target": "C3"}])
+    inputs = ["+co-A", "hold", "B1", ""] + [""] * 20
+    res, gw, out = run_interactive(tmp_path, [ChiefOrders(assessment="t1", orders=[]), turn2], inputs)
+    b1 = json.loads((tmp_path / "b" / "t1.json").read_text(encoding="utf-8"))
+    ctrl = {u["id"]: u["controlled_by"] for u in b1["orbat"]}
+    assert ctrl == {"co-A": "player", "plt-A1": "player", "plt-A2": "player", "plt-A3": "player"}
+    tasks = {u["id"]: u["task"] for u in b1["orbat"]}
+    assert tasks["plt-A1"] == {"type": "hold", "target": "B1"}        # 玩家的連令拆給自己直轄的排
+    assert res.turns[1]["rejected"][0].startswith("V2 plt-A1")
+
+
+def test_hostile_or_odd_input_does_not_crash(tmp_path):
+    inputs = ["+plt-A3", "hold", "[/red]", "+[/]", "²", "-plt-A1", "3", ""] + [""] * 20
+    res, gw, out = run_interactive(tmp_path, [], inputs)
+    assert res.battle.turns_played >= 1 and "不是分區 id" in out and "本來就由參謀長指揮" in out
+
+
+def test_eof_on_input_quits_cleanly(tmp_path):
+    def boom(prompt=""):
+        raise EOFError
+    board = load_board(SAMPLES / "board_start.json")
+    enemy = load_script(SAMPLES / "enemy_script.json")
+    out = open(tmp_path / "o.txt", "w", encoding="utf-8")
+    res = run_play(FakeGateway([]), board, enemy, doctrine="t", out_dir=tmp_path / "e", console=Console(file=out, width=120), auto=False, input_fn=boom)
+    out.close()
+    assert res.battle.end_reason == "quit" and "推翻率" in (tmp_path / "o.txt").read_text(encoding="utf-8")
+
+
+def test_judge_boundary_is_strict():
+    b = load_board(SAMPLES / "board_t0.json")
+    b.unit("plt-A3").strength = 0.80
+    assert judge_outcome(b, rec(strength=0.85), owner_before="us") == "➖"      # 掉 0.05 不算 < 0.05
 
 
 def test_quit_ends_battle_early(tmp_path):

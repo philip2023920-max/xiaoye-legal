@@ -32,11 +32,12 @@ OTHER: dict[str, str] = {"us": "enemy", "enemy": "us"}
 
 
 class Order(BaseModel):
-    """一條任務式命令。LLM（03）、玩家（05）、劇本（02）都用這個格式。"""
+    """一條任務式命令。LLM（03）、玩家（05）、劇本（02）都用這個格式。issuer 決定連令能否拆給直轄排。"""
     unit_id: str
     task: TaskType
     target: str
     reason: str = ""
+    issuer: Literal["ai", "player"] = "ai"
 
 
 class Script(BaseModel):
@@ -146,6 +147,8 @@ class Battle:
         self.initial = {"us": self.total_strength("us"), "enemy": self.total_strength("enemy")}
         self.snapshots: list[Path] = []
         self.end_reason: Optional[str] = None
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        save_board(self.board, self.out_dir / f"t{self.start_t}.json")  # 開局快照（推翻紀錄的 snapshot_ref 用）
 
     # ---- 查詢 ----
     def units(self, side: str) -> list[Unit]:
@@ -198,10 +201,10 @@ class Battle:
             task = Task(type=o.task, target=o.target)
             children = [c for c in self.units(side) if c.parent == u.id]
             if children:
-                for cid, ct in split_company_task(u, children, task).items():
+                for cid, ct in split_company_task(u, children, task, include_player=(o.issuer == "player")).items():
                     if cid in explicit:
                         continue  # 這個排本回合有自己的命令，連令不覆蓋
-                    by_id[cid].task = ct  # 直轄排已在 split 時排除
+                    by_id[cid].task = ct  # 參謀長的連令不碰直轄排；玩家的連令可以
                 u.task = task
             else:
                 u.task = task

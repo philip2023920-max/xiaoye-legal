@@ -13,7 +13,7 @@
 - [ ] `uv run chief play --provider ollama`（不加 `--auto`）進入互動模式，每回合可 Enter 採納或改令
 - [x] 改令後戰情板該單位 `controlled_by: player`，下一回合參謀長的命令不含該單位（驗證器擋下並記錄）
 - [x] 「放手」操作讓單位回到 `ai`
-- [x] 推翻紀錄寫入 `battles/<id>/overrides.jsonl`，欄位：turn、unit、ai_order、player_order、snapshot_ref、outcome
+- [x] 推翻紀錄寫入 `battles/<id>/overrides.jsonl`，欄位：turn、unit_id、ai_order、player_order、snapshot_ref（推翻當下的上一回合快照，第 1 回合指向開局快照 t0.json）、strength_at、outcome、judged_turn
 - [x] 後果判定：下一回合該單位戰力與所在據點變化 → 👍／👎／➖，規則與手算例子寫在 `docs/10-sim-rules.md`
 - [x] 戰後印「推翻率：n/m」
 
@@ -21,4 +21,4 @@
 `uv run chief play --provider ollama` → 第 1 回合選一條命令改成「hold」→ 看到該單位標記為直轄 → 第 2 回合參謀長沒再對它下令 → 戰後印推翻率。
 
 ## 預估檔案
-`chief/tui.py`、`chief/override.py`、`tests/test_override.py`
+`chief/override.py`、`chief/play.py`（互動部分）、`tests/test_override.py`

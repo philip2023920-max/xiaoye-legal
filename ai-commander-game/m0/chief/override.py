@@ -69,9 +69,21 @@ def judge_outcome(board_after: Board, rec: OverrideRecord, owner_before: Optiona
     owner_after = board_after.map.sectors[sector].owner if sector else None
     if u.state in ("routed", "destroyed") or (owner_after == "enemy" and owner_before != "enemy"):
         return OUTCOME_BAD
-    if rec.strength_at - u.strength < 0.05 and owner_after == "us":
+    if round(rec.strength_at - u.strength, 4) < 0.05 and owner_after == "us":
         return OUTCOME_GOOD
     return OUTCOME_NEUTRAL
+
+
+def subtree_ids(board: Board, unit_id: str) -> list[str]:
+    """unit 本身＋所有下級 id（接管／放手連時一起處理）。"""
+    out, stack = [unit_id], [unit_id]
+    while stack:
+        x = stack.pop()
+        for u in board.orbat:
+            if u.parent == x and u.id not in out:
+                out.append(u.id)
+                stack.append(u.id)
+    return out
 
 
 def player_order_problem(board: Board, order: Order) -> Optional[str]:
