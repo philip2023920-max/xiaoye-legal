@@ -1,0 +1,11 @@
+{
+  "updated_at": "2026-11-01",
+  "note": "供應商能力表。strict_schema=原生保證 JSON 符合 schema；json_mode=只保證是 JSON；沒有兩者就靠本地驗證與重試。價格由 LiteLLM 內建表或 prices.json 提供。",
+  "providers": {
+    "ollama":     {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "local", "note": "小模型常被驗證器退回，屬正常"},
+    "openai":     {"adapter": "litellm", "strict_schema": true,  "json_mode": true,  "streaming": true, "cost": "paid"},
+    "deepseek":   {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "paid"},
+    "openrouter": {"adapter": "litellm", "strict_schema": false, "json_mode": true,  "streaming": true, "cost": "paid"},
+    "anthropic":  {"adapter": "anthropic", "strict_schema": true, "json_mode": false, "streaming": true, "cost": "paid", "note": "施工單 04：strict tool、prompt caching"}
+  }
+}
