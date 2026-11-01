@@ -236,8 +236,57 @@
           "children": []
         },
         {
-          "id": "n_6a99a27d",
-          "text": "成功定義：第 5 場推翻率 < 15%；命令首字 < 2 秒",
+          "id": "n_975762a2",
+          "text": "戰報卡＋討論（遊戲化、從簡：一張卡、三幕、三回合、一個按鈕）",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_abe5081d",
+              "text": "戰報卡：戰果、推翻次數、花費、徽章；程式產生不花 token",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_26bc618e",
+              "text": "關鍵三幕：玩家 vs AI 決策對照＋後果 👍👎",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_b8b776bd",
+              "text": "討論：最多三回合，快速回覆選項，AI 回覆限兩句",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f3168332",
+              "text": "採納畫面：準則 diff 一鍵採納／不採納；下一場開局引用",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_4e7cea5d",
+              "text": "徽章與信任計量條：果斷總司令、放手型、省錢贏家",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_7a8ce265",
+          "text": "成功定義：第 5 場推翻率 < 15%；命令首字 < 2 秒；戰後流程 < 2 分鐘",
           "status": "",
           "link": "docs/02-prd.md",
           "note": "",
@@ -513,9 +562,50 @@
               "children": []
             },
             {
-              "id": "n_233ff8ae",
-              "text": "公平規則（D10）",
-              "status": "decide",
+              "id": "n_9138c89c",
+              "text": "對決不設限制，任何包搭任何模型；畫面並列雙方模型與花費（ADR-0010）",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_a4043a8d",
+          "text": "Token 計量與費用估算",
+          "status": "todo",
+          "link": "docs/03-architecture.md",
+          "note": "",
+          "children": [
+            {
+              "id": "n_ad3700c4",
+              "text": "UsageMeter 記錄每次呼叫的輸入／輸出／快取 token",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_418547e4",
+              "text": "價格表 prices.json：玩家可編輯，附更新日期",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_3c104d4b",
+              "text": "HUD：本場／今天／本月；預算上限與警示",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_28de5ac5",
+              "text": "本地模型顯示 $0 但仍顯示 token 與秒數",
+              "status": "todo",
               "link": "",
               "note": "",
               "children": []
@@ -613,6 +703,22 @@
             {
               "id": "n_7af40c54",
               "text": "AAR＋Doctrine diff＋戰例庫回歸",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_d159f1fe",
+              "text": "Token 計量與每場費用小結",
+              "status": "",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_db75cda3",
+              "text": "戰報卡文字版＋討論三回合＋採納 diff",
               "status": "",
               "link": "",
               "note": "",
@@ -735,6 +841,14 @@
           "children": []
         },
         {
+          "id": "n_deb448ef",
+          "text": "第二輪已拍板：D10 對決不設限制；新需求 Token 計量（F13）、戰報卡＋討論（F14）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_16f03ac7",
           "text": "第二輪待拍板（可整批回「全照建議」）",
           "status": "",
@@ -760,14 +874,6 @@
             {
               "id": "n_32549603",
               "text": "D9 首批供應商：建議 Anthropic＋Ollama",
-              "status": "decide",
-              "link": "",
-              "note": "",
-              "children": []
-            },
-            {
-              "id": "n_15fd7e20",
-              "text": "D10 對決公平：建議排名賽同模型同戰例",
               "status": "decide",
               "link": "",
               "note": "",
@@ -841,8 +947,8 @@
           "children": []
         },
         {
-          "id": "n_b1912b70",
-          "text": "docs/adr/（ADR-0002～0007）",
+          "id": "n_f41bcc8e",
+          "text": "docs/adr/（ADR-0002～0007、0010）",
           "status": "",
           "link": "",
           "note": "",
@@ -859,8 +965,8 @@
       ]
     }
   ],
-  "version": 2,
-  "updatedAt": "2026-11-01T21:00:28Z",
+  "version": 3,
+  "updatedAt": "2026-11-01T21:42:19Z",
   "updatedBy": "claude",
   "instructions": ""
 }
