@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 38　🟡 1　✅ 23　❌ 3　❓ 2</span>
+  <span>⬜ 51　🟡 1　✅ 24　❌ 3　❓ 2</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -47,6 +47,7 @@ markmap:
 - 老闆改法 A：在互動心智圖 Artifact 裡直接改（加節點、改狀態、寫備註）；改完告訴 Claude「照心智圖做」
 - 老闆改法 B：直接編輯 `MINDMAP.md`；兩邊衝突時以 Artifact 為準
 - Claude 施工法：讀 Artifact 資料庫 → 轉回 MINDMAP.md → 只做 🟡 節點與老闆備註 → 改 ✅ → 回寫 Artifact → 寫 CHANGELOG.md
+- 重用優先（ADR-0011）：每張施工單先找現成素材／模板／套件，能用就用、能改就改，最後才自製
 - 階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳
 - 完整規則 → README.md
 
@@ -156,7 +157,27 @@ markmap:
 - 第三輪已拍板（全照建議）：D1 Godot 4、D8 規模階梯、D9 Anthropic＋Ollama ✅
 - 待老闆下令：「進入 Stage 2」（環境建置、正式比價、ADR 細化） ❓
 
-## 8. 文件索引 📂
+## 8. 素材與模板庫 🧰 → docs/07-reuse-catalog.md
+- 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅
+- 進專案的東西記在 THIRD_PARTY.md ⬜
+- Godot 戰鬥沙盤
+  - RTS 骨架：godot-rts-kit（MIT）或 huginhelm Lite（MIT），M1 擇一 ⬜
+  - 編隊參考：rainwindskyfly/rts_demo（MIT） ⬜
+  - 布娃娃：Active Ragdoll（MIT）、Drop-In Ragdoll、Auto Ragdoll ⬜
+  - 地形：Low Poly Terrain Builder；大會戰才看 Terrain3D（MIT） ⬜
+  - UI 主題：Kenney UI Theme、Minimalistic UI、Crisp Kit ⬜
+- 美術
+  - 方塊人：Kenney Blocky Characters（CC0）＋Character Assets 動畫 ⬜
+  - 環境／載具：Quaternius（⚠️ 新授權 QAL 逐包看）、Kenney Prototype、Poly Pizza CC0 篩選 ⬜
+  - 軍事符號：milsymbol（MIT）預渲染 SVG ⬜
+  - 音效：Kenney Audio、freesound CC0 ⬜
+- Python M0
+  - 終端機戰情板：Textual（MIT） ⬜
+  - 閘道：LiteLLM（MIT）＋價格表 json；結構化輸出：instructor（MIT） ⬜
+  - 提示方法：TextStarCraft II 的摘要鏈（只借方法） ⬜
+- 驗證狀態：全部 ⚠️ 待 Stage 2 逐項驗證授權與版本
+
+## 9. 文件索引 📂
 - README.md（規則與工作流程）
 - docs/01-feasibility.md（可行性＋來源）
 - docs/02-prd.md（PRD v0.2）
@@ -164,7 +185,8 @@ markmap:
 - docs/04-roadmap.md（M0～M4）
 - docs/05-decisions.md（拍板紀錄＋第二輪）
 - docs/06-engine-comparison.md（引擎比較）
-- docs/adr/（ADR-0001～0010）
+- docs/07-reuse-catalog.md（素材與模板目錄）
+- docs/adr/（ADR-0001～0011）
 - CHANGELOG.md（每次同步紀錄）
 
 </script>

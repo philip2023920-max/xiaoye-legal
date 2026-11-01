@@ -7,6 +7,7 @@
 
 目標：不用遊戲引擎，把中樞（戰情板）、參謀長、推翻、AAR 全部跑通。
 
+- [ ] T0.0 重用檢查：逐項驗證 `07-reuse-catalog.md` 中 M0 會用到的套件（Textual、LiteLLM、instructor）授權與版本，建立 `THIRD_PARTY.md`
 - [ ] T0.1 戰情板資料格式（JSON schema）＋終端機側欄渲染（分區地圖、部隊樹、事件流）
 - [ ] T0.2 `sandbox.py`：連級模擬會戰，10 回合，3 兵種，分區地圖，編制 AI 執行任務式命令
 - [ ] T0.3 LLM 閘道介面＋Anthropic 原生 adapter＋OpenAI 相容 adapter（先用 Ollama 本地測）
@@ -21,7 +22,8 @@
 
 ## M1 Godot 4 戰鬥沙盤（4～6 週，ADR-0001）
 
-- [ ] T1.1 專案骨架、低硬體渲染設定、固定俯視攝影機
+- [ ] T1.0 重用檢查：評估 godot-rts-kit 與 huginhelm Lite 擇一當骨架；下載 Kenney Blocky Characters、UI 主題、布娃娃外掛並驗證授權
+- [ ] T1.1 專案骨架（以選定的 RTS kit 為底）、低硬體渲染設定、固定俯視攝影機
 - [ ] T1.2 單位：膠囊體＋方塊頭，3 兵種，簡單搖晃走路；班＝一組三個方塊人
 - [ ] T1.3 編制樹：班→排→連→旅，編制 AI 執行任務式命令
 - [ ] T1.4 地圖：平面＋據點＋方塊掩體；分區格

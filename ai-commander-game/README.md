@@ -59,7 +59,8 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `docs/04-roadmap.md` | 里程碑 M0～M4 與任務 |
 | `docs/05-decisions.md` | 拍板紀錄與待決策（建議答案制） |
 | `docs/06-engine-comparison.md` | 引擎五選項比較（D1 用） |
-| `docs/adr/` | 決策備忘卡 ADR-0001～0010 |
+| `docs/07-reuse-catalog.md` | 可重用素材與模板目錄（ADR-0011 重用優先） |
+| `docs/adr/` | 決策備忘卡 ADR-0001～0011 |
 | `CHANGELOG.md` | 每次同步紀錄 |
 
 ## 注意

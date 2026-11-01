@@ -2,6 +2,11 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-01（第五次）— 老闆指示「重用優先」
+- ADR-0011 重用優先；新增 `docs/07-reuse-catalog.md`（RTS 骨架、布娃娃、地形、UI、方塊人素材、milsymbol、Textual、LiteLLM、instructor、TextStarCraft II 摘要鏈），全部標 ⚠️ 待 Stage 2 驗證
+- 架構文件標註重用元件；路線圖加 T0.0、T1.0 重用檢查
+- 心智圖新增「8. 素材與模板庫」，文件索引改為 9；回寫 Artifact 資料庫
+
 ## 2026-11-01（第四次）— 老闆第三輪「全照建議」，D1～D10 全部定案
 - D1 Godot 4 → ADR-0001；D8 規模階梯 → ADR-0008；D9 Anthropic＋Ollama → ADR-0009
 - `05-decisions.md` 狀態改 ✅；`03-architecture.md`、`04-roadmap.md`、`06-engine-comparison.md`、README 標題同步

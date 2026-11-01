@@ -1,6 +1,7 @@
 # 03 技術架構草案
 
 > 文件狀態：🟡 v0.3（2026-11-01，加入 Token 計量、戰報卡與討論）｜對應心智圖節點：`4. 技術架構`
+> 重用優先（ADR-0011）：每一層的候選現成元件見 `07-reuse-catalog.md`。
 > ⚠️ 仍是 Stage 1 方向草案。正式選型、環境建置、ADR 細節要等老闆說「進入 Stage 2」。
 
 ## 系統分層（由下往上）
@@ -71,7 +72,7 @@ TABS 式「每個人都是布娃娃」只在遭遇戰規模成立；會戰以上
 }
 ```
 
-側欄顯示：分區地圖（ASCII 風格或簡圖）、部隊樹（可折疊）、事件流、參謀長的最近一句話與命令。
+側欄顯示：分區地圖（ASCII 風格或簡圖）、部隊樹（可折疊）、事件流、參謀長的最近一句話與命令。M0 終端機版用 **Textual** 的 Tree／DataTable 元件；單位符號可借 **milsymbol** 預渲染（重用，見 `07-reuse-catalog.md`）。
 
 ## 參謀長命令（結構化合約）
 
@@ -109,6 +110,7 @@ TABS 式「每個人都是布娃娃」只在遭遇戰規模成立；會戰以上
              └─ （預留）GeminiNative、本地 llama.cpp
 ```
 
+- **重用**：OpenAI 相容 adapter 以 **LiteLLM** 實作（統一 usage、價格表）；結構化輸出與重試以 **instructor** 實作；Anthropic 原生 adapter 自寫以用 strict tool 與 prompt caching（⚠️ 進 Stage 2 驗證）。
 - **最低公分母**：所有供應商都走「系統提示附 JSON Schema → 回傳 JSON → 本地驗證 → 不合格重試最多 2 次」。有原生 strict 模式的（Anthropic strict tool、OpenAI `json_schema`）就開，沒有的靠驗證器。
 - **供應商能力表** `provider.json`：是否支援 strict schema、串流、快取、最大 context、每千 token 價格；介面據此顯示「此模型可能較常被退回」提示。
 - **研究結果**：OpenAI 相容端點的 schema 強制程度參差（有的接受 `response_format` 但不強制；Gemini 對 `items` 要明確型別；本地模型最不可預測）→ 客戶端驗證是必備，不是加分。⚠️ Anthropic 的 OpenAI 相容端點是否支援 `response_format` 未查證，本專案對 Anthropic 一律走原生 API。

@@ -49,6 +49,14 @@
           "children": []
         },
         {
+          "id": "n_ef1bad80",
+          "text": "重用優先（ADR-0011）：每張施工單先找現成素材／模板／套件，能用就用、能改就改，最後才自製",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_349fd2a6",
           "text": "階段切換要老闆明說（「進入 Stage 2」）；Claude 不自己往下跳",
           "status": "",
@@ -867,14 +875,170 @@
       ]
     },
     {
-      "id": "n_045c0a9d",
-      "text": "8. 文件索引 📂",
+      "id": "n_97fdc9c7",
+      "text": "8. 素材與模板庫 🧰",
+      "status": "",
+      "link": "docs/07-reuse-catalog.md",
+      "note": "",
+      "children": [
+        {
+          "id": "n_45bbf27a",
+          "text": "原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011）",
+          "status": "done",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_befe6109",
+          "text": "進專案的東西記在 THIRD_PARTY.md",
+          "status": "todo",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_51ec5d54",
+          "text": "Godot 戰鬥沙盤",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_35b4339e",
+              "text": "RTS 骨架：godot-rts-kit（MIT）或 huginhelm Lite（MIT），M1 擇一",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_5a6a206b",
+              "text": "編隊參考：rainwindskyfly/rts_demo（MIT）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_adce9fd7",
+              "text": "布娃娃：Active Ragdoll（MIT）、Drop-In Ragdoll、Auto Ragdoll",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_b62c84a6",
+              "text": "地形：Low Poly Terrain Builder；大會戰才看 Terrain3D（MIT）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_9b14b5ae",
+              "text": "UI 主題：Kenney UI Theme、Minimalistic UI、Crisp Kit",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_8faf6d32",
+          "text": "美術",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_241cb6ba",
+              "text": "方塊人：Kenney Blocky Characters（CC0）＋Character Assets 動畫",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_55ddee66",
+              "text": "環境／載具：Quaternius（⚠️ 新授權 QAL 逐包看）、Kenney Prototype、Poly Pizza CC0 篩選",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f7d20116",
+              "text": "軍事符號：milsymbol（MIT）預渲染 SVG",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_bc2b7fae",
+              "text": "音效：Kenney Audio、freesound CC0",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_a6cf4670",
+          "text": "Python M0",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": [
+            {
+              "id": "n_90b88a01",
+              "text": "終端機戰情板：Textual（MIT）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_42c32b02",
+              "text": "閘道：LiteLLM（MIT）＋價格表 json；結構化輸出：instructor（MIT）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_9f9cfada",
+              "text": "提示方法：TextStarCraft II 的摘要鏈（只借方法）",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "n_90394697",
+          "text": "驗證狀態：全部 ⚠️ 待 Stage 2 逐項驗證授權與版本",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "n_f51cd73e",
+      "text": "9. 文件索引 📂",
       "status": "",
       "link": "",
       "note": "",
       "children": [
         {
-          "id": "n_927b10ac",
+          "id": "n_3486ab79",
           "text": "README.md（規則與工作流程）",
           "status": "",
           "link": "",
@@ -882,7 +1046,7 @@
           "children": []
         },
         {
-          "id": "n_0e569bad",
+          "id": "n_30e59023",
           "text": "docs/01-feasibility.md（可行性＋來源）",
           "status": "",
           "link": "",
@@ -890,7 +1054,7 @@
           "children": []
         },
         {
-          "id": "n_78630ddd",
+          "id": "n_0b300aea",
           "text": "docs/02-prd.md（PRD v0.2）",
           "status": "",
           "link": "",
@@ -898,7 +1062,7 @@
           "children": []
         },
         {
-          "id": "n_12f6e434",
+          "id": "n_ab2002a3",
           "text": "docs/03-architecture.md（架構 v0.2）",
           "status": "",
           "link": "",
@@ -906,7 +1070,7 @@
           "children": []
         },
         {
-          "id": "n_497cd261",
+          "id": "n_c54fa9aa",
           "text": "docs/04-roadmap.md（M0～M4）",
           "status": "",
           "link": "",
@@ -914,7 +1078,7 @@
           "children": []
         },
         {
-          "id": "n_3ac970e0",
+          "id": "n_90e45e7a",
           "text": "docs/05-decisions.md（拍板紀錄＋第二輪）",
           "status": "",
           "link": "",
@@ -922,7 +1086,7 @@
           "children": []
         },
         {
-          "id": "n_10184cb5",
+          "id": "n_a912190c",
           "text": "docs/06-engine-comparison.md（引擎比較）",
           "status": "",
           "link": "",
@@ -930,15 +1094,23 @@
           "children": []
         },
         {
-          "id": "n_b850ace0",
-          "text": "docs/adr/（ADR-0001～0010）",
+          "id": "n_cbd06780",
+          "text": "docs/07-reuse-catalog.md（素材與模板目錄）",
           "status": "",
           "link": "",
           "note": "",
           "children": []
         },
         {
-          "id": "n_1c316e19",
+          "id": "n_466bfb71",
+          "text": "docs/adr/（ADR-0001～0011）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_9f243230",
           "text": "CHANGELOG.md（每次同步紀錄）",
           "status": "",
           "link": "",
@@ -948,8 +1120,8 @@
       ]
     }
   ],
-  "version": 4,
-  "updatedAt": "2026-11-01T21:47:49Z",
+  "version": 5,
+  "updatedAt": "2026-11-01T21:53:16Z",
   "updatedBy": "claude",
   "instructions": ""
 }
