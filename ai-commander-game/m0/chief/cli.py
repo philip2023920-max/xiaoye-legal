@@ -72,9 +72,6 @@ def cmd_play(args: argparse.Namespace) -> int:
 
     console = Console()
     err_console = Console(stderr=True)
-    if not args.auto:
-        err_console.print("[yellow]互動推翻模式在施工單 05；目前請加 --auto。[/]")
-        return 2
     try:
         board = load_board(args.board)
         enemy = load_script(args.enemy)
@@ -89,7 +86,7 @@ def cmd_play(args: argparse.Namespace) -> int:
     ledger = Ledger(args.ledger) if args.ledger else None
     run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
              prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
-             budget_usd=args.budget, ledger=ledger)
+             budget_usd=args.budget, ledger=ledger, auto=args.auto)
     return 0
 
 

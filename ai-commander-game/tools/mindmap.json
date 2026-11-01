@@ -171,17 +171,17 @@
           "children": []
         },
         {
-          "id": "n_e787ee5e",
-          "text": "玩家推翻與接管：任一級（班排連旅軍團）隨時接管，放手後 AI 接回",
-          "status": "todo",
+          "id": "n_2c92007f",
+          "text": "玩家推翻與接管：任一級隨時接管，放手後 AI 接回（M0 文字版：數字改令、+ 接管、- 放手）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
         },
         {
-          "id": "n_30522019",
-          "text": "推翻紀錄：AI 原令、玩家改令、當時快照、後果",
-          "status": "todo",
+          "id": "n_9a8c4b01",
+          "text": "推翻紀錄：AI 原令、玩家改令、當時快照、後果 👍👎➖（overrides.jsonl）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
@@ -342,9 +342,9 @@
           "children": []
         },
         {
-          "id": "n_e9324a20",
-          "text": "玩家直轄標記：接管中的部隊在板上標示，AI 不再對它下令",
-          "status": "todo",
+          "id": "n_c097cafc",
+          "text": "玩家直轄標記：接管中的部隊在板上標示，AI 不再對它下令（V2）",
+          "status": "done",
           "link": "",
           "note": "",
           "children": []
@@ -758,8 +758,8 @@
               "children": []
             },
             {
-              "id": "n_5bec66a4",
-              "text": "施工單 05 總司令推翻與接管",
+              "id": "n_bb6a9c0a",
+              "text": "施工單 05 總司令推翻與接管（程式＋7 測試完成，審查中；待真機驗收）",
               "status": "doing",
               "link": "",
               "note": "",
@@ -1362,8 +1362,8 @@
       ]
     }
   ],
-  "version": 17,
-  "updatedAt": "2026-11-01T23:24:57Z",
+  "version": 18,
+  "updatedAt": "2026-11-01T23:28:00Z",
   "updatedBy": "claude",
   "instructions": ""
 }

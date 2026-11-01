@@ -72,7 +72,7 @@ class TurnReport:
 class BattleResult:
     battle_id: str
     turns_played: int
-    end_reason: Literal["turns", "strength"]
+    end_reason: Literal["turns", "strength", "quit"]
     winner: Literal["us", "enemy", "draw"]
     score_us: int
     score_enemy: int
@@ -82,7 +82,7 @@ class BattleResult:
 
     def summary(self) -> str:
         w = {"us": "我方勝", "enemy": "敵方勝", "draw": "平手"}[self.winner]
-        why = "10 回合打完" if self.end_reason == "turns" else "一方戰力低於初始 30%"
+        why = {"turns": "10 回合打完", "strength": "一方戰力低於初始 30%", "quit": "總司令提前結束"}[self.end_reason]
         return (f"結果：{w}（{why}，共 {self.turns_played} 回合）｜據點分 我 {self.score_us} : 敵 {self.score_enemy}"
                 f"｜剩餘總戰力 我 {self.strength_us:.2f} : 敵 {self.strength_enemy:.2f}")
 
