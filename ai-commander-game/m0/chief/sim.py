@@ -1,4 +1,4 @@
-"""M0 模擬會戰引擎（回合制、連級、無 LLM）。規則與數字全部來自 docs/10-sim-rules.md。
+"""M0 模擬會戰引擎（回合制、連級、無 LLM）。規則與數字全部來自 docs/10-sim-rules.md 與 rules/<era>.json（戰鬥模型 v1）。
 
 用法（程式）：
     battle = Battle(board, enemy_units, seed=7)
@@ -16,12 +16,10 @@ from pydantic import BaseModel, Field, ValidationError
 
 from .board import Board, BoardError, Contact, Event, Task, TaskType, Unit, save_board
 from .formation_ai import decide_move, split_company_task
-from .grid import neighbors
+from .grid import distance, neighbors
+from .rules import Rules, load_rules
 
-# ---- 規則常數（§4、§5、§7）----
-K = 0.25
-FIRE = {"infantry": 1.0, "mg": 1.3, "armor": 1.5, "mixed": 1.2}
-ARMOR_DAMAGE_FACTOR = 0.6
+# ---- 狀態門檻與結束條件（§5、§7）----
 ROUT_THRESHOLD = 0.30
 DESTROY_THRESHOLD = 0.05
 MAX_TURNS = 10
@@ -29,6 +27,8 @@ END_STRENGTH_RATIO = 0.30
 
 Side = Literal["us", "enemy"]
 OTHER: dict[str, str] = {"us": "enemy", "enemy": "us"}
+WEATHER_ZH = {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}
+TIME_ZH = {"day": "日間", "night": "夜間"}
 
 
 class Order(BaseModel):
@@ -41,9 +41,11 @@ class Order(BaseModel):
 
 
 class Script(BaseModel):
-    """照回合排好的命令：{"1": [...], "3": [...]}。enemy 劇本另含敵方初始部隊。"""
+    """照回合排好的命令：{"1": [...], "3": [...]}。enemy 劇本另含敵方初始部隊與天氣／時段變化。"""
     units: list[Unit] = Field(default_factory=list)
     orders: dict[str, list[Order]] = Field(default_factory=dict)
+    weather_changes: dict[str, str] = Field(default_factory=dict, description="回合 → 天氣（clear/rain/snow/fog）")
+    time_changes: dict[str, str] = Field(default_factory=dict, description="回合 → 時段（day/night）")
 
     def for_turn(self, t: int) -> list[Order]:
         return self.orders.get(str(t), [])
@@ -54,7 +56,11 @@ def load_script(path: str | Path) -> Script:
     if not p.exists():
         raise BoardError(f"找不到劇本檔案：{p}")
     try:
-        return Script.model_validate(json.loads(p.read_text(encoding="utf-8")))
+        data = json.loads(p.read_text(encoding="utf-8-sig"))
+        for u in data.get("units", []):
+            if u.get("type") == "armor":
+                u["type"] = "tank"
+        return Script.model_validate(data)
     except json.JSONDecodeError as err:
         raise BoardError(f"{p} 不是合法的 JSON（第 {err.lineno} 行附近）") from None
     except ValidationError as err:
@@ -88,43 +94,40 @@ class BattleResult:
                 f"｜剩餘總戰力 我 {self.strength_us:.2f} : 敵 {self.strength_enemy:.2f}")
 
 
+def _fires(u: Unit) -> bool:
+    return u.state not in ("routed", "destroyed") and not (u.task is not None and u.task.type == "withdraw")
+
+
 def resolve_sector_combat(
-    us: list[Unit], enemy: list[Unit], cover: float, rng: random.Random | None = None
+    us: list[Unit], enemy: list[Unit], rules: Rules, cover_us: float, cover_en: float, fire_mult: float = 1.0,
+    rng: random.Random | None = None, support_us: list[Unit] | None = None, support_en: list[Unit] | None = None,
 ) -> dict[str, float]:
-    """同一分區的交戰解算（§4）。回傳每個單位本回合受到的傷害（尚未扣除）。
+    """同一分區的交戰解算（§4 v1）。回傳每個單位本回合受到的傷害（尚未扣除）。
 
-    撤退中（task=withdraw）與潰散單位不開火但會被打；裝甲受損 ×0.6；
-    rng 給定時每筆傷害乘以 0.9～1.1 的亂數。
+    對每個目標 t：Σ_攻方 a.strength × 混合火力(a→t) × share(t) × (1 − 守方掩蔽) × K × 天氣時段倍率，
+    share(t)＝t 戰力 ÷ 該側所有未殲滅目標戰力。support_*：相鄰分區的間接火力單位（迫砲），只打不被打。
+    撤退中與潰散的單位不開火但會被打；rng 給定時每筆傷害乘以 0.9～1.1 的亂數。
     """
-    def fire(units: list[Unit]) -> float:
-        total = 0.0
-        for u in units:
-            if u.state in ("routed", "destroyed"):
-                continue
-            if u.task is not None and u.task.type == "withdraw":
-                continue
-            total += u.strength * FIRE[u.type]
-        return total
-
-    def distribute(total: float, targets: list[Unit]) -> dict[str, float]:
-        alive = [u for u in targets if u.state != "destroyed"]  # 潰散單位也是目標
-        pool = sum(u.strength for u in alive)
+    def damage_to(targets: list[Unit], attackers: list[Unit], cover: float) -> dict[str, float]:
+        alive = [t for t in targets if t.state != "destroyed"]
+        pool = sum(t.strength for t in alive)
+        shooters = [a for a in attackers if _fires(a)]
         out: dict[str, float] = {}
-        if pool <= 0 or total <= 0:  # 沒人開火就不記 0 傷害
+        if pool <= 0 or not shooters:
             return out
-        for u in alive:
-            share = total * (u.strength / pool)
-            if u.type == "armor":
-                share *= ARMOR_DAMAGE_FACTOR
+        for t in alive:
+            share = t.strength / pool
+            total = sum(a.strength * rules.effective_fire(a.type, t.type) for a in shooters)
+            dmg = total * share * (1.0 - cover) * rules.K * fire_mult
+            if dmg <= 0:
+                continue
             if rng is not None:
-                share *= rng.uniform(0.9, 1.1)
-            out[u.id] = share
+                dmg *= rng.uniform(0.9, 1.1)
+            out[t.id] = dmg
         return out
 
-    dmg_to_enemy = fire(us) * (1.0 - cover) * K
-    dmg_to_us = fire(enemy) * (1.0 - cover) * K
-    result = distribute(dmg_to_enemy, enemy)
-    result.update(distribute(dmg_to_us, us))
+    result = damage_to(enemy, us + list(support_us or []), cover_en)
+    result.update(damage_to(us, enemy + list(support_en or []), cover_us))
     return result
 
 
@@ -136,9 +139,11 @@ class Battle:
         seed: int | None = None,
         variance: bool | None = None,
         out_dir: str | Path | None = None,
+        rules: Rules | None = None,
     ) -> None:
         self.board = board.model_copy(deep=True)
         self.enemy = [u.model_copy(deep=True) for u in enemy_units]
+        self.rules = rules or load_rules(self.board.era)
         self.rng = random.Random(seed) if seed is not None else None
         self.variance = variance if variance is not None else (seed is not None)
         self.out_dir = Path(out_dir) if out_dir is not None else Path("battles") / board.battle_id
@@ -168,7 +173,35 @@ class Battle:
     def _by_id(self, side: str) -> dict[str, Unit]:
         return {u.id: u for u in self.units(side)}
 
+    def engineer_in(self, side: str, sector_id: str, holding_only: bool = False) -> bool:
+        for u in self.leaves(side):
+            if u.sector == sector_id and self.rules.resolve_type(u.type) == "engineer" and u.state not in ("routed", "destroyed"):
+                if not holding_only or (u.task is not None and u.task.type == "hold"):
+                    return True
+        return False
+
+    def cover_for(self, side: str, sector_id: str) -> float:
+        s = self.board.map.sectors[sector_id]
+        return self.rules.effective_cover(s.terrain, self.board.weather, self.board.time_of_day, s.cover,
+                                          engineer_holding=self.engineer_in(side, sector_id, holding_only=True))
+
+    def blocked_sectors(self, side: str, unit: Unit) -> set[str]:
+        """這個單位進不去的分區（戰車 vs 森林／河川；河川有本方工兵在場就能過）。"""
+        out: set[str] = set()
+        for sid, s in self.board.map.sectors.items():
+            if not self.rules.can_enter(unit.type, s.terrain, engineer_present=self.engineer_in(side, sid)):
+                out.add(sid)
+        return out
+
     # ---- 回合 ----
+    def set_conditions(self, weather: str | None, time_of_day: str | None, report: TurnReport) -> None:
+        if weather and weather != self.board.weather:
+            self.board.weather = weather  # type: ignore[assignment]
+            report.events.append(Event(t=self.t, kind="weather", text=f"天氣轉{WEATHER_ZH.get(weather, weather)}"))
+        if time_of_day and time_of_day != self.board.time_of_day:
+            self.board.time_of_day = time_of_day  # type: ignore[assignment]
+            report.events.append(Event(t=self.t, kind="weather", text=f"進入{TIME_ZH.get(time_of_day, time_of_day)}"))
+
     def order_problem(self, side: str, o: Order) -> str | None:
         """引擎自己的最後防線（驗證器 V1/V3 的子集）：壞令不准進引擎，否則快照會寫壞。"""
         by_id = self._by_id(side)
@@ -193,7 +226,7 @@ class Battle:
             if problem:
                 report.events.append(Event(t=self.t, kind="info", text=f"{who}的命令被引擎退回：{problem}"))
         explicit = {o.unit_id for o in valid}
-        # 先套連級（含更高層）命令，再套葉節點命令，確保排的明確命令最後生效
+
         def has_children(uid: str) -> bool:
             return any(c.parent == uid for c in self.units(side))
         for o in sorted(valid, key=lambda x: 0 if has_children(x.unit_id) else 1):
@@ -221,19 +254,32 @@ class Battle:
             for u in sorted(leaves, key=lambda x: x.id):
                 if u.state not in ("routed", "destroyed"):
                     u.state = "idle"  # 每回合先歸零，交戰階段再標 engaged
-                dest = decide_move(u, grid, leaves, own, by_id)
-                if dest and dest != u.sector:
+                if u.state == "destroyed":
+                    continue
+                mobility = self.rules.mobility(u.type, self.board.weather)
+                if mobility < 1.0 and self.t % 2 == 1:
+                    continue  # 機動力減半：只在偶數回合移動（§2 v1）
+                steps = self.rules.unit(u.type).speed
+                avoid = self.blocked_sectors(side, u)
+                moved = False
+                for _ in range(steps):
+                    dest = decide_move(u, grid, leaves, own, by_id, avoid=avoid)
+                    if not dest or dest == u.sector or dest in avoid:
+                        break
                     u.sector = dest
-                    report.moves[u.id] = dest
+                    moved = True
+                if moved:
+                    report.moves[u.id] = u.sector
                     if u.state not in ("routed", "destroyed"):
                         # 到達任務目標那回合就算「到位」→ idle；還在路上 → moving（§5）
-                        arrived = u.task is not None and u.task.type != "support" and dest == u.task.target
+                        arrived = u.task is not None and u.task.type != "support" and u.sector == u.task.target
                         u.state = "idle" if arrived else "moving"
 
     def combat(self, report: TurnReport) -> None:
         sectors = {u.sector for u in self.leaves("us")} | {u.sector for u in self.leaves("enemy")}
         all_units = {u.id: u for u in self.leaves("us")} | {u.id: u for u in self.leaves("enemy")}
         damages: dict[str, float] = {}
+        fire_mult = self.rules.fire_mult(self.board.weather, self.board.time_of_day)
         for sid in sorted(sectors):
             us_all = [u for u in self.leaves("us") if u.sector == sid and u.state != "destroyed"]
             en_all = [u for u in self.leaves("enemy") if u.sector == sid and u.state != "destroyed"]
@@ -241,8 +287,11 @@ class Battle:
             en_active = [u for u in en_all if u.state != "routed"]
             if not us_active or not en_active:
                 continue  # 要有雙方「能戰鬥」的單位才交火；潰散單位只會被打
-            cover = self.board.map.sectors[sid].cover
-            dmg = resolve_sector_combat(us_all, en_all, cover, self.rng if self.variance else None)
+            adj = set(neighbors(self.board.map, sid))
+            sup_us = [u for u in self.leaves("us") if u.sector in adj and self.rules.unit(u.type).indirect and _fires(u)]
+            sup_en = [u for u in self.leaves("enemy") if u.sector in adj and self.rules.unit(u.type).indirect and _fires(u)]
+            dmg = resolve_sector_combat(us_all, en_all, self.rules, self.cover_for("us", sid), self.cover_for("enemy", sid), fire_mult,
+                                        self.rng if self.variance else None, sup_us, sup_en)
             for uid, d in dmg.items():
                 damages[uid] = damages.get(uid, 0.0) + d
             for u in us_active + en_active:
@@ -284,14 +333,20 @@ class Battle:
         for o in self.board.objectives:
             o.owner = self.board.map.sectors[o.sector].owner
 
-    def intelligence(self, report: TurnReport) -> None:
-        grid = self.board.map
+    def visible_sectors(self) -> set[str]:
+        """視距（§2 v1）：每個未殲滅友軍排以 rules.sight 的曼哈頓距離看得見；0＝只看自己那格。"""
         visible: set[str] = set()
         for u in self.leaves("us"):
             if u.state == "destroyed":
                 continue
-            visible.add(u.sector)
-            visible.update(neighbors(grid, u.sector))
+            sight = self.rules.sight(u.type, self.board.weather, self.board.time_of_day)
+            for sid in self.board.map.sectors:
+                if distance(u.sector, sid) <= sight:
+                    visible.add(sid)
+        return visible
+
+    def intelligence(self, report: TurnReport) -> None:
+        visible = self.visible_sectors()
         self.board.fog.visible_sectors = sorted(visible)
         known = {c.id: c for c in self.board.enemy_known}
         for e in self.leaves("enemy"):
@@ -331,11 +386,12 @@ class Battle:
                 if alive:
                     u.sector = max(alive, key=lambda c: (c.strength, c.id)).sector
 
-    def step(self, friendly_orders: list[Order], enemy_orders: list[Order]) -> TurnReport:
+    def step(self, friendly_orders: list[Order], enemy_orders: list[Order], weather: str | None = None, time_of_day: str | None = None) -> TurnReport:
         self.t += 1
         self.board.t = self.t
         self.board.phase = "early" if self.t <= 3 else ("mid" if self.t <= 7 else "late")
         report = TurnReport(t=self.t)
+        self.set_conditions(weather, time_of_day, report)
         self.apply_orders("us", friendly_orders, report)
         self.apply_orders("enemy", enemy_orders, report)
         self.movement(report)
@@ -382,7 +438,8 @@ class Battle:
 
     def run(self, friendly: Script, enemy: Script, on_turn=None) -> BattleResult:
         while not self.finished():
-            report = self.step(friendly.for_turn(self.t + 1), enemy.for_turn(self.t + 1))
+            t = self.t + 1
+            report = self.step(friendly.for_turn(t), enemy.for_turn(t), enemy.weather_changes.get(str(t)), enemy.time_changes.get(str(t)))
             if on_turn:
                 on_turn(self, report)
         return self.result()

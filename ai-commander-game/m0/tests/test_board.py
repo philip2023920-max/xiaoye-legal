@@ -81,7 +81,7 @@ def test_unit_id_cannot_clash_with_sector_id():
 
 def test_unknown_schema_version_is_rejected():
     d = sample_dict()
-    d["schema_version"] = "9.9"
+    d["schema_version"] = "9.9"   # 0.1 會自動升級，9.9 不會
     with pytest.raises(BoardError) as err:
         board_from_dict(d)
     assert "9.9" in str(err.value)

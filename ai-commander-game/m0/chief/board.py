@@ -12,7 +12,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = "0.2"
+UPGRADABLE_VERSIONS = ("0.1",)   # 舊版載入時自動補預設值
 
 # ---- 列舉（用 Literal 讓 JSON 直接對得上，不必轉 Enum）----
 Echelon = Literal["squad", "platoon", "company", "battalion", "brigade", "army_group"]
@@ -24,7 +25,9 @@ ECHELON_ZH: dict[str, str] = {
 }
 Terrain = Literal["open", "hill", "forest", "town", "river"]
 Owner = Literal["us", "enemy", "none"]
-UnitType = Literal["infantry", "mg", "armor", "mixed"]
+UnitType = Literal["infantry", "mg", "mortar", "at", "tank", "recon", "engineer", "armor", "mixed"]   # armor＝tank 的舊名；mixed＝連級容器
+Weather = Literal["clear", "rain", "snow", "fog"]
+TimeOfDay = Literal["day", "night"]
 UnitState = Literal["idle", "moving", "engaged", "routed", "destroyed"]
 TaskType = Literal["seize", "hold", "flank", "withdraw", "support", "reserve"]
 Controller = Literal["ai", "player"]
@@ -50,7 +53,7 @@ class Sector(BaseModel):
     terrain: Terrain = "open"
     owner: Owner = "none"
     contested: bool = False
-    cover: float = Field(0.2, ge=0.0, le=1.0, description="掩蔽度，影響戰損")
+    cover: Optional[float] = Field(None, ge=0.0, le=1.0, description="掩蔽度覆寫；None＝用世代規則表的地形值")
     objective: Optional[str] = Field(None, description="此分區的目標 id（若有）")
 
 
@@ -90,6 +93,7 @@ class Unit(BaseModel):
     sector: str
     task: Optional[Task] = None
     controlled_by: Controller = "ai"
+    cost: int = Field(0, ge=0, description="部署點數（v0.2；0＝未計）")
 
 
 class Contact(BaseModel):
@@ -129,6 +133,9 @@ class Board(BaseModel):
     time_unit: TimeUnit = "turn"
     phase: Phase = "early"
     scale: Scale = "battle"
+    era: str = Field("ww2_1944", description="世代規則檔名（rules/<era>.json）")
+    weather: Weather = "clear"
+    time_of_day: TimeOfDay = "day"
     map: MapGrid
     orbat: list[Unit] = Field(default_factory=list, description="友軍部隊樹（扁平列表，parent 連結）")
     enemy_known: list[Contact] = Field(default_factory=list)
@@ -248,6 +255,7 @@ class Board(BaseModel):
         ]
         return {
             "t": self.t, "unit": self.time_unit, "phase": self.phase, "scale": self.scale,
+            "era": self.era, "weather": self.weather, "time": self.time_of_day,
             "map": {"size": f"{self.map.cols}x{self.map.rows}", "sectors": sectors},
             "visible": self.fog.visible_sectors or "all",  # 空列表＝全圖可見，講明白給 LLM
             "friendly": friendly,
@@ -304,9 +312,26 @@ def _humanize(err: ValidationError) -> str:
     return "\n".join(lines)
 
 
+def upgrade_dict(data: dict) -> dict:
+    """舊版戰情板（0.1）→ 目前版：補世代／天氣／時段預設，armor 改名 tank。不動原 dict。"""
+    if not isinstance(data, dict) or data.get("schema_version", SCHEMA_VERSION) not in UPGRADABLE_VERSIONS:
+        return data
+    import copy
+    d = copy.deepcopy(data)
+    d["schema_version"] = SCHEMA_VERSION
+    d.setdefault("era", "ww2_1944"); d.setdefault("weather", "clear"); d.setdefault("time_of_day", "day")
+    for u in d.get("orbat", []):
+        if u.get("type") == "armor":
+            u["type"] = "tank"
+    for c in d.get("enemy_known", []):
+        if c.get("type") == "armor":
+            c["type"] = "tank"
+    return d
+
+
 def board_from_dict(data: dict) -> Board:
     try:
-        return Board.model_validate(data)
+        return Board.model_validate(upgrade_dict(data))
     except ValidationError as err:
         raise BoardError("戰情板內容有問題：\n" + _humanize(err)) from None
 

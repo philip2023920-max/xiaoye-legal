@@ -1,0 +1,39 @@
+{
+  "era": "coldwar_early",
+  "name": "早期冷戰 1950～60",
+  "note": "預留骨架（ADR-0013 D12）：schema 與 ww2_1944 相同，數字待填。目前與二戰同值，只是佔位。",
+  "K": 0.25, "cover_cap": 0.8, "budget": 100,
+  "units": {
+    "infantry": {"zh": "步兵排",   "fire_soft": 1.0, "fire_hard": 0.3, "armor": 0.0, "speed": 1, "sight": 1, "cost": 10, "indirect": false},
+    "mg":       {"zh": "機槍排",   "fire_soft": 1.3, "fire_hard": 0.1, "armor": 0.0, "speed": 1, "sight": 1, "cost": 12, "indirect": false},
+    "mortar":   {"zh": "迫砲排",   "fire_soft": 0.9, "fire_hard": 0.2, "armor": 0.0, "speed": 1, "sight": 1, "cost": 14, "indirect": true},
+    "at":       {"zh": "反戰車排", "fire_soft": 0.3, "fire_hard": 1.5, "armor": 0.1, "speed": 1, "sight": 1, "cost": 14, "indirect": false},
+    "tank":     {"zh": "戰車排",   "fire_soft": 1.2, "fire_hard": 1.0, "armor": 0.6, "speed": 1, "sight": 1, "cost": 25, "indirect": false},
+    "recon":    {"zh": "偵察排",   "fire_soft": 0.5, "fire_hard": 0.2, "armor": 0.1, "speed": 2, "sight": 2, "cost": 12, "indirect": false},
+    "engineer": {"zh": "工兵排",   "fire_soft": 0.8, "fire_hard": 0.6, "armor": 0.0, "speed": 1, "sight": 1, "cost": 12, "indirect": false}
+  },
+  "aliases": {"armor": "tank"},
+  "terrain": {
+    "open":   {"zh": "平地", "cover": 0.2, "armor_passable": true,  "engineer_bridges": false},
+    "hill":   {"zh": "高地", "cover": 0.4, "armor_passable": true,  "engineer_bridges": false},
+    "forest": {"zh": "森林", "cover": 0.5, "armor_passable": false, "engineer_bridges": false},
+    "town":   {"zh": "城鎮", "cover": 0.6, "armor_passable": true,  "engineer_bridges": false},
+    "river":  {"zh": "河川", "cover": 0.1, "armor_passable": false, "engineer_bridges": true}
+  },
+  "weather": {
+    "clear": {"zh": "晴", "sight": 0,  "fire_mult": 1.0, "cover_bonus": 0.0, "armor_mobility": 1.0, "all_mobility": 1.0},
+    "rain":  {"zh": "雨", "sight": 0,  "fire_mult": 0.9, "cover_bonus": 0.0, "armor_mobility": 0.5, "all_mobility": 1.0},
+    "snow":  {"zh": "雪", "sight": 0,  "fire_mult": 0.9, "cover_bonus": 0.0, "armor_mobility": 0.5, "all_mobility": 0.5},
+    "fog":   {"zh": "霧", "sight": -9, "fire_mult": 0.7, "cover_bonus": 0.1, "armor_mobility": 1.0, "all_mobility": 1.0}
+  },
+  "time": {
+    "day":   {"zh": "日間", "sight": 0,  "fire_mult": 1.0, "cover_bonus": 0.0},
+    "night": {"zh": "夜間", "sight": -1, "fire_mult": 0.6, "cover_bonus": 0.2}
+  },
+  "engineer": {"hold_cover_bonus": 0.1},
+  "templates": {
+    "balanced": {"zh": "均衡",     "units": ["infantry", "infantry", "infantry", "mg", "mortar", "at", "recon", "engineer"]},
+    "armor":    {"zh": "裝甲突擊", "units": ["tank", "tank", "infantry", "infantry", "mg", "recon"]},
+    "infantry": {"zh": "步兵固守", "units": ["infantry", "infantry", "infantry", "infantry", "mg", "mg", "mortar", "at"]}
+  }
+}

@@ -40,6 +40,11 @@ def cmd_sim(args: argparse.Namespace) -> int:
     except BoardError as err:
         err_console.print(f"[red]{err}[/]")
         return 1
+    _apply_conditions(board, args)
+    if getattr(args, "template", None) or getattr(args, "units", None):
+        board, _ = _deploy_board(board, args, console, err_console)
+        if board is None:
+            return 1
     battle = Battle(board, enemy.units, seed=args.seed, variance=(not args.no_variance) if args.seed is not None else False, out_dir=args.out)
 
     def on_turn(b: Battle, report) -> None:
@@ -80,6 +85,11 @@ def cmd_play(args: argparse.Namespace) -> int:
     except (BoardError, ValueError, NotImplementedError) as err:
         err_console.print(f"[red]{err}[/]")
         return 1
+    _apply_conditions(board, args)
+    if getattr(args, "template", None) or getattr(args, "units", None):
+        board, _ = _deploy_board(board, args, console, err_console)
+        if board is None:
+            return 1
     from .harness import load_harness
     from .prompts import use_template
     evals_dir = None
@@ -125,6 +135,83 @@ def cmd_play(args: argparse.Namespace) -> int:
              prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
              budget_usd=args.budget, ledger=ledger, auto=args.auto,
              doctrine_path=doctrine_path, aar_gateway=aar_gateway, skip_aar=args.skip_aar, evals_dir=evals_dir)
+    return 0
+
+
+def _apply_conditions(board, args) -> None:
+    """--weather / --time 覆寫開局天氣與時段（引擎與提示都吃戰情板上的值）。"""
+    if getattr(args, "weather", None):
+        board.weather = args.weather
+    if getattr(args, "time", None):
+        board.time_of_day = args.time
+
+
+def _deploy_board(board, args, console, err_console):
+    """--template / --units：部署階段，換掉戰情板上的友軍部隊。回傳 (board, plan) 或 (None, None) 表示失敗。"""
+    from .deploy import apply_plan, plan_from_list, plan_from_template, plan_lines
+    from .rules import load_rules
+    rules = load_rules(getattr(args, "era", None) or board.era)
+    try:
+        plan = plan_from_template(rules, args.template) if getattr(args, "template", None) else plan_from_list(rules, args.units.split(","))
+        board = apply_plan(board, plan, rules)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return None, None
+    if not getattr(args, "quiet", False):
+        from rich.panel import Panel
+        console.print(Panel("\n".join(plan_lines(plan, rules)), title="部署", border_style="green"))
+    return board, plan
+
+
+def cmd_deploy(args: argparse.Namespace) -> int:
+    """`chief deploy --template armor`：看部隊清單與點數；--out 把部署好的戰情板存檔給 sim/play 用；--suggest 請參謀長挑範本。"""
+    from .deploy import apply_plan, parse_suggestion, plan_from_list, plan_from_template, plan_lines, suggest_prompt
+    from .rules import load_rules
+    console = Console()
+    err_console = Console(stderr=True)
+    try:
+        board = load_board(args.board)
+        _apply_conditions(board, args)
+        rules = load_rules(args.era or board.era)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
+    if not args.template and not args.units and not args.suggest:
+        console.print(f"[bold]{rules.name}[/]｜預算 {rules.budget} 點｜範本：")
+        for name, tpl in rules.templates.items():
+            console.print(f"  {name:<9} {tpl.zh}：{', '.join(tpl.units)}（{rules.template_cost(name)} 點）")
+        console.print("兵種成本：" + "、".join(f"{k} {v.cost}" for k, v in rules.units.items()))
+        console.print("用法：chief deploy --template armor ｜ chief deploy --units infantry,infantry,tank ｜ chief deploy --suggest --provider ollama")
+        return 0
+    template = args.template
+    if args.suggest:
+        from .gateway import make_gateway
+        try:
+            gw = make_gateway(args.provider, args.model, effort=args.effort)
+        except (ValueError, NotImplementedError) as err:
+            err_console.print(f"[red]{err}[/]")
+            return 1
+        resp = gw.chat(suggest_prompt(board, rules, args.lang))
+        picked = parse_suggestion(resp.text, rules)
+        console.print(f"參謀長（{gw.provider}/{gw.model}）：{resp.text.strip() or resp.error or '（無回應）'}")
+        from .meter import PriceTable
+        cost = PriceTable(os.path.join(os.path.dirname(__file__), "prices.json")).cost(gw.model, resp.usage)
+        console.print(f"[dim]token：輸入 {resp.usage.prompt_tokens} 輸出 {resp.usage.completion_tokens}｜約 ${cost:.4f}[/]")
+        if picked is None:
+            console.print("[yellow]參謀長沒指名範本，採「均衡」。[/]")
+            picked = "balanced"
+        template = picked
+    try:
+        plan = plan_from_template(rules, template) if template else plan_from_list(rules, args.units.split(","))
+        board = apply_plan(board, plan, rules)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
+    console.print("\n".join(plan_lines(plan, rules)))
+    if args.out:
+        from .board import save_board
+        save_board(board, args.out)
+        console.print(f"[dim]部署好的戰情板已存：{args.out}（可給 chief sim/play --board）[/]")
     return 0
 
 
@@ -258,6 +345,15 @@ def cmd_doctrine(args: argparse.Namespace) -> int:
     return 2
 
 
+def add_conditions(sp: argparse.ArgumentParser) -> None:
+    """開局條件與部署（施工單 08）：sim / play / deploy 共用。"""
+    sp.add_argument("--weather", default=None, choices=["clear", "rain", "snow", "fog"], help="覆寫開局天氣（預設用戰情板的值）")
+    sp.add_argument("--time", default=None, choices=["day", "night"], help="覆寫開局時段")
+    sp.add_argument("--template", default=None, help="部署範本：balanced 均衡／armor 裝甲突擊／infantry 步兵固守（換掉戰情板上的友軍）")
+    sp.add_argument("--units", default=None, help="自選配比，逗號分隔，例如 infantry,infantry,mg,tank（預算見 rules/<era>.json）")
+    sp.add_argument("--era", default=None, help="世代規則檔（預設用戰情板的 era，例如 ww2_1944）")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="chief", description="AI 參謀長 RTS — M0 文字版沙盤")
     p.add_argument("--version", action="version", version=f"chief {__version__}")
@@ -275,6 +371,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--out", default=None, help="快照輸出資料夾（預設 battles/<battle_id>）")
     m.add_argument("--quiet", action="store_true", help="只印結果")
     m.add_argument("--verbose", action="store_true", help="每回合印完整戰情板")
+    add_conditions(m)
     m.set_defaults(func=cmd_sim)
     y = sub.add_parser("play", help="讓參謀長（LLM）指揮一場會戰（施工單 03）")
     y.add_argument("--provider", default="ollama", help="ollama / openai / deepseek / openrouter / anthropic（04）/ fake")
@@ -297,7 +394,16 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--out", default=None)
     y.add_argument("--quiet", action="store_true")
     y.add_argument("--verbose", action="store_true")
+    add_conditions(y)
     y.set_defaults(func=cmd_play)
+    dp = sub.add_parser("deploy", help="部署階段：看範本與點數、自選配比、請參謀長建議；--out 存成戰情板")
+    dp.add_argument("--board", default="samples/board_start.json", help="開局戰情板（用它的地圖與我方分區）")
+    dp.add_argument("--suggest", action="store_true", help="請參謀長挑一個範本（走閘道，照常計費）")
+    dp.add_argument("--provider", default="ollama"); dp.add_argument("--model", default=None); dp.add_argument("--effort", default=None, choices=["low", "medium", "high"])
+    dp.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
+    dp.add_argument("--out", default=None, help="把部署好的戰情板存到這裡")
+    add_conditions(dp)
+    dp.set_defaults(func=cmd_deploy)
     hz = sub.add_parser("harness", help="參謀長包：list / export / import（施工單 07）")
     hz.add_argument("action", choices=["list", "export", "import"])
     hz.add_argument("name", nargs="?", default="default", help="export：包名稱")

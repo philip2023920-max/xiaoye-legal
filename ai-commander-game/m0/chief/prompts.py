@@ -26,10 +26,15 @@ def use_template(path: str | Path | None) -> None:
     _template_override = Path(path) if path else None
 
 
-def system_prompt(doctrine: str, lang: str = "zh-TW") -> str:
+def system_prompt(doctrine: str, lang: str = "zh-TW", era: str = "ww2_1944") -> str:
+    from .rules import load_rules
     src = _template_override if (_template_override and _template_override.exists()) else SYSTEM_TEMPLATE_PATH
     template = src.read_text(encoding="utf-8-sig")
-    return template.replace("{language}", LANG_NAME.get(lang, lang)).replace("{doctrine}", doctrine.strip())
+    rules_text = load_rules(era).prompt_text()
+    if "{rules}" not in template:
+        template = template.replace("## Doctrine", rules_text + "\n\n## Doctrine", 1)
+    return (template.replace("{language}", LANG_NAME.get(lang, lang)).replace("{doctrine}", doctrine.strip())
+            .replace("{rules}", rules_text))
 
 
 def _orderable(snapshot: dict) -> list[str]:
@@ -53,6 +58,6 @@ def user_prompt(snapshot: dict, turn: int, feedback: list[str] | None = None) ->
 
 def build_messages(doctrine: str, snapshot: dict, turn: int, lang: str = "zh-TW", feedback: list[str] | None = None) -> list[dict]:
     return [
-        {"role": "system", "content": system_prompt(doctrine, lang)},
+        {"role": "system", "content": system_prompt(doctrine, lang, snapshot.get("era", "ww2_1944"))},
         {"role": "user", "content": user_prompt(snapshot, turn, feedback)},
     ]

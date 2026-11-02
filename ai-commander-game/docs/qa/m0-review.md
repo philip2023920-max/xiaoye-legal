@@ -68,6 +68,7 @@
 - 仍未覆蓋：`chief play --auto` 直走 cli.main（間接覆蓋）、anthropic chat（需真機）、formation_ai 17-20 已補。
 
 ## 真機驗收（待老闆或新 session 執行，見 HANDOFF.md）
+> 2026-11-02：施工單 08 戰鬥模型 v1 完成後，三項都要**用 v1 重跑**（`--template balanced --enemy samples/enemy_script_v1.json`，準則與戰例庫歸零），玩具沙盤上的數據不算。08 的審查（code-reviewer 軸）另記在 `docs/issues/08-combat-model-v1.md`。
 - [ ] 五場模擬總司令曲線（Anthropic Haiku）：首場 → 末場下降
 - [ ] 回歸抓壞準則：`--doctrine samples/bad_doctrine.md` 對齊率明顯下降並印退步
 - [ ] 雙供應商：同一參謀長包在 Ollama（本機）與 Anthropic 各打完一場

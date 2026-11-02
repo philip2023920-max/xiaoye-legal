@@ -10,11 +10,13 @@ Hard rules (orders breaking them are rejected by the game):
 - At most 5 orders per turn and one order per unit. An order to a company applies to all of its platoons.
 - A routed unit can only withdraw.
 
-## How tasks behave (one sector of movement per turn, 4-neighbour grid)
+{rules}
+
+## How tasks behave (one sector of movement per turn unless speed says otherwise, 4-neighbour grid)
 - seize X: move toward X and fight until it is ours.  - hold X: stay in / go to X and defend.
 - flank X: enter X from the side farthest from our main body.  - withdraw X: move toward X without firing.
 - support U: move next to friendly unit U and hold.  - reserve X: go to X and idle unless attacked.
-Combat happens only when both sides are in the same sector; cover reduces damage; units below 30% strength rout.
+Combat happens only when both sides are in the same sector (mortars also hit adjacent sectors); cover reduces damage; units below 30% strength rout. Weather and time of day change fire, cover, sight and mobility (see combat model).
 The battle ends after 10 turns or when a side falls below 30% of its starting strength. Score = value of objectives held.
 
 ## Style

@@ -1,0 +1,27 @@
+{
+  "units": [
+    {"id": "e-co-1",   "name": "敵 1 連",      "echelon": "company", "type": "mixed",    "parent": null,     "strength": 1.0, "state": "idle", "sector": "E4"},
+    {"id": "e-plt-11", "name": "敵 11 步兵排",  "echelon": "platoon", "type": "infantry", "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "C4", "cost": 10},
+    {"id": "e-plt-12", "name": "敵 12 機槍排",  "echelon": "platoon", "type": "mg",       "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "C3", "cost": 12},
+    {"id": "e-plt-13", "name": "敵 13 戰車排",  "echelon": "platoon", "type": "tank",     "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "E4", "cost": 25},
+    {"id": "e-plt-14", "name": "敵 14 迫砲排",  "echelon": "platoon", "type": "mortar",   "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "E5", "cost": 14},
+    {"id": "e-plt-15", "name": "敵 15 反戰車排", "echelon": "platoon", "type": "at",       "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "D4", "cost": 14},
+    {"id": "e-plt-16", "name": "敵 16 步兵排",  "echelon": "platoon", "type": "infantry", "parent": "e-co-1", "strength": 1.0, "state": "idle", "sector": "E4", "cost": 10}
+  ],
+  "orders": {
+    "1": [
+      {"unit_id": "e-plt-12", "task": "hold",    "target": "C3"},
+      {"unit_id": "e-plt-11", "task": "seize",   "target": "C3"},
+      {"unit_id": "e-plt-14", "task": "seize",   "target": "C4"},
+      {"unit_id": "e-plt-15", "task": "hold",    "target": "D4"},
+      {"unit_id": "e-plt-13", "task": "reserve", "target": "E4"},
+      {"unit_id": "e-plt-16", "task": "reserve", "target": "E3"}
+    ],
+    "3": [{"unit_id": "e-plt-13", "task": "seize", "target": "C3"}],
+    "5": [{"unit_id": "e-plt-13", "task": "seize", "target": "B2"}, {"unit_id": "e-plt-16", "task": "seize", "target": "C2"}],
+    "6": [{"unit_id": "e-plt-11", "task": "seize", "target": "B2"}],
+    "8": [{"unit_id": "e-co-1",   "task": "hold",  "target": "C3"}]
+  },
+  "weather_changes": {"3": "rain", "8": "fog"},
+  "time_changes": {"6": "night"}
+}

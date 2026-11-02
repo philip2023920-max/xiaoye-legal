@@ -2,6 +2,15 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十一次）— 施工單 08 戰鬥模型 v1（程式完成）
+- `m0/rules/ww2_1944.json`（七兵種 × 火力／裝甲／速度／視距／點數；地形 5、天氣 4、時段 2 修正；三範本）＋冷戰早／晚骨架；`chief/rules.py` schema 檢查與查表（人話錯誤）
+- 戰情板合約 v0.2：`era`、`weather`、`time_of_day`、`Unit.cost`；0.1 檔自動升級、`armor` → `tank`；`compact()` 多三鍵仍 < 2K token（均衡 8 排約 450）
+- `chief/sim.py` 改查表：混合火力、掩蔽上限 0.8、天氣／時段倍率、迫砲鄰格間接射擊、工兵固守加成與過河、戰車不進森林、機動力減半只在偶數回合動、偵察 2 格、視距表；敵方劇本 `weather_changes`／`time_changes` 寫 `weather` 事件
+- `chief/deploy.py`＋`chief deploy`（範本／自選配比／`--suggest` 請參謀長挑、`--out` 存板）；`chief sim/play --template --units --weather --time --era`；標題列顯示世代與天氣
+- 系統提示注入 `{rules}`（約 340 token）；`samples/enemy_script_v1.json`（戰車、迫砲、反戰車；t3 雨、t6 夜、t8 霧）
+- 文件：`docs/10` v1（§2、§4 查表與四組手算、§8 天氣變化、§13 部署）、`docs/09` v0.2、施工單 08 勾選、路線圖 T0.11；測試 123 → 146（`tests/test_rules.py`、`tests/test_combat_v1.py`）
+- 心智圖：戰鬥模型 v1 與施工單 08 節點改 🟡（審查中；待金鑰 session 重跑 5 場）；回寫 Artifact 資料庫
+
 ## 2026-11-02（第二十次）— 模擬總司令、測試軸修正、交接檔
 - `chief/commander.py`＋`samples/commander_steady.json`：規則驅動的模擬總司令（`chief play --commander`），五場驗收可全自動；fake 供應商有示範劇本（`--model fake/empty` 為空劇本）
 - 測試軸審查 14 項修正（期望值來源、公開介面、補 5 個測試）；測試 114 → 119；`docs/qa/m0-review.md` 三軸齊

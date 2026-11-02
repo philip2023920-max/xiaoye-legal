@@ -37,6 +37,8 @@ def next_step(grid: MapGrid, start: str, goal: str, avoid: set[str] | None = Non
     if start == goal:
         return None
     avoid = avoid or set()
+    if goal in avoid:
+        return None   # 目標本身進不去（例如戰車對森林）
     prev: dict[str, str | None] = {start: None}
     q = deque([start])
     while q:
@@ -44,7 +46,7 @@ def next_step(grid: MapGrid, start: str, goal: str, avoid: set[str] | None = Non
         if cur == goal:
             break
         for n in neighbors(grid, cur):
-            if n not in prev and (n == goal or n not in avoid):
+            if n not in prev and n not in avoid:
                 prev[n] = cur
                 q.append(n)
     if goal not in prev:

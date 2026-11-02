@@ -10,7 +10,10 @@ import pytest
 from chief.board import Board, MapGrid, Sector, Task, Unit, load_board
 from chief.formation_ai import decide_move
 from chief.grid import distance, neighbors
+from chief.rules import load_rules
 from chief.sim import Battle, Order, Script, load_script, resolve_sector_combat
+
+RULES = load_rules()
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 
@@ -36,8 +39,8 @@ def mini_board(units: list[Unit], battle_id: str = "mini") -> Board:
 def test_damage_hand_example():
     us = [plt("plt-A1", "C3", strength=0.90)]
     en = [plt("e-plt-12", "C3", typ="mg", strength=0.60)]
-    dmg = resolve_sector_combat(us, en, cover=0.6, rng=None)
-    assert dmg["e-plt-12"] == pytest.approx(0.090)   # 0.90×1.0×0.4×0.25
+    dmg = resolve_sector_combat(us, en, RULES, 0.6, 0.6)
+    assert dmg["e-plt-12"] == pytest.approx(0.090)   # 0.90×1.0×0.4×0.25（v1：步兵對無裝甲目標的混合火力仍是 1.0）
     assert dmg["plt-A1"] == pytest.approx(0.078)     # 0.60×1.3×0.4×0.25
     assert 0.60 - dmg["e-plt-12"] == pytest.approx(0.510)
     assert 0.90 - dmg["plt-A1"] == pytest.approx(0.822)
@@ -60,7 +63,7 @@ def test_hold_at_target_stays():
 def test_withdraw_moves_and_does_not_fire():
     us = [plt("u", "C3", Task(type="withdraw", target="A1"))]
     en = [plt("e", "C3")]
-    dmg = resolve_sector_combat(us, en, cover=0.2, rng=None)
+    dmg = resolve_sector_combat(us, en, RULES, 0.2, 0.2)
     assert "e" not in dmg                               # 撤退不開火
     assert dmg["u"] == pytest.approx(0.2)               # 1.0×1.0×0.8×0.25
     g = open_grid()
@@ -124,11 +127,12 @@ def test_company_flank_split_hand_example(tmp_path):
 
 # ---- 審查員補測（手算自 §4～§6）----
 def test_armor_takes_reduced_damage_and_hits_harder():
+    """v1（§4）：戰車裝甲 0.6 → 步兵混合火力 1.0×0.4+0.3×0.6=0.58；戰車對步兵 1.2。舊名 armor 仍可用。"""
     us = [plt("u", "C3", typ="infantry")]
     en = [plt("e", "C3", typ="armor")]
-    dmg = resolve_sector_combat(us, en, cover=0.6, rng=None)
-    assert dmg["e"] == pytest.approx(0.060)   # 1.0×1.0×0.4×0.25×0.6
-    assert dmg["u"] == pytest.approx(0.150)   # 1.0×1.5×0.4×0.25
+    dmg = resolve_sector_combat(us, en, RULES, 0.6, 0.6)
+    assert dmg["e"] == pytest.approx(0.058)   # 1.0×0.58×0.4×0.25
+    assert dmg["u"] == pytest.approx(0.120)   # 1.0×1.2×0.4×0.25
 
 
 def test_damage_split_by_strength_and_thresholds(tmp_path):

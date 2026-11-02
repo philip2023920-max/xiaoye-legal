@@ -39,36 +39,39 @@ def decide_move(
     friendly: list[Unit],
     own_sectors: list[str],
     unit_by_id: dict[str, Unit],
+    avoid: set[str] | None = None,
 ) -> str | None:
     """回傳這回合要移動到的分區；None 表示原地。
 
     friendly：同側所有單位（含自己）；own_sectors：目前我方擁有的分區；
     unit_by_id：同側單位索引，給 support 查目標單位位置用。
     """
+    avoid = set(avoid or ())
     if unit.state == "destroyed":
         return None
     if unit.state == "routed":
         # 潰散：有 withdraw 令就照令；否則往最近的我方分區退一格，已在我方分區就不動
         if unit.task is not None and unit.task.type == "withdraw":
-            return next_step(grid, unit.sector, unit.task.target)
+            return next_step(grid, unit.sector, unit.task.target, avoid=avoid)
         if unit.sector in own_sectors or not own_sectors:
             return None
         goal = min(own_sectors, key=lambda s: (distance(unit.sector, s), s))
-        return next_step(grid, unit.sector, goal)
+        return next_step(grid, unit.sector, goal, avoid=avoid)
     task = unit.task
     if task is None:
         return None
     t = task.type
     if t in ("seize", "hold", "withdraw", "reserve"):
-        return next_step(grid, unit.sector, task.target)
+        return next_step(grid, unit.sector, task.target, avoid=avoid)
     if t == "support":
         buddy = unit_by_id.get(task.target)
         if buddy is None or buddy.state == "destroyed":
             return None
         if unit.sector == buddy.sector or unit.sector in neighbors(grid, buddy.sector):
             return None  # 已在友軍同格或相鄰格，固守
-        goal = min(neighbors(grid, buddy.sector), key=lambda s: (distance(unit.sector, s), s))
-        return next_step(grid, unit.sector, goal)
+        cands = [s for s in neighbors(grid, buddy.sector) if s not in avoid] or neighbors(grid, buddy.sector)
+        goal = min(cands, key=lambda s: (distance(unit.sector, s), s))
+        return next_step(grid, unit.sector, goal, avoid=avoid)
     if t == "flank":
         if unit.sector == task.target:
             return None
@@ -76,8 +79,8 @@ def decide_move(
         main = max(leaves, key=lambda u: u.strength).sector if leaves else None
         approach = flank_approach_sector(grid, task.target, main)
         if approach is None:
-            return next_step(grid, unit.sector, task.target)
+            return next_step(grid, unit.sector, task.target, avoid=avoid)
         if unit.sector == approach:
             return task.target  # 從側翼進入目標
-        return next_step(grid, unit.sector, approach, avoid={task.target})  # 繞路時不穿過目標
+        return next_step(grid, unit.sector, approach, avoid=avoid | {task.target})  # 繞路時不穿過目標
     return None

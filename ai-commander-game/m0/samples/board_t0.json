@@ -1,10 +1,13 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "battle_id": "sample-hill-town",
   "t": 3,
   "time_unit": "turn",
   "phase": "mid",
   "scale": "battle",
+  "era": "ww2_1944",
+  "weather": "clear",
+  "time_of_day": "day",
   "map": {
     "cols": 5,
     "rows": 5,
@@ -46,7 +49,7 @@
     {"id": "e-co-1",   "echelon": "company", "type": "mixed",    "sector": "D4", "strength_est": 0.9, "last_seen": 2, "confidence": 0.6},
     {"id": "e-plt-11", "echelon": "platoon", "type": "infantry", "sector": "C4", "strength_est": 0.7, "last_seen": 3, "confidence": 0.8},
     {"id": "e-plt-12", "echelon": "platoon", "type": "mg",       "sector": "C3", "strength_est": 0.6, "last_seen": 3, "confidence": 0.5},
-    {"id": "e-plt-13", "echelon": "platoon", "type": "armor",    "sector": "D4", "strength_est": 0.8, "last_seen": 2, "confidence": 0.4}
+    {"id": "e-plt-13", "echelon": "platoon", "type": "tank",    "sector": "D4", "strength_est": 0.8, "last_seen": 2, "confidence": 0.4}
   ],
   "objectives": [
     {"id": "O1", "sector": "B2", "value": 3, "owner": "us"},

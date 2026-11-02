@@ -115,7 +115,10 @@ def events_panel(board: Board, n: int = 8) -> Panel:
 
 def render_board(board: Board, console: Console | None = None) -> None:
     console = console or Console()
-    header = f"[bold]{board.battle_id}[/]  t={board.t}{'回合' if board.time_unit == 'turn' else '秒'}  階段={board.phase}  規模={board.scale}  本場推翻={board.overrides_this_battle}"
+    wx = {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(board.weather, board.weather)
+    tod = {"day": "日間", "night": "夜間"}.get(board.time_of_day, board.time_of_day)
+    header = (f"[bold]{board.battle_id}[/]  t={board.t}{'回合' if board.time_unit == 'turn' else '秒'}  階段={board.phase}  規模={board.scale}"
+              f"  世代={board.era}  天氣={wx}/{tod}  本場推翻={board.overrides_this_battle}")
     console.print(Panel(header, border_style="green"))
     console.print(map_table(board, console))
     console.print(Panel(orbat_tree(board, console), border_style="green"))

@@ -144,7 +144,7 @@ def run_play(
             result.chief_orders_total += chief_count
         else:
             result.chief_orders_total += len(accepted)
-        report = battle.step(accepted, enemy.for_turn(t))
+        report = battle.step(accepted, enemy.for_turn(t), enemy.weather_changes.get(str(t)), enemy.time_changes.get(str(t)))
         for rec in overrides.pending(battle.t):    # 上一回合的推翻，這回合結束判後果（§9）
             outcome = judge_outcome(battle.board, rec, owner_cache.get(id(rec)))
             overrides.set_outcome(rec, outcome, battle.t)
