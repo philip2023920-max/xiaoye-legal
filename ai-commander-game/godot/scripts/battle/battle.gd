@@ -44,6 +44,8 @@ func _ready() -> void:
 	writer = BoardWriter.new(orbat, str(board.get("battle_id", "battle")), str(board.get("era", era)))
 	orbat.second_hooks.append(writer.update)
 	writer.update(0)
+	if board_out != "":
+		print("戰情板輸出：", ProjectSettings.globalize_path(board_out), "（每 %.1f 秒）" % WRITE_INTERVAL)
 	_add_tracers()
 	_add_hud()
 	# 掩體進物理世界後才能烘焙尋路格

@@ -12,6 +12,7 @@ var contacts := {}              # 敵方 id -> Contact 字典（只記看過的�
 var visible: Array[String] = []
 var last_update_second := -1
 var writes := 0
+var _warned := false
 
 func _init(orbat_: Orbat, battle_id_: String, era_: String) -> void:
 	orbat = orbat_
@@ -153,7 +154,16 @@ func write(path: String) -> bool:
 		DirAccess.remove_absolute(real)   # Windows 不能改名蓋過既有檔：先刪再改名（極短暫無檔）
 		err = DirAccess.rename_absolute(tmp, real)
 	if err != OK:
-		push_error("戰情板改名失敗：%s → %s（%s）" % [tmp, real, error_string(err)])
-		return false
+		# 最後保險：直接寫（非原子）。只警告一次，避免 log 被洗版。
+		if not _warned:
+			_warned = true
+			push_warning("戰情板改名失敗（%s），改為直接寫入 %s（非原子）" % [error_string(err), real])
+		var f2 := FileAccess.open(real, FileAccess.WRITE)
+		if f2 == null:
+			push_error("戰情板寫入失敗：%s（%s）" % [real, error_string(FileAccess.get_open_error())])
+			return false
+		f2.store_string(FileAccess.get_file_as_string(tmp))
+		f2.close()
+		DirAccess.remove_absolute(tmp)
 	writes += 1
 	return true
