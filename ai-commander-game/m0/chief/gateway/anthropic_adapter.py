@@ -89,9 +89,9 @@ class AnthropicGateway:
         stop = getattr(response, "stop_reason", None)
         usage = usage_from_anthropic(getattr(response, "usage", None))
         if stop == "refusal":
-            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error="模型因安全分類拒絕了這個請求（stop_reason=refusal）")
+            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error="模型因安全分類拒絕了這個請求（stop_reason=refusal）", stop_reason=stop)
         if stop == "max_tokens":
-            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error=f"回覆被 max_tokens={self.max_tokens} 截斷")
+            return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error=f"回覆被 max_tokens={self.max_tokens} 截斷", stop_reason=stop)
         parsed = getattr(response, "parsed_output", None)
         if parsed is None:
             return ParsedResponse(parsed=None, usage=usage, latency_s=latency, error="SDK 沒有回傳可解析的結構化輸出")
@@ -100,22 +100,22 @@ class AnthropicGateway:
             raw = next(b.text for b in response.content if getattr(b, "type", "") == "text")
         except Exception:  # noqa: BLE001
             pass
-        return ParsedResponse(parsed=parsed, usage=usage, latency_s=latency, raw=raw[:500])
+        return ParsedResponse(parsed=parsed, usage=usage, latency_s=latency, raw=raw[:500], stop_reason=stop)
 
     def issue_orders(self, messages: list[dict]) -> ChiefResponse:
         r = self.parse(messages, ChiefOrders)
         attempts = 1
-        if r.error and "max_tokens" in r.error:   # 截斷：把精簡要求併進同一則 user 訊息再試一次（兩次都計費）
+        if r.stop_reason == "max_tokens":   # 截斷：把精簡要求併進同一則 user 訊息再試一次（兩次都計費）
             retry = [dict(m) for m in messages]
             retry[-1]["content"] = retry[-1]["content"] + "\n\n" + BREVITY_NOTE
             r2 = self.parse(retry, ChiefOrders)
             r2.usage = _add_usage(r.usage, r2.usage)
             r2.latency_s += r.latency_s
-            if r2.error and "max_tokens" in r2.error:
+            if r2.stop_reason == "max_tokens":
                 r2.error += "（已要求精簡重試 1 次仍截斷）"
             r, attempts = r2, 2
         error = r.error
-        if error and ("refusal" in error or "max_tokens" in error):
+        if error and r.stop_reason in ("refusal", "max_tokens"):
             error += "，本回合無新命令"
         return ChiefResponse(orders=r.parsed, usage=r.usage, attempts=attempts, latency_s=r.latency_s, error=error, raw=r.raw)
 

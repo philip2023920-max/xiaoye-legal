@@ -30,6 +30,7 @@ class ParsedResponse:
     latency_s: float = 0.0
     error: str | None = None
     raw: str = ""
+    stop_reason: str | None = None   # Anthropic：max_tokens / refusal / end_turn…（重試判斷用，不靠錯誤字串）
 
 
 @dataclass

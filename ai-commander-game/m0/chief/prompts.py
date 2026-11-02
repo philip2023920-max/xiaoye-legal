@@ -57,11 +57,11 @@ def score_line(snapshot: dict, turn: int) -> str:
     objs = snapshot.get("objectives", [])
     us = sum(o.get("value", 0) for o in objs if o.get("owner") == "us")
     en = sum(o.get("value", 0) for o in objs if o.get("owner") == "enemy")
-    missing = [f"{o['id']} ({o.get('value', 0)} pts at {o.get('sector')}, {o.get('owner', 'none')})" for o in objs if o.get("owner") != "us"]
+    missing = [f"{o['id']} ({o.get('value', 0)} pts at {o.get('sector')}, {'unowned' if o.get('owner', 'none') == 'none' else o.get('owner')})" for o in objs if o.get("owner") != "us"]
     left = max(0, MAX_TURNS - turn + 1)
     line = f"Score now: us {us} : enemy {en}. Objectives not ours: {', '.join(missing) or 'none'}. Turns left including this one: {left}."
     if objs and us <= en:
-        line += " You lose on points at the end unless you seize at least one more objective."
+        line += " You do not win on points unless you seize at least one more objective."
     return line
 
 

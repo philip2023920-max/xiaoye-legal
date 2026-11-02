@@ -83,9 +83,9 @@ def objective_hint(start_objectives, end_objectives, winner: str, lang: str = "z
     top = missed[0]
     who = {"zh-TW": {"enemy": "敵方", "none": "無主"}, "zh-CN": {"enemy": "敌方", "none": "无主"}, "en": {"enemy": "enemy", "none": "unowned"}}
     texts = {
-        "zh-TW": f"整場沒有奪取任何新據點：{top.id}（{top.value} 分，{top.sector}）一直是{who['zh-TW'].get(top.owner, top.owner)}。據點分定勝負，下次集中三個排以上攻它。",
-        "zh-CN": f"整场没有夺取任何新据点：{top.id}（{top.value} 分，{top.sector}）一直是{who['zh-CN'].get(top.owner, top.owner)}。据点分定胜负，下次集中三个排以上攻它。",
-        "en": f"No new objective was taken all battle: {top.id} ({top.value} pts, {top.sector}) stayed {who['en'].get(top.owner, top.owner)}. Points decide the battle; next time concentrate three or more platoons on it.",
+        "zh-TW": f"整場沒有奪取任何新據點：{top.id}（{top.value} 分，{top.sector}）戰後仍是{who['zh-TW'].get(top.owner, top.owner)}。據點分定勝負，下次集中三個排以上攻它。",
+        "zh-CN": f"整场没有夺取任何新据点：{top.id}（{top.value} 分，{top.sector}）战后仍是{who['zh-CN'].get(top.owner, top.owner)}。据点分定胜负，下次集中三个排以上攻它。",
+        "en": f"No new objective was taken all battle: {top.id} ({top.value} pts, {top.sector}) ended {who['en'].get(top.owner, top.owner)}-held. Points decide the battle; next time concentrate three or more platoons on it.",
     }
     return texts.get(lang, texts["zh-TW"])
 

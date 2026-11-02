@@ -847,8 +847,8 @@
               "children": []
             },
             {
-              "id": "n_d755ff24",
-              "text": "施工單 09 平衡與截斷：難度三級、潰散撤出、分數提示、截斷重試、戰報卡提示（171 測試；審查中；Haiku 一場待老闆）",
+              "id": "n_caa14190",
+              "text": "施工單 09 平衡與截斷：難度三級、潰散撤出、分數提示、截斷重試、戰報卡提示（審查 10 項已修；173 測試；Haiku 一場待老闆）",
               "status": "doing",
               "link": "docs/issues/09-balance-truncation.md",
               "note": "",
@@ -1443,8 +1443,8 @@
       ]
     }
   ],
-  "version": 33,
-  "updatedAt": "2026-11-02T02:29:36Z",
+  "version": 34,
+  "updatedAt": "2026-11-02T02:45:18Z",
   "updatedBy": "claude",
   "instructions": ""
 }

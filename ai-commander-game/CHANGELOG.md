@@ -8,7 +8,8 @@
 - 提示：每回合 user 訊息加分數、未奪目標、剩餘回合；系統提示加「據點分定勝負、攻城集中三排＋迫砲」、評估 ≤ 120 字、reason 可空
 - Anthropic adapter：max_tokens 4096；截斷時併入精簡要求重試一次（兩次計費，attempts=2）
 - 戰報卡提示「整場沒有奪取任何新據點」（離線）、進 aar.json 與參謀長摘要、討論第 1 回合快速回覆
-- `docs/issues/09`、README、HANDOFF（--difficulty normal）、路線圖 T0.12；測試 157 → 171；心智圖加 09 節點；回寫 Artifact 資料庫
+- `docs/issues/09`、README、HANDOFF（--difficulty normal）、路線圖 T0.12；心智圖加 09 節點；回寫 Artifact 資料庫
+- 09 審查 10 項全部修正：easy 劇本去掉 t8 連令（40 種子 40 勝）、潰散撤出的效果改寫為「不分攤火力」並以手算鎖住、潰散退路避敵格、`--enemy` 給了就優先、重試改看 stop_reason、提示措辭；測試 157 → 173
 
 ## 2026-11-02（第二十二次）— M0 真機驗收完成（老闆本機）
 - 雲端環境變數 `ANTHROPIC_API_KEY` 送不進 session（主 session 與子 session 都看不到）→ 改在老闆 Windows 本機跑；HANDOFF 改寫

@@ -159,10 +159,8 @@ DEFAULT_ENEMY = "samples/enemy_script.json"
 
 
 def _enemy_path(args) -> str:
-    """--difficulty 只在沒有明確給 --enemy 時生效（施工單 09）。"""
-    if getattr(args, "difficulty", None) and getattr(args, "enemy", DEFAULT_ENEMY) == DEFAULT_ENEMY:
-        return DIFFICULTY_SCRIPTS[args.difficulty]
-    return args.enemy
+    """明確給 --enemy 就用它；否則 --difficulty 選劇本；都沒給用 02 的舊劇本（施工單 09）。"""
+    return getattr(args, "enemy", None) or DIFFICULTY_SCRIPTS.get(getattr(args, "difficulty", None) or "", DEFAULT_ENEMY)
 
 
 def _apply_conditions(board, args) -> None:
@@ -383,7 +381,6 @@ def add_conditions(sp: argparse.ArgumentParser) -> None:
     sp.add_argument("--template", default=None, help="部署範本：balanced 均衡／armor 裝甲突擊／infantry 步兵固守（換掉戰情板上的友軍）")
     sp.add_argument("--units", default=None, help="自選配比，逗號分隔，例如 infantry,infantry,mg,tank（預算見 rules/<era>.json）")
     sp.add_argument("--era", default=None, help="覆寫世代規則檔（預設用戰情板的 era；可用：ww2_1944、coldwar_early、coldwar_late）")
-    sp.add_argument("--difficulty", default=None, choices=["easy", "normal", "hard"], help="敵方劇本難度（沒給 --enemy 時生效）：easy＝samples/enemy_v1_easy.json、normal＝enemy_script_v1.json、hard＝enemy_v1_hard.json")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -397,7 +394,8 @@ def build_parser() -> argparse.ArgumentParser:
     m = sub.add_parser("sim", help="跑一場無 LLM 的劇本會戰（施工單 02）")
     m.add_argument("--board", default="samples/board_start.json", help="開局戰情板")
     m.add_argument("--orders", required=True, help="我方劇本，例如 samples/orders_scripted.json")
-    m.add_argument("--enemy", default="samples/enemy_script.json", help="敵方劇本（含敵方初始部隊）")
+    m.add_argument("--enemy", default=None, help="敵方劇本（含敵方初始部隊）；給了就忽略 --difficulty（預設 samples/enemy_script.json）")
+    m.add_argument("--difficulty", default=None, choices=["easy", "normal", "hard"], help="敵方劇本難度：easy＝samples/enemy_v1_easy.json、normal＝enemy_script_v1.json、hard＝enemy_v1_hard.json")
     m.add_argument("--seed", type=int, default=None, help="隨機種子；給了才會有 ±10%% 傷害浮動")
     m.add_argument("--no-variance", action="store_true", help="即使給 seed 也不要浮動")
     m.add_argument("--out", default=None, help="快照輸出資料夾（預設 battles/<battle_id>）")
@@ -410,7 +408,8 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--model", default=None, help="模型名稱，例如 qwen2.5:3b（ollama）或 claude-haiku-5-5（anthropic）")
     y.add_argument("--auto", action="store_true", help="全自動：參謀長的命令直接執行（03）；不加則為互動推翻（05）")
     y.add_argument("--board", default="samples/board_start.json")
-    y.add_argument("--enemy", default="samples/enemy_script.json")
+    y.add_argument("--enemy", default=None, help="敵方劇本；給了就忽略 --difficulty（預設 samples/enemy_script.json）")
+    y.add_argument("--difficulty", default=None, choices=["easy", "normal", "hard"], help="敵方劇本難度：easy／normal／hard（09）")
     y.add_argument("--doctrine", default="harness/default/doctrine.md")
     y.add_argument("--harness", default="default", help="參謀長包名稱（harness/<名稱>/）；給空字串則只用 --doctrine")
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])

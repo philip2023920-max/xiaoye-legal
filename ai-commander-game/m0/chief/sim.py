@@ -281,6 +281,8 @@ class Battle:
                 steps = 1 if u.state == "routed" else self.rules.unit(u.type).speed   # 潰散只退 1 格（§2）
                 avoid = self.blocked_sectors(side, u, eng)
                 moved = False
+                if u.state == "routed":
+                    avoid = avoid | hostile   # 潰散：退路也不穿過有敵軍的格子（§2 v1.1）
                 for _ in range(steps):
                     dest = decide_move(u, grid, leaves, safe_own if u.state == "routed" else own, by_id, avoid=avoid)
                     if not dest or dest == u.sector or dest in avoid:
