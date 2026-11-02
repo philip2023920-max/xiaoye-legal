@@ -26,3 +26,10 @@
 ## M1（Godot）— 待 Stage 2 for M1 驗證後填入
 
 候選見 `docs/07-reuse-catalog.md`。
+
+## M1（Godot）— 2026-11-02 T1.0 重用檢查（待 D17 拍板後複製進專案）
+
+| 元件 | 版本 | 授權 | 用途 | 改動 |
+|---|---|---|---|---|
+| Godot Engine | 4.7.2-stable | MIT | 戰鬥沙盤引擎 | 無 |
+| godot-rts-kit（jhaney0214-sys，`addons/rts_kit`） | 2026-10-18 commit | MIT | 攝影機、框選、迷霧、小地圖、格狀尋路 | 預計不改；保留 LICENSE |

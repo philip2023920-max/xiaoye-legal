@@ -42,6 +42,18 @@
 | D13 | 天氣與時段粒度 | 天氣四種（晴、雨、雪、霧）× 時段兩種（日、夜），影響視距、移動、掩蔽、裝甲通行；一場中可變化 | ADR-0013 |
 | D14 | 砲兵與空中支援 | v1 有場內砲兵（迫砲、砲兵連）；空中支援留到 M3 | ADR-0013 |
 
+## 第五輪待決策（M1 Godot 戰鬥沙盤，2026-11-02，老闆下令「進入 M1」；詳見 `11-m1-architecture.md`）
+
+| # | 決策 | 選項 | 建議 | 狀態 |
+|---|---|---|---|---|
+| D15 | Godot 版本 | 4.5 ／ 4.7.2（最新穩定） | **4.7.2 標準版** | ⬜ 待拍板 |
+| D16 | 渲染與物理 | Forward+ ／ Compatibility；GodotPhysics ／ Jolt | **Compatibility＋Jolt** | ⬜ |
+| D17 | 骨架 | godot-rts-kit ／ rts_demo ／ ccoyle95 ／ 自寫 | **godot-rts-kit 當 addon**；rts_demo 只參考 | ⬜ |
+| D18 | 引擎↔戰情板 | 寫檔 ／ WebSocket ／ 共用程序 | **每 100 ms 原子寫 `user://board.json`**，M2 再加 WebSocket | ⬜ |
+| D19 | 戰鬥模型與時間 | 重寫 ／ 沿用 rules JSON | **沿用同一份表；1 回合＝30 秒，傷害每秒解算 K/30** | ⬜ |
+| D20 | 測試 | GUT ／ gdUnit4 ／ 自寫 SceneTree | **自寫無頭測試＋`--fixed-fps` 煙霧測試** | ⬜ |
+| D21 | 專案位置與美術 | 子資料夾 `godot/` ／ 新 repo；Kenney 素材 ／ 程式畫 | **`ai-commander-game/godot/`；M1 全部程式畫** | ⬜ |
+
 ## Stage 3 開工前決策（S1、S2，2026-11-01，老闆未反對建議即採用）
 
 | # | 決策 | 採用 |

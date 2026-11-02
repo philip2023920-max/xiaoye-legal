@@ -78,6 +78,7 @@ markmap:
 ## 5. 技術架構 🧱 → docs/03-architecture.md
 - 引擎：Godot 4（ADR-0001；M0 用 Python 不綁引擎） ✅ → docs/06-engine-comparison.md
   - Godot 4：免費、輕、GDScript 好學；4.4+ 內建 Jolt 物理
+  - M1 選型建議（D15～D21 待老闆拍板）：4.7.2、Compatibility＋Jolt、godot-rts-kit 骨架、每 100 ms 寫 board.json、同一份規則表且 1 回合＝30 秒、自寫無頭測試、全部程式畫 🟡 → docs/11-m1-architecture.md
   - Unity 6（若日後要上主機再考慮） ❌
   - 純網頁 Three.js（Plan B／展示版）
   - Unreal 5、Bevy：排除 ❌
@@ -136,7 +137,12 @@ markmap:
     - 實體護欄 .claude/hooks 已裝並自測 ✅
     - 環境建置精靈 7/7：uv、Git、Ollama qwen2.5:3b、金鑰、.env、doctor ✅
     - THIRD_PARTY.md（M0 部分） ✅
-- M1 Godot 4 戰鬥沙盤（4～6 週） ⬜
+- M1 Godot 4 戰鬥沙盤（4～6 週；2026-11-02 老闆下令進入） 🟡 → docs/11-m1-architecture.md
+  - T1.0 重用檢查：godot-rts-kit 採用、rts_demo 參考、huginhelm 找不到、素材 M1 不需要 ✅
+  - 選型決策 D15～D21（版本、渲染物理、骨架、戰情板寫檔、時間對應、測試、位置與美術）待老闆拍板 🟡 → docs/05-decisions.md
+  - 沙盒可跑 Godot 4.7.2 無頭測試（探針專案通過）；畫面與 FPS 只能在老闆本機驗 ✅
+  - 施工單草案 10 骨架與地圖、11 方塊人與編制、12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能 ⬜
+  - 環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
@@ -162,7 +168,7 @@ markmap:
 - 原則：先找、再改、最後才自製；授權 CC0 ＞ MIT ＞ CC-BY ＞ 其他（ADR-0011） ✅
 - 進專案的東西記在 THIRD_PARTY.md ⬜
 - Godot 戰鬥沙盤
-  - RTS 骨架：godot-rts-kit（MIT）或 huginhelm Lite（MIT），M1 擇一 ⬜
+  - RTS 骨架：godot-rts-kit（MIT，4.7，沙盒實測）建議採用；huginhelm 找不到 repo 🟡 → docs/11-m1-architecture.md
   - 編隊參考：rainwindskyfly/rts_demo（MIT） ⬜
   - 布娃娃：Active Ragdoll（MIT）、Drop-In Ragdoll、Auto Ragdoll ⬜
   - 地形：Low Poly Terrain Builder；大會戰才看 Terrain3D（MIT） ⬜
@@ -188,9 +194,10 @@ markmap:
 - docs/06-engine-comparison.md（引擎比較）
 - docs/07-reuse-catalog.md（素材與模板目錄）
 - docs/08-stage2-architecture.md（Stage 2 選型與環境建置）
-- docs/issues/（M0 施工單 01～07）
+- docs/issues/（M0 施工單 01～09）
 - docs/09-board-schema.md（戰情板合約）
 - docs/10-sim-rules.md（模擬會戰規則與手算範例）
+- docs/11-m1-architecture.md（M1 選型、重用檢查、環境、施工單草案）
 - THIRD_PARTY.md（第三方元件與授權）
 - m0/（M0 環境骨架）
 - docs/adr/（ADR-0001～0013）

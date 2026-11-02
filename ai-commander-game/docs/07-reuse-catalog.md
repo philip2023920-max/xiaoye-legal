@@ -14,9 +14,9 @@
 
 | 用途 | 候選 | 授權 | 怎麼用 | 驗證狀態 |
 |---|---|---|---|---|
-| RTS 骨架：框選、下令、RTS 攝影機、戰爭迷霧、小地圖、格狀尋路 | **godot-rts-kit**（jhaney0214-sys）純 GDScript，從《Drone Command》抽出 | MIT | 直接當 M1 骨架，砍掉不需要的 | ⚠️ 未驗證 repo 內容與 Godot 版本 |
-| RTS 骨架備選：含編隊、控制群組、A*、生產佇列 | **huginhelm Godot RTS Advanced Lite** | MIT（Lite）；Pro 付費 | 比較後擇一，或借編隊程式碼 | ⚠️ Lite 功能清單需確認 |
-| 1v1 垂直切片參考：Grid A*、避障、編隊展開 | **rainwindskyfly/rts_demo**（Godot 4.7.2） | MIT | 參考編隊展開與路徑拉直的做法 | ⚠️ |
+| RTS 骨架：框選、下令、RTS 攝影機、戰爭迷霧、小地圖、格狀尋路 | **godot-rts-kit**（jhaney0214-sys）純 GDScript，從《Drone Command》抽出 | MIT | 直接當 M1 骨架，砍掉不需要的 | ✅ 2026-11-02 沙盒實測：Godot 4.7、2,270 行、5 個節點、無頭測試 37 項、效能基準；建議採用（D17） |
+| RTS 骨架備選：含編隊、控制群組、A*、生產佇列 | **huginhelm Godot RTS Advanced Lite** | MIT（Lite）；Pro 付費 | 比較後擇一，或借編隊程式碼 | ❌ 沙盒找不到 repo（GitHub 搜尋受限）；本輪不採用 |
+| 1v1 垂直切片參考：Grid A*、避障、編隊展開 | **rainwindskyfly/rts_demo**（Godot 4.7.2） | MIT | 參考編隊展開與路徑拉直的做法 | 🟡 實測：2D、GL Compatibility、零素材、`--fixed-fps` 煙霧測試；只當參考 |
 | 2D 編隊與尋路演算法 | **Liech/RTSNavigationLib**（C++） | MIT | 只借演算法思路，不直接接 | ⚠️ |
 | 布娃娃：主動式（受擊反應、失衡、爬行） | **Active Ragdoll**（Godot Asset Library，Godot 4.4，支援 Jolt） | MIT | 遭遇戰規模的死亡／受擊動畫 | ⚠️ |
 | 布娃娃：任意人形一鍵套用 | **Drop-In Ragdoll**（Godot 4.7，Jolt）、**Auto Ragdoll**（編輯器外掛） | 免費／PWYW | 方塊人骨架自動生成 PhysicalBone | ⚠️ |
@@ -28,7 +28,7 @@
 
 | 用途 | 候選 | 授權 | 怎麼用 | 驗證狀態 |
 |---|---|---|---|---|
-| 方塊人角色 | **Kenney Blocky Characters**（OpenGameArt 鏡像 v2.0） | CC0 | 直接當士兵基底，換配色分兵種 | ⚠️ 確認 Kenney 官網版本 |
+| 方塊人角色 | **Kenney Blocky Characters**（OpenGameArt 鏡像 v2.0） | CC0 | 直接當士兵基底，換配色分兵種 | ⏸ M1 不需要（D21 全部程式畫）；沙盒連不到 kenney.nl，M3 再驗 |
 | 角色＋動畫 | **Kenney Character Assets**（Kay Lousberg 製作：4 模型、75 皮膚、17 動畫） | CC0 | 走路／射擊動畫來源 | ⚠️ itch 頁面曾標「暫不可下載」 |
 | 其他低多邊形角色 | **KayKit Character Pack: Adventurers**（奇幻，非軍事） | CC0 | 備用 | ⚠️ |
 | 低多邊形環境與載具 | **Quaternius** 各包 | ⚠️ 舊包 CC0，新包改 QAL v1.0 授權 | 逐包看授權再用 | ⚠️ 重要 |

@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十四次）— 老闆下令「進入 M1」：T1.0 重用檢查與選型（Stage 2）
+- 沙盒實測：Godot 4.7.2 Linux 無頭版可下載、可跑自寫的探針測試（3D、Jolt、JSON、user:// 寫檔）；第三方專案的測試受權限不執行
+- 重用檢查：godot-rts-kit（MIT、4.7、2,270 行、5 節點、無頭測試、效能基準）建議採用；rts_demo（2D、Compatibility、零素材）只參考；ccoyle95 排除；huginhelm 找不到；Kenney 等素材 M1 不需要
+- `docs/11-m1-architecture.md`：D15～D21 建議答案、M1 架構（同一份規則表、1 回合＝30 秒、每 100 ms 寫 board.json）、Windows 環境精靈、施工單草案 10～15
+- `docs/05-decisions.md` 第五輪待決策；`docs/07` 驗證狀態更新；路線圖 T1.0 ✅；心智圖 M1 節點展開；回寫 Artifact 資料庫
+
 ## 2026-11-02（第二十三次）— 施工單 09 平衡與截斷（老闆指示「先修平衡與截斷問題，開新施工單」）
 - 規則 §2 v1.1：潰散單位往「沒有敵軍的本方分區」退，守軍潰散後分區易手（原本留在城裡當肉盾，城鎮打不下來）
 - 敵方劇本三級 `enemy_v1_easy.json`／`enemy_script_v1.json`／`enemy_v1_hard.json`＋`--difficulty`；平衡基準局 `orders_v1_assault.json`（easy 勝、normal 勝、hard 敗）寫進 §14 並以測試鎖住

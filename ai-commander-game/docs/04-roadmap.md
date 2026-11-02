@@ -24,7 +24,7 @@
 
 ## M1 Godot 4 戰鬥沙盤（4～6 週，ADR-0001）
 
-- [ ] T1.0 重用檢查：評估 godot-rts-kit 與 huginhelm Lite 擇一當骨架；下載 Kenney Blocky Characters、UI 主題、布娃娃外掛並驗證授權
+- [x] T1.0 重用檢查（2026-11-02，`docs/11-m1-architecture.md`）：godot-rts-kit 採用（MIT、4.7、無頭測試、效能基準）；huginhelm 找不到；rts_demo 只參考；Kenney 等素材 M1 不需要（程式畫）
 - [ ] T1.1 專案骨架（以選定的 RTS kit 為底）、低硬體渲染設定、固定俯視攝影機
 - [ ] T1.2 單位：膠囊體＋方塊頭，3 兵種，簡單搖晃走路；班＝一組三個方塊人
 - [ ] T1.3 編制樹：班→排→連→旅，編制 AI 執行任務式命令

@@ -521,6 +521,14 @@
               "children": []
             },
             {
+              "id": "n_b479689c",
+              "text": "M1 選型建議（D15～D21 待老闆拍板）：4.7.2、Compatibility＋Jolt、godot-rts-kit 骨架、每 100 ms 寫 board.json、同一份規則表且 1 回合＝30 秒、自寫無頭測試、全部程式畫",
+              "status": "doing",
+              "link": "docs/11-m1-architecture.md",
+              "note": "",
+              "children": []
+            },
+            {
               "id": "n_6cf3c9b2",
               "text": "Unity 6（若日後要上主機再考慮）",
               "status": "dropped",
@@ -986,12 +994,53 @@
           ]
         },
         {
-          "id": "n_20356a38",
-          "text": "M1 Godot 4 戰鬥沙盤（4～6 週）",
-          "status": "todo",
-          "link": "",
+          "id": "n_acceabe4",
+          "text": "M1 Godot 4 戰鬥沙盤（4～6 週；2026-11-02 老闆下令進入）",
+          "status": "doing",
+          "link": "docs/11-m1-architecture.md",
           "note": "",
-          "children": []
+          "children": [
+            {
+              "id": "n_a3a9c449",
+              "text": "T1.0 重用檢查：godot-rts-kit 採用、rts_demo 參考、huginhelm 找不到、素材 M1 不需要",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_bf95bbdb",
+              "text": "選型決策 D15～D21（版本、渲染物理、骨架、戰情板寫檔、時間對應、測試、位置與美術）待老闆拍板",
+              "status": "doing",
+              "link": "docs/05-decisions.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_f36a0615",
+              "text": "沙盒可跑 Godot 4.7.2 無頭測試（探針專案通過）；畫面與 FPS 只能在老闆本機驗",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_0321487f",
+              "text": "施工單草案 10 骨架與地圖、11 方塊人與編制、12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_de9b21f9",
+              "text": "環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
         },
         {
           "id": "n_3b8b7681",
@@ -1180,10 +1229,10 @@
           "note": "",
           "children": [
             {
-              "id": "n_35b4339e",
-              "text": "RTS 骨架：godot-rts-kit（MIT）或 huginhelm Lite（MIT），M1 擇一",
-              "status": "todo",
-              "link": "",
+              "id": "n_11982bf1",
+              "text": "RTS 骨架：godot-rts-kit（MIT，4.7，沙盒實測）建議採用；huginhelm 找不到 repo",
+              "status": "doing",
+              "link": "docs/11-m1-architecture.md",
               "note": "",
               "children": []
             },
@@ -1385,8 +1434,8 @@
           "children": []
         },
         {
-          "id": "n_1d6e48a7",
-          "text": "docs/issues/（M0 施工單 01～07）",
+          "id": "n_e165a3b0",
+          "text": "docs/issues/（M0 施工單 01～09）",
           "status": "",
           "link": "",
           "note": "",
@@ -1403,6 +1452,14 @@
         {
           "id": "n_2b69579a",
           "text": "docs/10-sim-rules.md（模擬會戰規則與手算範例）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
+          "id": "n_d3b07635",
+          "text": "docs/11-m1-architecture.md（M1 選型、重用檢查、環境、施工單草案）",
           "status": "",
           "link": "",
           "note": "",
@@ -1443,8 +1500,8 @@
       ]
     }
   ],
-  "version": 35,
-  "updatedAt": "2026-11-02T03:02:03Z",
+  "version": 36,
+  "updatedAt": "2026-11-02T03:15:18Z",
   "updatedBy": "claude",
   "instructions": ""
 }
