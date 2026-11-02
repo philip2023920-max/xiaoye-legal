@@ -19,6 +19,7 @@ var state := "idle"                # idle / moving / engaged / routed / destroye
 var task := {}                     # {} 或 {"type": ..., "target": ...}
 var controlled_by := "ai"
 var cost := 0
+var orbat_index := 0               # 戰情板順序（與 M0 的 units 原序一致；連令拆排、主力判定照它）
 var vision_radius := 0.0           # 骨架迷霧用（公尺）
 var sector := ""                   # 目前所在分區（由錨點算）
 var anchor := Vector3.ZERO         # 排的中心點，Orbat 帶著它走
@@ -51,6 +52,7 @@ func setup(data: Dictionary, side_: String, at: Vector3) -> void:
 	var dead := roundi((1.0 - strength) * MEN_PER_SQUAD * SQUADS)
 	for i in dead:
 		soldiers[soldiers.size() - 1 - i].fall()
+	recompute_strength()   # 戰力一律＝存活人數 ÷ 9（樣板 0.8 → 倒 2 人 → 0.78）
 
 func _spawn_men() -> void:
 	var squad_slots := RTSKit.formation(anchor, SQUADS, SQUAD_SPACING)
@@ -90,11 +92,12 @@ func is_active() -> bool:
 func rts_is_alive() -> bool:
 	return state != "destroyed"
 
-## 把整個排瞬間放到某點（開局部署與測試用）。
+## 把整個排瞬間放到某點（請經由 Orbat.place_platoon，它會同步分區與清暫停）。
 func place(at: Vector3) -> void:
 	anchor = at
 	step_target = ""
 	waypoints = PackedVector3Array()
+	pause_until = -1.0
 	var squad_slots := RTSKit.formation(anchor, SQUADS, SQUAD_SPACING)
 	for s in SQUADS:
 		var man_slots := RTSKit.formation(squad_slots[s], MEN_PER_SQUAD, MAN_SPACING)

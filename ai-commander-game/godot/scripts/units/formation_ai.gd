@@ -37,8 +37,8 @@ static func flank_approach_sector(grid: SectorGrid, target: String, main_sector:
 
 ## 回傳這個排接下來要走到的分區 id；"" 表示原地。
 static func decide_move(p: Platoon, orbat: Orbat) -> String:
-	if p.state == "destroyed":
-		return ""
+	if p.state == "destroyed" or (p.state != "routed" and p.task.is_empty()):
+		return ""   # 沒任務的排不用算 avoid（每 tick 省一輪查表）
 	var grid := orbat.grid
 	var avoid := orbat.blocked_sectors(p)
 	if p.state == "routed":
@@ -93,7 +93,7 @@ static func decide_move(p: Platoon, orbat: Orbat) -> String:
 		if approach == "":
 			return grid.next_step(p.sector, target, avoid)
 		if p.sector == approach:
-			return target   # 從側翼進入目標
+			return "" if avoid.has(target) else target   # 從側翼進入目標（目標本身進不去就原地）
 		var avoid2 := avoid.duplicate()
 		avoid2[target] = true   # 繞路時不穿過目標
 		return grid.next_step(p.sector, approach, avoid2)

@@ -1033,8 +1033,8 @@
               "children": []
             },
             {
-              "id": "n_f8e1e76b",
-              "text": "施工單 11 方塊人、編制樹、編制 AI（規則表、格子邏輯、六種任務移植；無頭測試 34 項；審查中）",
+              "id": "n_080f0d72",
+              "text": "施工單 11 方塊人、編制樹、編制 AI（規則表、格子邏輯、六種任務移植；審查 15 項已修；無頭測試 50 項；待老闆 F5）",
               "status": "doing",
               "link": "docs/issues/11-godot-units-orbat.md",
               "note": "",
@@ -1516,8 +1516,8 @@
       ]
     }
   ],
-  "version": 40,
-  "updatedAt": "2026-11-02T14:34:22Z",
+  "version": 41,
+  "updatedAt": "2026-11-02T14:53:57Z",
   "updatedBy": "claude",
   "instructions": ""
 }

@@ -8,6 +8,7 @@
 - 時間對應落地：中心到中心 20 m／30 s、機動力 0.5＝60 秒一格、進敵格停 30 秒、分區看實際位置（docs/10 §15）
 - `Battle`：讀 `board_deployed_balanced.json`＋`enemy_script_v1.json`、尋路格從掩體烘焙、HUD 顯示雙方戰力、空白鍵偵錯命令
 - `tests/harness.gd`（看門狗）、`tests/test_orbat.gd` 34 項全過；`m0/samples/board_deployed_balanced.json` 新增
+- 11 審查 15 項全部修正（全殲滅連當機、側翼闖森林、連分區取序與 M0 相反、潰散不限一格、站位、快取、拒建壞兵種、§15 補齊）；測試 34 → 50
 
 ## 2026-11-02（第二十五次）— M1 拍板（ADR-0014）、施工單 10～15 建檔、10 程式完成
 - 老闆「好了」＝D15～D21 全照建議 → `docs/adr/0014-m1-godot-stack.md`；決策紀錄第五輪 ✅
