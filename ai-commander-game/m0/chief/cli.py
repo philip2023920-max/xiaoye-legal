@@ -337,6 +337,8 @@ def main(argv: list[str] | None = None) -> int:
         load_dotenv()  # 讀 .env（ANTHROPIC_API_KEY、OLLAMA_HOST…），金鑰不經聊天
     except Exception:  # noqa: BLE001
         pass
+    if not os.getenv("ANTHROPIC_API_KEY") and os.getenv("CHIEF_ANTHROPIC_KEY"):
+        os.environ["ANTHROPIC_API_KEY"] = os.environ["CHIEF_ANTHROPIC_KEY"]   # 雲端環境變數的備用名稱
     args = build_parser().parse_args(argv)
     return args.func(args)
 

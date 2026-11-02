@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_env_example_matches_code():
     keys = {l.split("=")[0].strip() for l in (ROOT / ".env.example").read_text(encoding="utf-8").splitlines() if "=" in l and not l.startswith("#")}
-    assert keys == {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "OLLAMA_HOST", "OLLAMA_MODEL"}   # 施工單 04 列的五個
+    assert keys == {"ANTHROPIC_API_KEY", "CHIEF_ANTHROPIC_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "OLLAMA_HOST", "OLLAMA_MODEL"}   # 施工單 04 的五個＋雲端備用名
     code = "\n".join(p.read_text(encoding="utf-8") for p in (ROOT / "chief").rglob("*.py"))
     for k in keys:
         assert k in code, f"{k} 在 .env.example 但程式沒讀"

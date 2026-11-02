@@ -12,7 +12,7 @@ M0（文字版沙盤＋AI 參謀長迴圈）程式完成：施工單 01～07 全
    cd ai-commander-game/m0 && uv sync
    uv run python -c "import anthropic; print([m.id for m in anthropic.Anthropic().models.list(limit=3).data])"
    ```
-   印出模型清單＝通。若 401／authentication 錯誤：代理注入的標頭沒生效，請老闆把環境變數 `ANTHROPIC_API_KEY` 的值改成真金鑰（在環境設定頁改，不要貼進聊天），再開新對話。若 `ANTHROPIC_API_KEY` 根本沒設（SDK 說 api_key must be set），同樣請老闆去設。
+   印出模型清單＝通。金鑰可能放在環境變數 `ANTHROPIC_API_KEY` 或備用名 `CHIEF_ANTHROPIC_KEY`（`chief` 指令會自動轉換；直接用 SDK 時先 `export ANTHROPIC_API_KEY=$CHIEF_ANTHROPIC_KEY`）。若 401／authentication 錯誤或 SDK 說 api_key must be set：請老闆到雲端環境設定的 Environment variables 檢查（不要貼進聊天），再開新對話。
 2. **五場全自動驗收（模擬總司令）**：風格固定在 `samples/commander_steady.json`。五場各自有資料夾，戰後自動討論、採納、回歸。
    ```bash
    for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --quiet --out battles/sim-$i; done
