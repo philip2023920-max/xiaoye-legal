@@ -10,7 +10,7 @@
 03（可與 04 並行）。
 
 ## 驗收清單
-- [ ] `uv run chief play --provider ollama`（不加 `--auto`）進入互動模式，每回合可 Enter 採納或改令
+- [x] `uv run chief play --provider ollama`（不加 `--auto`）進入互動模式，每回合可 Enter 採納或改令（2026-11-02 以模擬總司令走完五場，推翻／接管／後果判定全部真機跑過；真人手感待老闆親自玩）
 - [x] 改令後戰情板該單位 `controlled_by: player`，下一回合參謀長的命令不含該單位（驗證器擋下並記錄）
 - [x] 「放手」操作讓單位回到 `ai`
 - [x] 推翻紀錄寫入 `battles/<id>/overrides.jsonl`，欄位：turn、unit_id、ai_order、player_order、snapshot_ref（推翻當下的上一回合快照，第 1 回合指向開局快照 t0.json）、strength_at、outcome、judged_turn

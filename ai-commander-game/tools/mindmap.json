@@ -440,14 +440,14 @@
           "children": []
         },
         {
-          "id": "n_1cf06550",
-          "text": "戰鬥模型 v1（ADR-0013，資料表驅動；程式完成，審查 12 項已修；待 5 場真機重跑）",
-          "status": "doing",
+          "id": "n_778c705f",
+          "text": "戰鬥模型 v1（ADR-0013，資料表驅動；完成並真機驗證；平衡待調）",
+          "status": "done",
           "link": "docs/10-sim-rules.md",
           "note": "",
           "children": [
             {
-              "id": "n_eca320dd",
+              "id": "n_cb9966b6",
               "text": "兵種七種 × 屬性；點數預算部署配比＋三種範本（D11）",
               "status": "",
               "link": "",
@@ -455,7 +455,7 @@
               "children": []
             },
             {
-              "id": "n_b2999d93",
+              "id": "n_160a67a8",
               "text": "科技世代：二戰 1944 先做；早期／晚期冷戰預留表格（D12）",
               "status": "",
               "link": "",
@@ -463,7 +463,7 @@
               "children": []
             },
             {
-              "id": "n_114d1e62",
+              "id": "n_557a6f78",
               "text": "天氣四種 × 日夜：影響視距、移動、掩蔽、裝甲通行；一場中可變（D13）",
               "status": "",
               "link": "",
@@ -471,7 +471,7 @@
               "children": []
             },
             {
-              "id": "n_fc2a32aa",
+              "id": "n_1dbd23a3",
               "text": "場內砲兵（迫砲、砲兵連）；空中支援留 M3（D14）",
               "status": "",
               "link": "",
@@ -479,7 +479,7 @@
               "children": []
             },
             {
-              "id": "n_1ed1b19a",
+              "id": "n_4165377b",
               "text": "數字全在 m0/rules/ww2_1944.json，老闆可直接改；舊的 3 兵種替身公式已作廢",
               "status": "",
               "link": "",
@@ -768,14 +768,14 @@
       "note": "",
       "children": [
         {
-          "id": "n_ae8bcf3c",
-          "text": "M0 戰情板＋文字版沙盤（Python，2～3 週；ADR-0002）",
-          "status": "doing",
-          "link": "docs/issues/README.md",
+          "id": "n_fddc6f4d",
+          "text": "M0 戰情板＋文字版沙盤（Python；八張施工單完成，三項真機驗收 2026-11-02 通過；M1 待老闆下令）",
+          "status": "done",
+          "link": "docs/qa/m0-review.md",
           "note": "",
           "children": [
             {
-              "id": "n_32e191c9",
+              "id": "n_952c6a68",
               "text": "施工單 01 戰情板合約＋靜態渲染（審查 21 項已修，20 測試）",
               "status": "done",
               "link": "docs/09-board-schema.md",
@@ -783,7 +783,7 @@
               "children": []
             },
             {
-              "id": "n_a2512724",
+              "id": "n_8cbc44d9",
               "text": "施工單 02 模擬會戰可跑（無 LLM）（審查 22 項已修，24 測試）",
               "status": "done",
               "link": "docs/10-sim-rules.md",
@@ -791,7 +791,7 @@
               "children": []
             },
             {
-              "id": "n_896901ea",
+              "id": "n_f62f75df",
               "text": "施工單 03 參謀長下令：Ollama 路徑（真機驗收：無回應 7→0，審查 16 項已修）",
               "status": "done",
               "link": "",
@@ -799,7 +799,7 @@
               "children": []
             },
             {
-              "id": "n_4f2b2ea1",
+              "id": "n_b6ab3aac",
               "text": "施工單 04 Anthropic 路徑＋費用計量（真機驗收：Haiku 一場 $0.005）",
               "status": "done",
               "link": "",
@@ -807,39 +807,47 @@
               "children": []
             },
             {
-              "id": "n_f9045bbd",
-              "text": "施工單 05 總司令推翻與接管（審查 10 項已修，11 測試；待真機驗收）",
-              "status": "doing",
+              "id": "n_0b275e49",
+              "text": "施工單 05 總司令推翻與接管（審查 10 項已修，11 測試；模擬總司令五場真機跑過）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_067902a9",
-              "text": "施工單 06 戰報卡＋討論＋採納（審查 9 項已修，12 測試；待真機驗收）",
-              "status": "doing",
+              "id": "n_53ed1a3a",
+              "text": "施工單 06 戰報卡＋討論＋採納（審查 9 項已修，12 測試；真機戰後中位數 47 秒）",
+              "status": "done",
               "link": "",
               "note": "",
               "children": []
             },
             {
-              "id": "n_1ede180c",
-              "text": "施工單 07 參謀長包＋戰例庫回歸＋5 場驗收（審查已修；三審報告 docs/qa/m0-review.md；待老闆 5 場真機驗收）",
-              "status": "doing",
-              "link": "",
+              "id": "n_7a41b0f2",
+              "text": "施工單 07 參謀長包＋戰例庫回歸＋5 場驗收（真機：首場 8.8% 到末場 4.0% 下降；壞準則 0% 退步；雙供應商打完）",
+              "status": "done",
+              "link": "docs/qa/m0-review.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_b486f38e",
-              "text": "施工單 08 戰鬥模型 v1：兵種、世代、天氣、部署配比（資料表、部署、查表解算、天氣變化、新劇本；審查 12 項已修；157 測試；待 5 場真機重跑）",
-              "status": "doing",
+              "id": "n_bee181ea",
+              "text": "施工單 08 戰鬥模型 v1：兵種、世代、天氣、部署配比（審查 12 項已修；157 測試；五場以 v1 重跑完成）",
+              "status": "done",
               "link": "docs/issues/08-combat-model-v1.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_c098f334",
+              "id": "n_082f00ff",
+              "text": "真機驗收發現：五場全敗 3:8 要調平衡、Haiku max_tokens 截斷、對齊判定過嚴、雲端金鑰送不進 session",
+              "status": "todo",
+              "link": "docs/qa/m0-review.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_140e45f6",
               "text": "執行順序：01、02、03、（04∥05 並行）、06、07、08，然後 M1",
               "status": "",
               "link": "",
@@ -847,7 +855,7 @@
               "children": []
             },
             {
-              "id": "n_4a4216c4",
+              "id": "n_e9086595",
               "text": "戰情板資料格式與側欄文字渲染",
               "status": "",
               "link": "",
@@ -855,7 +863,7 @@
               "children": []
             },
             {
-              "id": "n_86c907ba",
+              "id": "n_7b779bee",
               "text": "模擬會戰（連級，10 回合）",
               "status": "",
               "link": "",
@@ -863,7 +871,7 @@
               "children": []
             },
             {
-              "id": "n_593ac071",
+              "id": "n_cb19c5ea",
               "text": "LLM 閘道：Anthropic 原生＋Ollama 本地",
               "status": "",
               "link": "",
@@ -871,7 +879,7 @@
               "children": []
             },
             {
-              "id": "n_dc5f003e",
+              "id": "n_8a1cc092",
               "text": "命令合約 issue_orders＋驗證器",
               "status": "",
               "link": "",
@@ -879,7 +887,7 @@
               "children": []
             },
             {
-              "id": "n_894fc8c6",
+              "id": "n_82ea0fe6",
               "text": "終端機推翻介面",
               "status": "",
               "link": "",
@@ -887,7 +895,7 @@
               "children": []
             },
             {
-              "id": "n_7af40c54",
+              "id": "n_f0fcc5e8",
               "text": "AAR＋Doctrine diff＋戰例庫回歸",
               "status": "",
               "link": "",
@@ -895,7 +903,7 @@
               "children": []
             },
             {
-              "id": "n_d159f1fe",
+              "id": "n_d099357a",
               "text": "Token 計量與每場費用小結",
               "status": "",
               "link": "",
@@ -903,7 +911,7 @@
               "children": []
             },
             {
-              "id": "n_db75cda3",
+              "id": "n_2a3487e2",
               "text": "戰報卡文字版＋討論三回合＋採納 diff",
               "status": "",
               "link": "",
@@ -911,7 +919,7 @@
               "children": []
             },
             {
-              "id": "n_827e3bbf",
+              "id": "n_9fa62e5e",
               "text": "驗收：5 場推翻率下降；回歸能抓到壞準則",
               "status": "",
               "link": "",
@@ -919,14 +927,14 @@
               "children": []
             },
             {
-              "id": "n_00046bd8",
+              "id": "n_ff0c218f",
               "text": "Stage 2 環境建置（Windows，體檢全部通過）",
               "status": "done",
               "link": "",
               "note": "",
               "children": [
                 {
-                  "id": "n_14bad7e7",
+                  "id": "n_1a679d90",
                   "text": "環境骨架 m0/（pyproject、uv.lock、.env.example、doctor）",
                   "status": "done",
                   "link": "",
@@ -934,7 +942,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_3b5866a9",
+                  "id": "n_f9b8290d",
                   "text": "金鑰捕捉腳本 macOS／Windows（金鑰不進聊天）",
                   "status": "done",
                   "link": "",
@@ -942,7 +950,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_7015f7c7",
+                  "id": "n_043685ee",
                   "text": "實體護欄 .claude/hooks 已裝並自測",
                   "status": "done",
                   "link": "",
@@ -950,7 +958,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_ba1daa68",
+                  "id": "n_d31f1194",
                   "text": "環境建置精靈 7/7：uv、Git、Ollama qwen2.5:3b、金鑰、.env、doctor",
                   "status": "done",
                   "link": "",
@@ -958,7 +966,7 @@
                   "children": []
                 },
                 {
-                  "id": "n_d3308c7b",
+                  "id": "n_91726f56",
                   "text": "THIRD_PARTY.md（M0 部分）",
                   "status": "done",
                   "link": "",
@@ -1427,8 +1435,8 @@
       ]
     }
   ],
-  "version": 31,
-  "updatedAt": "2026-11-02T01:42:46Z",
+  "version": 32,
+  "updatedAt": "2026-11-02T02:16:11Z",
   "updatedBy": "claude",
   "instructions": ""
 }

@@ -13,8 +13,8 @@
 - [x] 戰例庫：每次推翻自動存成戰例（最新 10 筆）到 `harness/<包>/evals/cases.jsonl`；`uv run chief evals run` 印對齊率與退回率（§12）
 - [x] 回歸：採納後自動回歸，退步（對齊率掉 > 5 點）自動回滾並告知；`evals run --doctrine samples/bad_doctrine.md` 可手動試
 - [x] 5 場連打腳本 `uv run chief acceptance --provider ollama --battles 5`（互動）＋ `chief stats` 曲線：印每場推翻率曲線（M0 驗收：趨勢下降；若本地小模型做不到，報告如實寫並改用 Anthropic 跑一次）
-- [ ] 同一個參謀長包在 ollama 與 anthropic 兩個供應商都能打完一場
-- [ ] 三審（code-reviewer／test-automator／PRD 符合度）報告附在 `docs/qa/m0-review.md`
+- [x] 同一個參謀長包在 ollama 與 anthropic 兩個供應商都能打完一場（2026-11-02 老闆本機：Haiku 5.5 五場、qwen2.5:3b 一場，皆 0 無回應；第三家需老闆另備金鑰）
+- [x] 三審（code-reviewer／test-automator／PRD 符合度）報告附在 `docs/qa/m0-review.md`（含 2026-11-02 真機驗收：首場 8.8% → 末場 4.0% 下降；壞準則 0% 退步）
 
 ## 30 秒驗收腳本
 `uv run chief acceptance --provider ollama --battles 5` → 看到 5 場摘要表與推翻率曲線 → `uv run chief evals run --provider ollama` → 看到「對齊率 xx%（基準 模型 yy%，±x 點）」與退回率。

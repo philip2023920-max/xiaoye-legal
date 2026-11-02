@@ -3,9 +3,12 @@
 > 更新：2026-11-02（08 完成後）。本專案的工作規則在 `README.md`，心智圖是真相來源（Artifact 資料庫 `mindmap/main`），施工單在 `docs/issues/`，三審報告在 `docs/qa/m0-review.md`。
 
 ## 現況一句話
-M0（文字版沙盤＋AI 參謀長迴圈）程式完成：施工單 01～08 全部實作（08 戰鬥模型 v1：七兵種、天氣時段、部署配比，2026-11-02 完成並審查），157 個測試全綠。剩下「真機驗收」三項還沒有數據，而且要用 08 的戰鬥模型重跑（準則歸零）。
+M0 完成：施工單 01～08 全部實作、審查、157 個測試全綠；三項真機驗收 2026-11-02 在老闆本機以 v1 戰鬥模型跑完（推翻率 8.8% → 4.0%、壞準則 0% 退步、Haiku 與 Ollama 都打完），數據在 `docs/qa/m0-review.md`。下一步 M1（Godot）只能在老闆明說時開始；開工前先看 `docs/qa/m0-review.md`「真機驗收發現」（平衡、max_tokens、對齊判定）。
 
-## 下一步（照順序）
+## 雲端金鑰：行不通
+雲端環境變數 `ANTHROPIC_API_KEY` 不會送進 session（本 session 與新開子 session 都看不到，`CHIEF_ANTHROPIC_KEY` 未試）。需要跑模型的事一律在老闆本機 PowerShell 做（下面指令在本機同樣適用，`.env` 會自動讀）。
+
+## 真機驗收步驟（已完成，留作重跑參考）
 
 1. **確認金鑰真的通**（不花錢的查詢）。老闆的設定方式是：雲端環境「Network secrets」加了 `api.anthropic.com` 的 `x-api-key` 標頭（代理在送出時加上，Claude 看不到），環境變數 `ANTHROPIC_API_KEY` 可能只是占位值 `proxy`。所以不要看變數內容，直接打一次 API：
    ```bash
