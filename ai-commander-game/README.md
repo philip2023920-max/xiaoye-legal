@@ -75,6 +75,7 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `uv run chief sim --orders samples/orders_scripted.json --seed 7` | 無 LLM 的劇本會戰 |
 | `uv run chief deploy` / `--template armor` / `--units infantry,infantry,tank` / `--suggest --provider ollama` | 部署階段：看範本與點數、自選配比、請參謀長挑範本（`--out x.json` 存板）（08） |
 | `--template balanced --enemy samples/enemy_script_v1.json --weather rain --time night` | sim／play 共用：開局部署、v1 敵方劇本（含戰車迫砲、天氣中途變化）、覆寫天氣時段（08） |
+| `--difficulty easy / normal / hard` | 敵方劇本難度（09）；`uv run chief sim --orders samples/orders_v1_assault.json --template balanced --difficulty normal` 是平衡基準局（我方勝 8:3） |
 | `uv run chief play --provider ollama --model qwen2.5:3b --auto` | 參謀長自動指揮（`--provider anthropic --model claude-haiku-5-5` 換 Claude） |
 | `uv run chief play --provider ollama --model qwen2.5:3b` | 互動：Enter 採納、數字改令、+ 接管、- 放手、q 結束；戰後戰報卡 → 討論 → 採納準則 |
 | `--budget 0.5` `--effort low` `--aar-provider anthropic --aar-model claude-sonnet-5-5` `--skip-aar` | 預算、Anthropic 思考深度、戰後檢討模型、跳過戰後 |

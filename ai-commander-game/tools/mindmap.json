@@ -424,10 +424,10 @@
           "children": []
         },
         {
-          "id": "n_ffa03c5c",
-          "text": "敵方：固定劇本 AI（對決模式時換成另一個參謀長）",
-          "status": "todo",
-          "link": "",
+          "id": "n_e098e96f",
+          "text": "敵方：固定劇本 AI，三級難度 easy／normal／hard（對決模式時換成另一個參謀長）",
+          "status": "doing",
+          "link": "docs/10-sim-rules.md",
           "note": "",
           "children": []
         },
@@ -839,10 +839,18 @@
               "children": []
             },
             {
-              "id": "n_082f00ff",
-              "text": "真機驗收發現：五場全敗 3:8 要調平衡、Haiku max_tokens 截斷、對齊判定過嚴、雲端金鑰送不進 session",
-              "status": "todo",
+              "id": "n_db857e23",
+              "text": "真機驗收發現：五場全敗 3:8 要調平衡、Haiku max_tokens 截斷（09 處理）、對齊判定過嚴、雲端金鑰送不進 session",
+              "status": "doing",
               "link": "docs/qa/m0-review.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_d755ff24",
+              "text": "施工單 09 平衡與截斷：難度三級、潰散撤出、分數提示、截斷重試、戰報卡提示（171 測試；審查中；Haiku 一場待老闆）",
+              "status": "doing",
+              "link": "docs/issues/09-balance-truncation.md",
               "note": "",
               "children": []
             },
@@ -1435,8 +1443,8 @@
       ]
     }
   ],
-  "version": 32,
-  "updatedAt": "2026-11-02T02:16:11Z",
+  "version": 33,
+  "updatedAt": "2026-11-02T02:29:36Z",
   "updatedBy": "claude",
   "instructions": ""
 }

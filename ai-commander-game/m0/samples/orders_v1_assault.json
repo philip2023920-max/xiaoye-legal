@@ -1,0 +1,19 @@
+{
+  "orders": {
+    "1": [
+      {"unit_id": "plt-A5", "task": "hold",  "target": "B3", "reason": "迫砲進 B3，鄰接 C3 做間接射擊"},
+      {"unit_id": "plt-A1", "task": "seize", "target": "C3", "reason": "主攻城鎮"},
+      {"unit_id": "plt-A2", "task": "seize", "target": "C3", "reason": "主攻城鎮"},
+      {"unit_id": "plt-A3", "task": "seize", "target": "C3", "reason": "主攻城鎮"},
+      {"unit_id": "plt-A6", "task": "seize", "target": "C3", "reason": "反戰車隨主力，對付敵戰車"}
+    ],
+    "2": [
+      {"unit_id": "plt-A4", "task": "hold",  "target": "B2", "reason": "機槍守高地據點"},
+      {"unit_id": "plt-A8", "task": "hold",  "target": "B2", "reason": "工兵固守加掩蔽"},
+      {"unit_id": "plt-A7", "task": "reserve", "target": "B3", "reason": "偵察排預備，看 C4／D3"}
+    ],
+    "6": [
+      {"unit_id": "plt-A7", "task": "hold", "target": "C2", "reason": "補 C2 側翼"}
+    ]
+  }
+}

@@ -1,0 +1,177 @@
+"""施工單 09：平衡與截斷。期望值來自 docs/10-sim-rules.md §2（潰散撤出）、§14（難度劇本對打結果）、§11（提示）與施工單 09 驗收清單。"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from chief.board import Board, MapGrid, Sector, Task, Unit, load_board, Objective
+from chief.deploy import apply_plan, plan_from_template
+from chief.gateway.anthropic_adapter import AnthropicGateway, BREVITY_NOTE, MAX_TOKENS
+from chief.orders import ChiefOrders
+from chief.prompts import build_messages, score_line, system_prompt, user_prompt
+from chief.report import BattleCard, objective_hint, render_card, card_summary_text
+from chief.rules import load_rules
+from chief.sim import Battle, Script, load_script
+
+ROOT = Path(__file__).resolve().parent.parent
+SAMPLES = ROOT / "samples"
+RULES = load_rules()
+
+
+def grid() -> MapGrid:
+    sectors = {}
+    for r in range(1, 6):
+        for c in range(5):
+            sid = f"{'ABCDE'[c]}{r}"
+            sectors[sid] = Sector(id=sid, terrain="open", cover=0.2)
+    return MapGrid(cols=5, rows=5, sectors=sectors)
+
+
+def plt(uid, sector, typ="infantry", task=None, strength=1.0, state="idle") -> Unit:
+    return Unit(id=uid, name=uid, echelon="platoon", type=typ, sector=sector, task=task, strength=strength, state=state)
+
+
+# ---- §2 v1.1：潰散單位撤出有敵軍的分區 ----
+def test_routed_unit_leaves_contested_own_sector(tmp_path):
+    g = grid(); g.sectors["C3"].owner = "enemy"; g.sectors["D3"].owner = "enemy"
+    us = [plt("u", "C3", task=Task(type="hold", target="C3"))]
+    en = [plt("e", "C3", strength=0.2, state="routed")]
+    battle = Battle(Board(battle_id="b", t=0, map=g, orbat=us, objectives=[]), en, out_dir=tmp_path)
+    rep = battle.step([], [])
+    assert battle.enemy[0].sector == "D3"                          # 退到最近沒有敵軍（我方）的本方分區
+    assert battle.board.map.sectors["C3"].owner == "us"             # 守軍走了 → 分區易手
+    assert any(e.kind == "seized" and e.sector == "C3" for e in rep.events)
+
+
+def test_routed_unit_with_no_safe_sector_stays(tmp_path):
+    g = grid(); g.sectors["C3"].owner = "enemy"
+    us = [plt("u", "C3", task=Task(type="hold", target="C3"))]
+    en = [plt("e", "C3", strength=0.2, state="routed")]
+    battle = Battle(Board(battle_id="b", t=0, map=g, orbat=us, objectives=[]), en, out_dir=tmp_path)
+    battle.step([], [])
+    assert battle.enemy[0].sector == "C3"
+
+
+# ---- §14 難度劇本對打（無隨機）----
+def run_assault(enemy_file: str, out: Path):
+    board = apply_plan(load_board(SAMPLES / "board_start.json"), plan_from_template(RULES, "balanced"), RULES)
+    friendly = load_script(SAMPLES / "orders_v1_assault.json")
+    enemy = load_script(SAMPLES / enemy_file)
+    return Battle(board, enemy.units, out_dir=out).run(friendly, enemy)
+
+
+@pytest.mark.parametrize("enemy_file,winner,score", [
+    ("enemy_v1_easy.json", "us", (8, 3)),
+    ("enemy_script_v1.json", "us", (8, 3)),
+    ("enemy_v1_hard.json", "enemy", (3, 8)),
+])
+def test_assault_plan_vs_difficulties(tmp_path, enemy_file, winner, score):
+    r = run_assault(enemy_file, tmp_path / enemy_file)
+    assert r.winner == winner and (r.score_us, r.score_enemy) == score
+
+
+def test_difficulty_scripts_have_tank_and_mortar_only_from_normal():
+    easy = load_script(SAMPLES / "enemy_v1_easy.json"); hard = load_script(SAMPLES / "enemy_v1_hard.json")
+    assert not {u.type for u in easy.units} & {"tank", "mortar"}
+    assert sum(1 for u in hard.units if u.type == "tank") == 2 and hard.weather_changes
+
+
+def test_cli_difficulty_flag(tmp_path, capsys):
+    from chief.cli import main
+    rc = main(["sim", "--orders", str(SAMPLES / "orders_v1_assault.json"), "--template", "balanced", "--difficulty", "hard", "--quiet", "--out", str(tmp_path / "h")])
+    assert rc == 0 and "敵方勝" in capsys.readouterr().out
+    rc = main(["sim", "--orders", str(SAMPLES / "orders_v1_assault.json"), "--template", "balanced", "--difficulty", "easy", "--quiet", "--out", str(tmp_path / "e")])
+    assert rc == 0 and "我方勝" in capsys.readouterr().out
+    # 明確給 --enemy 時 --difficulty 不生效（02 舊劇本＋舊板，仍可跑）
+    rc = main(["sim", "--orders", str(SAMPLES / "orders_scripted.json"), "--enemy", str(SAMPLES / "enemy_script.json"), "--difficulty", "hard", "--quiet", "--out", str(tmp_path / "o")])
+    assert rc == 0 and "結果：" in capsys.readouterr().out
+
+
+# ---- 提示：分數與剩餘回合；精簡要求 ----
+def test_score_line_in_user_prompt():
+    snap = {"objectives": [{"id": "O1", "sector": "B2", "value": 3, "owner": "us"}, {"id": "O2", "sector": "C3", "value": 5, "owner": "enemy"},
+                           {"id": "O3", "sector": "D4", "value": 3, "owner": "enemy"}], "map": {"sectors": {"A1": "open/us"}}, "friendly": []}
+    line = score_line(snap, 3)
+    assert "Score now: us 3 : enemy 8" in line and "O2 (5 pts at C3, enemy)" in line and "Turns left including this one: 8" in line
+    assert "seize at least one more objective" in line
+    assert "Score now" in user_prompt(snap, 3)
+    ahead = dict(snap); ahead["objectives"] = [{"id": "O1", "sector": "B2", "value": 5, "owner": "us"}, {"id": "O2", "sector": "C3", "value": 3, "owner": "enemy"}]
+    assert "seize at least" not in score_line(ahead, 10) and "Turns left including this one: 1" in score_line(ahead, 10)
+
+
+def test_system_prompt_asks_for_brevity_and_points():
+    sp = system_prompt("(no doctrine yet)")
+    assert "<=120 chars" in sp and "well under 600 characters" in sp and "concentrate at least three platoons" in sp
+
+
+# ---- 截斷重試（假 client，不連網）----
+class SeqMessages:
+    def __init__(self, responses):
+        self.responses, self.calls = list(responses), []
+
+    def parse(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.responses.pop(0)
+
+
+def _resp(stop, parsed=None):
+    return SimpleNamespace(parsed_output=parsed, stop_reason=stop,
+                           usage=SimpleNamespace(input_tokens=1000, output_tokens=200, cache_read_input_tokens=0, cache_creation_input_tokens=0),
+                           content=[SimpleNamespace(type="text", text="{}")])
+
+
+def test_truncated_reply_is_retried_once_with_brevity_note():
+    good = ChiefOrders(assessment="短", orders=[{"unit_id": "plt-A1", "task": "seize", "target": "C3", "reason": ""}])
+    client = SimpleNamespace(messages=SeqMessages([_resp("max_tokens"), _resp("end_turn", good)]))
+    gw = AnthropicGateway(model="claude-haiku-5-5", client=client)
+    resp = gw.issue_orders(build_messages("d", {"t": 1}, 1))
+    assert resp.error is None and resp.orders.orders[0].task == "seize" and resp.attempts == 2
+    assert resp.usage.prompt_tokens == 2000 and resp.usage.completion_tokens == 400          # 兩次都計費
+    assert client.messages.calls[0]["max_tokens"] == MAX_TOKENS == 4096
+    second = client.messages.calls[1]["messages"]
+    assert len(second) == 1 and second[-1]["content"].endswith(BREVITY_NOTE)               # 併進同一則 user 訊息
+
+
+def test_truncated_twice_reports_plainly():
+    client = SimpleNamespace(messages=SeqMessages([_resp("max_tokens"), _resp("max_tokens")]))
+    resp = AnthropicGateway(client=client).issue_orders(build_messages("d", {}, 1))
+    assert resp.orders is None and resp.attempts == 2 and "精簡重試 1 次" in resp.error and "本回合無新命令" in resp.error
+
+
+# ---- §11 戰報卡提示 ----
+def objs(**owners):
+    base = {"O1": ("B2", 3), "O2": ("C3", 5), "O3": ("D4", 3)}
+    return [Objective(id=k, sector=base[k][0], value=base[k][1], owner=owners.get(k, "none")) for k in base]
+
+
+def test_objective_hint_only_when_nothing_new_taken_and_not_won():
+    start = objs(O1="us", O3="enemy")
+    assert "O2（5 分，C3）一直是敵方" in objective_hint(start, objs(O1="us", O2="enemy", O3="enemy"), "enemy")
+    assert objective_hint(start, objs(O1="us", O2="us", O3="enemy"), "enemy") == ""        # 拿下過 O2 就不提示
+    assert objective_hint(start, objs(O1="us", O2="enemy", O3="enemy"), "us") == ""         # 贏了不提示
+    assert "stayed enemy" in objective_hint(start, objs(O1="us", O2="enemy", O3="enemy"), "enemy", "en")
+
+
+def test_hint_shows_on_card_and_in_summary_and_quick_reply():
+    from chief.discussion import quick_replies
+    from rich.console import Console
+    card = BattleCard(battle_id="x", winner="enemy", score_us=3, score_enemy=8, turns=10, end_reason="turns", overrides=0,
+                      override_rate="0/10", cost_usd=0.0, provider="fake", model="fake", hint="整場沒有奪取任何新據點：O2")
+    c = Console(record=True, width=120); c.print(render_card(card)); out = c.export_text()
+    assert "提示：整場沒有奪取任何新據點" in out and "hint=整場沒有奪取任何新據點" in card_summary_text(card)
+    assert quick_replies(card, "zh-TW", 1)[0] == "為什麼整場沒去拿新據點？" and quick_replies(card, "en", 1)[0].startswith("Why did we never")
+    card.hint = ""
+    assert quick_replies(card, "zh-TW", 1)[0] != "為什麼整場沒去拿新據點？"
+
+
+def test_play_fills_hint_in_auto_mode(tmp_path):
+    from chief.cli import main
+    rc = main(["play", "--provider", "fake", "--model", "fake/empty", "--auto", "--quiet", "--harness", "", "--ledger", "",
+               "--template", "balanced", "--difficulty", "normal", "--out", str(tmp_path / "p")])
+    assert rc == 0
+    aar = json.loads((tmp_path / "p" / "aar.json").read_text(encoding="utf-8"))
+    card = aar.get("card", aar)
+    assert "O2（5 分，C3）" in card["hint"]                                               # 空劇本不動 → 沒拿 C3 → 提示

@@ -15,7 +15,15 @@ from ..orders import ChiefOrders
 from .base import ChatResponse, ChiefResponse, ParsedResponse
 
 DEFAULT_MODEL = "claude-haiku-5-5"   # 節拍用（D3）；AAR 用 claude-sonnet-5-5
-MAX_TOKENS = 2048
+MAX_TOKENS = 4096   # 施工單 09：2048 在壞準則下 7 回合被截 3 次
+BREVITY_NOTE = ("Your previous reply was cut off by the output length limit. Reply again with the same JSON schema but much shorter: "
+                "assessment in one short sentence, and set every \"reason\" to \"\".")
+
+
+def _add_usage(a: Usage, b: Usage) -> Usage:
+    return Usage(prompt_tokens=a.prompt_tokens + b.prompt_tokens, completion_tokens=a.completion_tokens + b.completion_tokens,
+                 cache_read_tokens=a.cache_read_tokens + b.cache_read_tokens, cache_write_tokens=a.cache_write_tokens + b.cache_write_tokens,
+                 estimated=a.estimated or b.estimated)
 
 
 def _split(messages: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -96,10 +104,20 @@ class AnthropicGateway:
 
     def issue_orders(self, messages: list[dict]) -> ChiefResponse:
         r = self.parse(messages, ChiefOrders)
+        attempts = 1
+        if r.error and "max_tokens" in r.error:   # 截斷：把精簡要求併進同一則 user 訊息再試一次（兩次都計費）
+            retry = [dict(m) for m in messages]
+            retry[-1]["content"] = retry[-1]["content"] + "\n\n" + BREVITY_NOTE
+            r2 = self.parse(retry, ChiefOrders)
+            r2.usage = _add_usage(r.usage, r2.usage)
+            r2.latency_s += r.latency_s
+            if r2.error and "max_tokens" in r2.error:
+                r2.error += "（已要求精簡重試 1 次仍截斷）"
+            r, attempts = r2, 2
         error = r.error
         if error and ("refusal" in error or "max_tokens" in error):
             error += "，本回合無新命令"
-        return ChiefResponse(orders=r.parsed, usage=r.usage, attempts=r.attempts, latency_s=r.latency_s, error=error, raw=r.raw)
+        return ChiefResponse(orders=r.parsed, usage=r.usage, attempts=attempts, latency_s=r.latency_s, error=error, raw=r.raw)
 
     def chat(self, messages: list[dict]) -> ChatResponse:
         system_blocks, convo = _split(messages)

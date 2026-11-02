@@ -27,7 +27,10 @@ def quick_replies(card: BattleCard, lang: str, rnd: int = 1) -> list[str]:
                ["Next time, ask me before moving in that situation", "What would you do against the same enemy next time?", "Which unit did I misuse?"],
                ["Write this into the doctrine", "I was wrong, your way was fine", "Leave the doctrine alone this time"]],
     }
-    return sets.get(lang, sets["zh-TW"])[min(rnd, 3) - 1]
+    options = list(sets.get(lang, sets["zh-TW"])[min(rnd, 3) - 1])
+    if rnd == 1 and card.hint:   # 施工單 09：沒拿新據點時，第一個快速回覆直接問這件事
+        options[0] = {"zh-TW": "為什麼整場沒去拿新據點？", "zh-CN": "为什么整场没去拿新据点？", "en": "Why did we never go for a new objective?"}.get(lang, "為什麼整場沒去拿新據點？")
+    return options
 
 
 def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console: Console, input_fn=input,

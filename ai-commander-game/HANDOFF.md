@@ -3,7 +3,7 @@
 > 更新：2026-11-02（08 完成後）。本專案的工作規則在 `README.md`，心智圖是真相來源（Artifact 資料庫 `mindmap/main`），施工單在 `docs/issues/`，三審報告在 `docs/qa/m0-review.md`。
 
 ## 現況一句話
-M0 完成：施工單 01～08 全部實作、審查、157 個測試全綠；三項真機驗收 2026-11-02 在老闆本機以 v1 戰鬥模型跑完（推翻率 8.8% → 4.0%、壞準則 0% 退步、Haiku 與 Ollama 都打完），數據在 `docs/qa/m0-review.md`。下一步 M1（Godot）只能在老闆明說時開始；開工前先看 `docs/qa/m0-review.md`「真機驗收發現」（平衡、max_tokens、對齊判定）。
+M0 完成：施工單 01～09 全部實作、審查、171 個測試全綠（09＝驗收後的平衡與截斷修正）；三項真機驗收 2026-11-02 在老闆本機以 v1 戰鬥模型跑完（推翻率 8.8% → 4.0%、壞準則 0% 退步、Haiku 與 Ollama 都打完），數據在 `docs/qa/m0-review.md`。下一步 M1（Godot）只能在老闆明說時開始；開工前先看 `docs/qa/m0-review.md`「真機驗收發現」（平衡、max_tokens、對齊判定）。
 
 ## 雲端金鑰：行不通
 雲端環境變數 `ANTHROPIC_API_KEY` 不會送進 session（本 session 與新開子 session 都看不到，`CHIEF_ANTHROPIC_KEY` 未試）。需要跑模型的事一律在老闆本機 PowerShell 做（下面指令在本機同樣適用，`.env` 會自動讀）。
@@ -18,7 +18,7 @@ M0 完成：施工單 01～08 全部實作、審查、157 個測試全綠；三�
    印出模型清單＝通。金鑰可能放在環境變數 `ANTHROPIC_API_KEY` 或備用名 `CHIEF_ANTHROPIC_KEY`（`chief` 指令會自動轉換；直接用 SDK 時先 `export ANTHROPIC_API_KEY=$CHIEF_ANTHROPIC_KEY`）。若 401／authentication 錯誤或 SDK 說 api_key must be set：請老闆到雲端環境設定的 Environment variables 檢查（不要貼進聊天），再開新對話。
 2. **五場全自動驗收（模擬總司令，用 08 的戰鬥模型）**：風格固定在 `samples/commander_steady.json`；開局用均衡範本部署、敵方用含戰車迫砲與天氣變化的 v1 劇本。先確認準則是初始狀態（`harness/default/doctrine.md` 沒有 `## Last adopted` 行、沒有 `doctrine.prev.md`；若有，`uv run chief doctrine undo` 或請老闆決定是否歸零），`harness/default/evals/` 裡沒有舊的 cases.jsonl／prev.json（有就先搬走，舊戰例是玩具沙盤的）。五場各自有資料夾，戰後自動討論、採納、回歸。
    ```bash
-   for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --template balanced --enemy samples/enemy_script_v1.json --quiet --out battles/sim-$i; done
+   for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --template balanced --difficulty normal --quiet --out battles/sim-$i; done
    uv run chief stats --battles battles
    ```
    先用不花錢的 fake 供應商走一遍流程確認指令沒打錯：`uv run chief play --provider fake --model fake/empty --auto --skip-aar --quiet --harness "" --template balanced --enemy samples/enemy_script_v1.json --ledger "" --out battles/dry-run`。

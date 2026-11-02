@@ -19,7 +19,7 @@ from .board import Board, Event
 from .discussion import run_discussion
 from .doctrine import DoctrineStore, apply_diff, propose_diff, save_aar
 from .gateway import Gateway
-from .report import BattleCard, build_card_from, card_dict, chief_line, pick_moments, render_card, card_summary_text
+from .report import BattleCard, build_card_from, card_dict, chief_line, objective_hint, pick_moments, render_card, card_summary_text
 from rich.markup import escape as _esc
 from .meter import Ledger, PriceTable, UsageMeter
 from .orders import Rejection
@@ -208,6 +208,7 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
     badges = award(result.battle.winner, result.override_outcomes, len(overrides.records), meter.cost_usd, start_us, end_us,
                    local_model=gateway.model.startswith(("ollama", "fake")))
     card = build_card_from(result, battle, overrides.records, badges, gateway)
+    card.hint = objective_hint(start_board.objectives, battle.board.objectives, result.battle.winner, lang)
     if not auto and store is not None:
         line = chief_line(gateway, card, doctrine, lang, on_usage=bill(gateway))
         if line:

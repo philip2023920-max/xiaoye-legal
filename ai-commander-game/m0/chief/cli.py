@@ -36,7 +36,7 @@ def cmd_sim(args: argparse.Namespace) -> int:
     try:
         board = load_board(args.board)
         friendly = load_script(args.orders)
-        enemy = load_script(args.enemy)
+        enemy = load_script(_enemy_path(args))
     except BoardError as err:
         err_console.print(f"[red]{err}[/]")
         return 1
@@ -88,7 +88,7 @@ def cmd_play(args: argparse.Namespace) -> int:
     err_console = Console(stderr=True)
     try:
         board = load_board(args.board)
-        enemy = load_script(args.enemy)
+        enemy = load_script(_enemy_path(args))
         gateway = make_gateway(args.provider, args.model, effort=args.effort)
     except (BoardError, ValueError, NotImplementedError) as err:
         err_console.print(f"[red]{err}[/]")
@@ -152,6 +152,17 @@ def cmd_play(args: argparse.Namespace) -> int:
         err_console.print(f"[red]{err}[/]")
         return 1
     return 0
+
+
+DIFFICULTY_SCRIPTS = {"easy": "samples/enemy_v1_easy.json", "normal": "samples/enemy_script_v1.json", "hard": "samples/enemy_v1_hard.json"}
+DEFAULT_ENEMY = "samples/enemy_script.json"
+
+
+def _enemy_path(args) -> str:
+    """--difficulty 只在沒有明確給 --enemy 時生效（施工單 09）。"""
+    if getattr(args, "difficulty", None) and getattr(args, "enemy", DEFAULT_ENEMY) == DEFAULT_ENEMY:
+        return DIFFICULTY_SCRIPTS[args.difficulty]
+    return args.enemy
 
 
 def _apply_conditions(board, args) -> None:
@@ -372,6 +383,7 @@ def add_conditions(sp: argparse.ArgumentParser) -> None:
     sp.add_argument("--template", default=None, help="部署範本：balanced 均衡／armor 裝甲突擊／infantry 步兵固守（換掉戰情板上的友軍）")
     sp.add_argument("--units", default=None, help="自選配比，逗號分隔，例如 infantry,infantry,mg,tank（預算見 rules/<era>.json）")
     sp.add_argument("--era", default=None, help="覆寫世代規則檔（預設用戰情板的 era；可用：ww2_1944、coldwar_early、coldwar_late）")
+    sp.add_argument("--difficulty", default=None, choices=["easy", "normal", "hard"], help="敵方劇本難度（沒給 --enemy 時生效）：easy＝samples/enemy_v1_easy.json、normal＝enemy_script_v1.json、hard＝enemy_v1_hard.json")
 
 
 def build_parser() -> argparse.ArgumentParser:

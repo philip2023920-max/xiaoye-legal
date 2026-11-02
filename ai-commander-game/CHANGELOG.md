@@ -2,6 +2,14 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十三次）— 施工單 09 平衡與截斷（老闆指示「先修平衡與截斷問題，開新施工單」）
+- 規則 §2 v1.1：潰散單位往「沒有敵軍的本方分區」退，守軍潰散後分區易手（原本留在城裡當肉盾，城鎮打不下來）
+- 敵方劇本三級 `enemy_v1_easy.json`／`enemy_script_v1.json`／`enemy_v1_hard.json`＋`--difficulty`；平衡基準局 `orders_v1_assault.json`（easy 勝、normal 勝、hard 敗）寫進 §14 並以測試鎖住
+- 提示：每回合 user 訊息加分數、未奪目標、剩餘回合；系統提示加「據點分定勝負、攻城集中三排＋迫砲」、評估 ≤ 120 字、reason 可空
+- Anthropic adapter：max_tokens 4096；截斷時併入精簡要求重試一次（兩次計費，attempts=2）
+- 戰報卡提示「整場沒有奪取任何新據點」（離線）、進 aar.json 與參謀長摘要、討論第 1 回合快速回覆
+- `docs/issues/09`、README、HANDOFF（--difficulty normal）、路線圖 T0.12；測試 157 → 171；心智圖加 09 節點；回寫 Artifact 資料庫
+
 ## 2026-11-02（第二十二次）— M0 真機驗收完成（老闆本機）
 - 雲端環境變數 `ANTHROPIC_API_KEY` 送不進 session（主 session 與子 session 都看不到）→ 改在老闆 Windows 本機跑；HANDOFF 改寫
 - 五場 Haiku 5.5＋模擬總司令（v1 戰鬥模型、均衡範本、v1 敵方劇本）：推翻率 8.8% → 3.7% → 4.2% → 3.2% → 4.0%，下降 ✅；戰後中位數 47 秒、跳過 0%；五場約 US$0.04

@@ -269,6 +269,7 @@ class Battle:
             leaves = self.leaves(side)
             eng = self.engineer_sectors(side)                      # 回合開始的工兵位置，過河判定以此為準（§2）
             hostile = {e.sector for e in self.leaves(OTHER[side]) if e.state != "destroyed"}
+            safe_own = [sid for sid in own if sid not in hostile]  # 潰散單位只往「沒有敵軍的本方分區」退（§2 v1.1）
             for u in sorted(leaves, key=lambda x: x.id):
                 if u.state not in ("routed", "destroyed"):
                     u.state = "idle"  # 每回合先歸零，交戰階段再標 engaged
@@ -281,7 +282,7 @@ class Battle:
                 avoid = self.blocked_sectors(side, u, eng)
                 moved = False
                 for _ in range(steps):
-                    dest = decide_move(u, grid, leaves, own, by_id, avoid=avoid)
+                    dest = decide_move(u, grid, leaves, safe_own if u.state == "routed" else own, by_id, avoid=avoid)
                     if not dest or dest == u.sector or dest in avoid:
                         break
                     u.sector = dest
