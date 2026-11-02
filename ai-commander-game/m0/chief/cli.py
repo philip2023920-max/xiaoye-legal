@@ -113,7 +113,15 @@ def cmd_play(args: argparse.Namespace) -> int:
     ledger = Ledger(args.ledger) if args.ledger else None
     if not args.out:
         args.out = str(Path("battles") / f"{board.battle_id}-{time_tag()}")   # 每場自己的資料夾，不互相覆蓋
-    run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
+    commander = None
+    if getattr(args, "commander", None):
+        from .commander import SimCommander
+        try:
+            commander = SimCommander.from_file(args.commander)
+        except BoardError as err:
+            err_console.print(f"[red]{err}[/]")
+            return 1
+    run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out, commander=commander,
              prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
              budget_usd=args.budget, ledger=ledger, auto=args.auto,
              doctrine_path=doctrine_path, aar_gateway=aar_gateway, skip_aar=args.skip_aar, evals_dir=evals_dir)
@@ -279,6 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
     y.add_argument("--seed", type=int, default=None)
     y.add_argument("--prices", default=None, help="價格表 JSON（預設 chief/prices.json；覆寫 LiteLLM 內建表）")
+    y.add_argument("--commander", default=None, help="模擬總司令風格檔（samples/commander_steady.json）：用規則代替真人推翻，全自動跑")
     y.add_argument("--skip-aar", action="store_true", help="戰後不出戰報卡與討論")
     y.add_argument("--aar-provider", default=None, help="戰後檢討用的供應商（預設同參謀長）")
     y.add_argument("--aar-model", default=None, help="戰後檢討用的模型（anthropic 預設 claude-sonnet-5-5）")

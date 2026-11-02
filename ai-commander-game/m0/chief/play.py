@@ -71,8 +71,14 @@ def run_play(
     aar_gateway: Gateway | None = None,
     skip_aar: bool = False,
     evals_dir: str | Path | None = None,
+    commander=None,
 ) -> PlayResult:
     console = console or Console()
+    sim_state: dict = {}
+    if commander is not None:                      # 模擬總司令：用規則代替真人按鍵（07b）
+        from .commander import make_input_fn
+        input_fn = make_input_fn(commander, sim_state)
+        auto = False
     input_fn = input_fn or input   # 執行時才取 builtins.input（可被測試或 UI 替換）
     store = DoctrineStore(doctrine_path) if doctrine_path else None
     if store and not quiet:
@@ -129,6 +135,7 @@ def run_play(
         if not auto:
             if not quiet:
                 _show_proposal(console, battle, t, resp, accepted, rejected)
+            sim_state.update(board=battle.board, t=t, accepted=accepted, fresh=True)
             chief_count = len(accepted)
             accepted, quit_requested = _commander_turn(console, battle, t, accepted, overrides, owner_cache, result, input_fn)
             if quit_requested:

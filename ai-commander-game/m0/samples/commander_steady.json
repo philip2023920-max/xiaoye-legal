@@ -1,0 +1,12 @@
+{
+  "name": "steady",
+  "description": "穩紮穩打型總司令：機槍排一律守 B2 高地；開局兩回合不准奪取；不准渡河攻 D4/D5。",
+  "max_overrides_per_turn": 2,
+  "discuss": true,
+  "adopt": true,
+  "rules": [
+    {"if_unit_type": "mg", "if_task_not": "hold", "then_task": "hold", "then_target": "B2", "reason": "機槍排守高地"},
+    {"if_turn_lte": 2, "if_task": "seize", "then_task": "reserve", "then_target": "B1", "reason": "開局先看清敵情再動"},
+    {"if_target_in": ["D4", "D5"], "then_task": "hold", "then_target": "C3", "reason": "不渡河，守城鎮就好"}
+  ]
+}
