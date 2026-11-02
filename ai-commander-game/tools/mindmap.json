@@ -426,7 +426,7 @@
         {
           "id": "n_e098e96f",
           "text": "敵方：固定劇本 AI，三級難度 easy／normal／hard（對決模式時換成另一個參謀長）",
-          "status": "doing",
+          "status": "done",
           "link": "docs/10-sim-rules.md",
           "note": "",
           "children": []
@@ -839,17 +839,17 @@
               "children": []
             },
             {
-              "id": "n_db857e23",
-              "text": "真機驗收發現：五場全敗 3:8 要調平衡、Haiku max_tokens 截斷（09 處理）、對齊判定過嚴、雲端金鑰送不進 session",
+              "id": "n_6a191118",
+              "text": "真機驗收發現：平衡與截斷已由 09 處理；剩對齊判定過嚴、獨立回歸基準註記（待下一張）；雲端金鑰送不進 session（改本機）",
               "status": "doing",
               "link": "docs/qa/m0-review.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_caa14190",
-              "text": "施工單 09 平衡與截斷：難度三級、潰散撤出、分數提示、截斷重試、戰報卡提示（審查 10 項已修；173 測試；Haiku 一場待老闆）",
-              "status": "doing",
+              "id": "n_cb6c7ca5",
+              "text": "施工單 09 平衡與截斷：難度三級、潰散撤出、分數提示、截斷重試、戰報卡提示（審查 10 項已修；175 測試；真機 A/B 空白準則 8:3 勝）",
+              "status": "done",
               "link": "docs/issues/09-balance-truncation.md",
               "note": "",
               "children": []
@@ -1443,8 +1443,8 @@
       ]
     }
   ],
-  "version": 34,
-  "updatedAt": "2026-11-02T02:45:18Z",
+  "version": 35,
+  "updatedAt": "2026-11-02T03:02:03Z",
   "updatedBy": "claude",
   "instructions": ""
 }

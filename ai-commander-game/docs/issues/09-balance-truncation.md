@@ -1,6 +1,6 @@
 # 09 平衡與截斷：難度分級、潰散撤出、參謀長看得到分數、回覆截斷重試
 
-> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 10 項：高 1 中 4 低 5，全部修正；測試 157 → 173）；30 秒驗收腳本的 Haiku 那一條待老闆本機跑。
+> 狀態：✅ 完成（2026-11-02；審查 10 項全部修正；測試 157 → 175；老闆本機 A/B：空白準則 8:3 勝、學完的保守準則 3:8）。
 > 來源：M0 真機驗收發現 5（五場全敗 3:8）與 1（Haiku 回覆被 max_tokens=2048 截斷），老闆 2026-11-02 指示「先修平衡與截斷問題，開新施工單」。
 
 **重用**：現有引擎、提示模板、戰報卡、Anthropic adapter；只加規則與資料，不加新套件。
@@ -18,7 +18,7 @@
 - [x] **參謀長看得到分數**：每回合 user 訊息加「Score now: us X : enemy Y. Objectives not ours: … Turns left including this one: N.」，落後時加「不奪取至少一個據點就輸」；系統提示加「據點分定勝負、攻城要集中三個排＋迫砲、不要分散 support」
 - [x] **截斷重試**：Anthropic `max_tokens` 2048 → 4096；以回應的 `stop_reason=max_tokens` 判斷（API 例外不算）把精簡要求併進同一則 user 訊息再試一次，兩次都計費（attempts=2）；仍截斷才「本回合無新命令」。系統提示改評估 ≤ 120 字、reason ≤ 60 字可空、整則 < 600 字（LiteLLM 路徑由 instructor 的驗證重試涵蓋，不另改）
 - [x] **戰報卡提示**（§11）：沒贏且整場沒拿下任何開局不屬於我方的目標 → 卡上一行「整場沒有奪取任何新據點：O2（5 分，C3）一直是敵方…」，寫進 `aar.json` 與給參謀長的摘要；討論第 1 回合第一個快速回覆變成「為什麼整場沒去拿新據點？」
-- [ ] 真機：`chief play --provider anthropic --model claude-haiku-5-5 --auto --template balanced --difficulty normal --skip-aar` 一場，看評估變短、有去攻 C3（老闆本機）。第一次（2026-11-02 10:46，用五場學完的 default 準則）仍 3:8，輸入 15,410／輸出 13,671 token。`chief replay` 診斷：準則已學到模擬總司令的「t1–2 不奪取、先在 B1 集結」（拒絕項＋假設項都在），參謀長 t3 才開始攻 C3，而且是逐排添油（t3 兩排、t4 再兩排、t5 迫砲才支援），t6 入夜後城鎮掩蔽封頂 0.8、火力 ×0.54，四個排打到 t10 只把敵機槍打到 42%。評估都是一句、0 退回 0 無回應，截斷與提示的部分達標；輸出 token 多半是 Haiku 的思考量（可試 `--effort low`）。結論：這是成長迴圈在運作（準則裡已自己寫下「集結是否拖太久」的假設），不是提示失效；下一步用 `samples/doctrine_fresh.md` 做 A/B（`--harness "" --doctrine samples/doctrine_fresh.md`）
+- [x] 真機：`chief play --provider anthropic --model claude-haiku-5-5 --auto --template balanced --difficulty normal --skip-aar` 一場，看評估變短、有去攻 C3（老闆本機）。**A/B 結果（2026-11-02）**：空白準則 `samples/doctrine_fresh.md` → **我方勝 8:3**（t1 三個步兵排＋迫砲攻 C3，t7 敵機槍潰散、C3 易手，之後守住；評估皆一句；輸入 14,411／輸出 10,858 token，$0.0074）；五場學完的準則 → 3:8。差別只在準則，證明平衡與提示合格，之前的敗仗是學到的保守風格。第一次（2026-11-02 10:46，用五場學完的 default 準則）仍 3:8，輸入 15,410／輸出 13,671 token。`chief replay` 診斷：準則已學到模擬總司令的「t1–2 不奪取、先在 B1 集結」（拒絕項＋假設項都在），參謀長 t3 才開始攻 C3，而且是逐排添油（t3 兩排、t4 再兩排、t5 迫砲才支援），t6 入夜後城鎮掩蔽封頂 0.8、火力 ×0.54，四個排打到 t10 只把敵機槍打到 42%。評估都是一句、0 退回 0 無回應，截斷與提示的部分達標；輸出 token 多半是 Haiku 的思考量（可試 `--effort low`）。結論：這是成長迴圈在運作（準則裡已自己寫下「集結是否拖太久」的假設），不是提示失效；下一步用 `samples/doctrine_fresh.md` 做 A/B（`--harness "" --doctrine samples/doctrine_fresh.md`）
 
 ## 30 秒驗收腳本
 ```bash
