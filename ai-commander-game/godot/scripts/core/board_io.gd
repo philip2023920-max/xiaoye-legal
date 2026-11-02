@@ -9,7 +9,7 @@ const SCHEMA_VERSION := "0.2"
 
 static func m0_dir() -> String:
 	# res:// 的實體路徑是 ai-commander-game/godot/，m0 在旁邊
-	return ProjectSettings.globalize_path("res://").path_join("../m0")
+	return ProjectSettings.globalize_path("res://").path_join("../m0").simplify_path()
 
 static func resolve(path: String) -> String:
 	if path.begins_with("m0://"):
@@ -22,10 +22,11 @@ static func load_json(path: String) -> Dictionary:
 		push_error("找不到檔案：%s" % real)
 		return {}
 	var f := FileAccess.open(real, FileAccess.READ)
-	var text := f.get_as_text()
+	if f == null:
+		push_error("開不了檔案：%s（%s）" % [real, error_string(FileAccess.get_open_error())])
+		return {}
+	var text := f.get_as_text()   # get_as_text 已去掉 UTF-8 BOM
 	f.close()
-	if text.begins_with("﻿"):
-		text = text.substr(1)   # Windows 記事本的 BOM
 	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("%s 不是合法的 JSON 物件" % real)

@@ -49,7 +49,7 @@ func _add_camera() -> void:
 	camera_rig.min_distance = 25.0
 	camera_rig.max_distance = 140.0
 	camera_rig.distance = 70.0
-	camera_rig.ground_collision_mask = SectorMap.GROUND_LAYER
+	camera_rig.ground_collision_mask = SectorMap.GROUND_MASK
 	camera_rig.position = Vector3(rect.size.x * 0.5, 0.0, rect.size.y * 0.5 + 10.0)
 	add_child(camera_rig)
 

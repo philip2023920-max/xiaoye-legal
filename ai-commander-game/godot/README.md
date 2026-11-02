@@ -12,11 +12,16 @@ Godot **4.7.2 標準版**、Compatibility 渲染器、Jolt 物理。骨架 `addo
 godot --headless --path . --import
 godot --headless --path . -s tests/run_tests.gd
 ```
-Windows 把 `godot` 換成 `C:\dev\godot\Godot_v4.7.2-stable_win64.exe`。最後一行 `failures: 0` 就是過。
+Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerShell）：
+```powershell
+& "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . --import
+& "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . -s tests/run_tests.gd; echo $LASTEXITCODE
+```
+最後一行 `failures: 0`、exit code 0 就是過（2＝逾時，表示有執行期錯誤，往上看 SCRIPT ERROR）。
 
 ## 資料夾
 - `addons/rts_kit/` 骨架（攝影機、框選、迷霧、小地圖、格狀尋路）
-- `scripts/core/` 讀寫戰情板、規則表（`m0://` 代表隔壁 m0 資料夾）
+- `scripts/core/` 讀戰情板（`m0://` 代表隔壁 m0 資料夾）；規則表 `rules.gd` 在施工單 12
 - `scripts/world/` 分區地圖
-- `scripts/battle/` 場景組裝、導演
+- `scripts/battle/` 場景組裝；導演 `director.gd` 在施工單 14
 - `tests/` 無頭測試；`tools/` 產生場景等小工具

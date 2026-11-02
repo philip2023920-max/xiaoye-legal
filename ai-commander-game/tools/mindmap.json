@@ -1025,8 +1025,8 @@
               "children": []
             },
             {
-              "id": "n_cad813c4",
-              "text": "施工單 10 骨架與地圖（程式完成，無頭測試 26 項；審查中；待老闆 F5）",
+              "id": "n_05b282af",
+              "text": "施工單 10 骨架與地圖（審查 10 項已修；無頭測試 31 項；待老闆 F5）",
               "status": "doing",
               "link": "docs/issues/10-godot-skeleton-map.md",
               "note": "",
@@ -1508,8 +1508,8 @@
       ]
     }
   ],
-  "version": 37,
-  "updatedAt": "2026-11-02T13:25:22Z",
+  "version": 38,
+  "updatedAt": "2026-11-02T13:39:45Z",
   "updatedBy": "claude",
   "instructions": ""
 }

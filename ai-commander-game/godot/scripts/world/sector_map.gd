@@ -13,8 +13,8 @@ const TERRAIN_COLORS := {
 }
 const OWNER_TINT := {"us": Color(0.35, 0.55, 1.0), "enemy": Color(1.0, 0.35, 0.3)}
 const FLAG_COLORS := {"us": Color(0.3, 0.5, 1.0), "enemy": Color(0.95, 0.25, 0.2), "none": Color(0.95, 0.95, 0.95)}
-const COVER_LAYER := 2      # 掩體在碰撞層 2，之後尋路烘焙用（骨架約定：地面 1、牆 2）
-const GROUND_LAYER := 1
+const COVER_MASK := 1 << 1   # 位元遮罩值（第 2 層），不是層號；掩體給之後尋路烘焙用（骨架約定：地面第 1 層、牆第 2 層）
+const GROUND_MASK := 1 << 0  # 第 1 層
 
 var cols := 0
 var rows := 0
@@ -26,11 +26,20 @@ var _flags := {}        # objective id -> Node3D
 static func id_of(col: int, row: int) -> String:
 	return LETTERS[col] + str(row + 1)
 
+## 分區 id → (欄, 列)；格式不對回 (-1, -1)（例如 "c3" 會先轉大寫，"A" 或 "3A" 不合法）。
 static func col_row_of(sector_id: String) -> Vector2i:
-	return Vector2i(LETTERS.find(sector_id[0]), int(sector_id.substr(1)) - 1)
+	var sid := sector_id.strip_edges().to_upper()
+	if sid.length() < 2 or not sid.substr(1).is_valid_int():
+		return Vector2i(-1, -1)
+	var col := LETTERS.find(sid[0])
+	var row := int(sid.substr(1)) - 1
+	if col < 0 or row < 0:
+		return Vector2i(-1, -1)
+	return Vector2i(col, row)
 
 func build_from_board(board: Dictionary) -> void:
 	for child in get_children():
+		remove_child(child)   # 先脫離樹再釋放：queue_free 要到幀尾才移除，同名新節點會被自動改名
 		child.queue_free()
 	sectors.clear(); objectives.clear(); _tiles.clear(); _flags.clear()
 	var map: Dictionary = board["map"]
@@ -52,6 +61,7 @@ func world_rect() -> Rect2:
 	return Rect2(0.0, 0.0, cols * SECTOR_SIZE, rows * SECTOR_SIZE)
 
 func center_of(sector_id: String) -> Vector3:
+	assert(sectors.has(sector_id), "不存在的分區 id：%s" % sector_id)
 	var cr := col_row_of(sector_id)
 	return Vector3((cr.x + 0.5) * SECTOR_SIZE, 0.0, (cr.y + 0.5) * SECTOR_SIZE)
 
@@ -88,7 +98,7 @@ func _material(color: Color) -> StandardMaterial3D:
 func _build_ground() -> void:
 	var ground := StaticBody3D.new()
 	ground.name = "Ground"
-	ground.collision_layer = GROUND_LAYER
+	ground.collision_layer = GROUND_MASK
 	ground.collision_mask = 0
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -157,17 +167,17 @@ func _build_props() -> void:
 		if terrain == "town":
 			var mat := _material(Color(0.45, 0.42, 0.4))
 			for i in 6:
-				var offset := Vector3((i % 3 - 1) * 6.0, 0.0, (i / 3) * 7.0 - 3.5)
+				var offset := Vector3((i % 3 - 1) * 6.0, 0.0, floori(i / 3.0) * 7.0 - 3.5)
 				holder.add_child(_block(sid, c + offset, Vector3(3.0, 3.0, 3.0), mat))
 		elif terrain == "forest":
 			var mat := _material(Color(0.18, 0.4, 0.2))
 			for i in 8:
-				var offset := Vector3((i % 4 - 1.5) * 4.5, 0.0, (i / 4 - 0.5) * 7.0)
+				var offset := Vector3((i % 4 - 1.5) * 4.5, 0.0, (floori(i / 4.0) - 0.5) * 7.0)
 				holder.add_child(_tree(sid, c + offset, mat))
 
 func _block(sid: String, at: Vector3, size: Vector3, mat: StandardMaterial3D) -> StaticBody3D:
 	var body := StaticBody3D.new()
-	body.collision_layer = COVER_LAYER
+	body.collision_layer = COVER_MASK
 	body.collision_mask = 0
 	body.position = at + Vector3(0.0, size.y * 0.5, 0.0)
 	body.add_to_group("cover")
@@ -187,7 +197,7 @@ func _block(sid: String, at: Vector3, size: Vector3, mat: StandardMaterial3D) ->
 
 func _tree(sid: String, at: Vector3, mat: StandardMaterial3D) -> StaticBody3D:
 	var body := StaticBody3D.new()
-	body.collision_layer = COVER_LAYER
+	body.collision_layer = COVER_MASK
 	body.collision_mask = 0
 	body.position = at + Vector3(0.0, 2.5, 0.0)
 	body.add_to_group("cover")

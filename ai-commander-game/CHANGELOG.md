@@ -6,6 +6,7 @@
 - 老闆「好了」＝D15～D21 全照建議 → `docs/adr/0014-m1-godot-stack.md`；決策紀錄第五輪 ✅
 - 施工單 10～15 建檔（`docs/issues/10～15`），索引與執行順序更新
 - `godot/`：project.godot（4.7.2、Compatibility、Jolt）、`addons/rts_kit`（MIT 複製）、`BoardIO`（m0:// 讀隔壁 m0）、`SectorMap`（20 m 分區、地形色、擁有方色調、據點旗、城鎮 6 掩體／森林 8 樹、格線、座標反查、易手改色）、`Battle` 場景（光、環境、RTSCameraRig 俯仰 60°、HUD）、`tools/make_scene.gd`、`tests/run_tests.gd` 26 項（沙盒無頭全過）、README
+- 10 審查 10 項全部修正：測試看門狗（執行期錯誤 exit 2）、Windows 用 console 版 exe、重建地圖先 remove_child、常數改 *_MASK、floori、BOM 死碼、路徑與開檔防呆、補 5 項測試（31）、輸入驗證
 - 心智圖 M1 節點更新；回寫 Artifact 資料庫
 
 ## 2026-11-02（第二十四次）— 老闆下令「進入 M1」：T1.0 重用檢查與選型（Stage 2）

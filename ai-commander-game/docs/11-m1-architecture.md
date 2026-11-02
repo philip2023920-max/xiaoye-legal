@@ -61,7 +61,7 @@ godot/                               Godot 4.7.2 專案（Compatibility、Jolt�
 | 1 | 到 godotengine.org 下載 **Godot 4.7.2 標準版**（Windows 64，不是 .NET），解壓到 `C:\dev\godot\`，雙擊可開 | 5 分 | 看到專案管理員 |
 | 2 | `git pull` 後在專案管理員「匯入」`C:\dev\xiaoye-legal\ai-commander-game\godot\project.godot` | 2 分 | 專案列表出現 ai-commander-game |
 | 3 | 按 F5 跑 `Battle.tscn` | 1 分 | 看到 5×5 地圖與方塊人 |
-| 4 | PowerShell：`C:\dev\godot\Godot_v4.7.2-stable_win64.exe --headless --path . -s tests/run_tests.gd` | 1 分 | 印「checks … failures 0」 |
+| 4 | PowerShell（console 版）：`& "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --path . -s tests/run_tests.gd; echo $LASTEXITCODE` | 1 分 | 印「checks … failures: 0」且 exit 0 |
 | 5 | `uv run chief show %APPDATA%\Godot\app_userdata\ai-commander-game\board.json` | 1 分 | M0 的戰情板畫面印出 Godot 寫的板 |
 
 ## 5. 施工單草案（Stage 3 拆單；老闆拍板後正式建檔）
