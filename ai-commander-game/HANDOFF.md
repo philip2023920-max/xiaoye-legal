@@ -7,10 +7,12 @@ M0（文字版沙盤＋AI 參謀長迴圈）程式完成：施工單 01～07 全
 
 ## 下一步（照順序）
 
-1. **確認金鑰**：`ANTHROPIC_API_KEY` 應在環境變數（雲端環境的 Network secrets／環境變數），不要出現在聊天或 git。
+1. **確認金鑰真的通**（不花錢的查詢）。老闆的設定方式是：雲端環境「Network secrets」加了 `api.anthropic.com` 的 `x-api-key` 標頭（代理在送出時加上，Claude 看不到），環境變數 `ANTHROPIC_API_KEY` 可能只是占位值 `proxy`。所以不要看變數內容，直接打一次 API：
    ```bash
-   cd ai-commander-game/m0 && uv sync && uv run python -c "import os;print('key:', 'yes' if os.getenv('ANTHROPIC_API_KEY','').startswith('sk-ant-') else 'no')"
+   cd ai-commander-game/m0 && uv sync
+   uv run python -c "import anthropic; print([m.id for m in anthropic.Anthropic().models.list(limit=3).data])"
    ```
+   印出模型清單＝通。若 401／authentication 錯誤：代理注入的標頭沒生效，請老闆把環境變數 `ANTHROPIC_API_KEY` 的值改成真金鑰（在環境設定頁改，不要貼進聊天），再開新對話。若 `ANTHROPIC_API_KEY` 根本沒設（SDK 說 api_key must be set），同樣請老闆去設。
 2. **五場全自動驗收（模擬總司令）**：風格固定在 `samples/commander_steady.json`。五場各自有資料夾，戰後自動討論、採納、回歸。
    ```bash
    for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --quiet --out battles/sim-$i; done
