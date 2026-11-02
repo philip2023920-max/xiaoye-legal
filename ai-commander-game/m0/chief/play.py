@@ -198,7 +198,8 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
 
     start_us = {o.id for o in start_board.objectives if o.owner == "us"}
     end_us = {o.id for o in battle.board.objectives if o.owner == "us"}
-    badges = award(result.battle.winner, result.override_outcomes, len(overrides.records), meter.cost_usd, start_us, end_us)
+    badges = award(result.battle.winner, result.override_outcomes, len(overrides.records), meter.cost_usd, start_us, end_us,
+                   local_model=gateway.model.startswith(("ollama", "fake")))
     card = build_card_from(result, battle, overrides.records, badges, gateway)
     if not auto and store is not None:
         line = chief_line(gateway, card, doctrine, lang, on_usage=bill(gateway))
@@ -207,21 +208,25 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
     console.print(render_card(card))
     summary = card_summary_text(card)
     if auto or store is None:
-        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card))
+        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card), duration_s=0.0, skipped=True)
         return card
+    import time as _time
+    t_start = _time.perf_counter()
     try:
         choice = (input_fn("戰後（Enter＝討論｜a＝直接採納｜s＝跳過）> ") or "").strip().lower()
     except (EOFError, KeyboardInterrupt):
         choice = "s"
     if choice == "s":
-        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card))
+        save_aar(battle.out_dir / "aar.json", summary, [], None, False, None, card=card_dict(card),
+                 duration_s=round(_time.perf_counter() - t_start, 1), skipped=True)
         return card
     transcript = run_discussion(gateway, card, doctrine, lang, console, input_fn, on_usage=bill(gateway)) if choice != "a" else []
     resp = propose_diff(aar_gateway, doctrine, summary, transcript, lang)
     bill(aar_gateway)(resp.usage, resp.latency_s)
     if resp.parsed is None:
         console.print(Text(f"準則更新失敗：{resp.error}", style="red"))
-        save_aar(battle.out_dir / "aar.json", summary, transcript, None, False, None, card=card_dict(card))
+        save_aar(battle.out_dir / "aar.json", summary, transcript, None, False, None, card=card_dict(card),
+                 duration_s=round(_time.perf_counter() - t_start, 1), skipped=False)
         return card
     diff = resp.parsed
     lines = [Text(f"摘要：{diff.summary}")] + [Text(f"＋ [{l.section}] {l.text}", style="green") for l in diff.add] + [Text(f"－ {r}", style="red") for r in diff.remove]
@@ -249,7 +254,10 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
     if report and report.get("ignored_removes"):
         console.print(Text(f"（略過 {len(report['ignored_removes'])} 條找不到或太短的刪除：{'；'.join(report['ignored_removes'])}）", style="dim"))
     console.print(Text(f"戰後流程費用：${sum(e.cost_usd for e in meter.entries if e.phase == 'aar'):.4f}（已計入帳本）", style="dim"))
-    save_aar(battle.out_dir / "aar.json", summary, transcript, diff, bool(ok and (diff.add or diff.remove)), report, card=card_dict(card))
+    duration = round(_time.perf_counter() - t_start, 1)
+    console.print(Text(f"戰後流程用時 {duration:.0f} 秒（目標 < 120 秒）", style="dim"))
+    save_aar(battle.out_dir / "aar.json", summary, transcript, diff, bool(ok and (diff.add or diff.remove)), report, card=card_dict(card),
+             duration_s=duration, skipped=False)
     return card
 
 

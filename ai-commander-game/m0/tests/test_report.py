@@ -30,7 +30,8 @@ def test_badges_hand_examples():
     b = award("us", ["👍", "👍"], 2, 0.0, {"O1"}, {"O1", "O2"})
     assert {x.id for x in b} == {"decisive", "thrifty_winner", "ground_holder"}
     assert [x.id for x in award("us", [], 0, 0.5, set(), set())] == ["hands_off"]
-    assert award("enemy", ["👍"], 1, 0.0, {"O1"}, set()) == []
+    assert award("enemy", ["👍"], 1, 0.0, {"O1"}, {"O1"}) == []                      # 敗局不頒守土
+    assert {x.id for x in award("us", [], 1, 0.0, set(), set(), local_model=True)} == {"local_hero"}   # 本地模型不給省錢贏家
 
 
 def test_first_sentences_truncates_to_two():
@@ -65,6 +66,7 @@ def test_discussion_three_rounds_and_two_sentence_replies(tmp_path):
     hist = run_discussion(gw, card, "doc", "zh-TW", Console(file=out, width=100), input_fn=lambda prompt="": next(it, ""))
     assert len(gw.chat_calls) == 3                                   # 第 4 次輸入不會被問
     assert hist[1]["content"] == "一。二。" and hist[0]["content"].startswith("為什麼第①幕")
+    assert hist[4]["content"] == "這場先不改準則"                      # 第 3 回合的第 3 個選項（輪替）
     assert gw.chat_calls[0][0]["role"] == "system" and "doc" in gw.chat_calls[0][0]["content"]
 
 

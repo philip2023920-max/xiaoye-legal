@@ -75,6 +75,13 @@ def test_auto_mode_makes_no_aar_llm_calls_and_skip_aar_has_no_card(tmp_path):
     assert res2.card is None and not (tmp_path / "s" / "aar.json").exists()
 
 
+def test_fake_provider_has_demo_script(tmp_path):
+    from chief.gateway import make_gateway
+    gw = make_gateway("fake")
+    r = gw.issue_orders([])
+    assert [o.unit_id for o in r.orders.sim_orders()] == ["plt-A1", "plt-A2", "plt-A3"]
+
+
 def test_budget_pauses_chief(tmp_path):
     from chief.meter import Ledger, PriceTable
     prices = tmp_path / "p.json"

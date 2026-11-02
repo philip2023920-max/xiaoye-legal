@@ -225,8 +225,10 @@ def propose_diff(gateway, doctrine: str, card_summary: str, transcript: list[dic
 
 
 def save_aar(path: str | Path, card_summary: str, transcript: list[dict], diff: DoctrineDiff | None, adopted: bool, report: dict | None,
-             card: dict | None = None) -> None:
+             card: dict | None = None, duration_s: float | None = None, skipped: bool | None = None) -> None:
+    """aar.json：卡、討論、diff、是否採納、流程時長與是否跳過（PRD F14 的 < 2 分鐘、跳過率指標用）。"""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps({"card": card or {}, "card_summary": card_summary, "transcript": transcript,
-                                      "diff": diff.model_dump() if diff else None, "adopted": adopted, "report": report},
+                                      "diff": diff.model_dump() if diff else None, "adopted": adopted, "report": report,
+                                      "duration_s": duration_s, "skipped": skipped},
                                      ensure_ascii=False, indent=2), encoding="utf-8")

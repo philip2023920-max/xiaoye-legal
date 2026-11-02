@@ -16,14 +16,15 @@ def battle_stats(battles_root: str | Path = "battles") -> list[dict]:
         if not aar.exists():
             continue
         try:
-            card = json.loads(aar.read_text(encoding="utf-8")).get("card", {})
+            data = json.loads(aar.read_text(encoding="utf-8"))
+            card = data.get("card", {})
         except json.JSONDecodeError:
             continue
         if not card:
             continue
         rows.append({"dir": d.name, "winner": card.get("winner"), "score": card.get("score"), "turns": card.get("turns"),
                      "override_rate": card.get("override_rate"), "cost": card.get("cost_usd", 0.0), "model": card.get("model"),
-                     "at": card.get("at") or aar.stat().st_mtime})
+                     "at": card.get("at") or aar.stat().st_mtime, "aar_s": data.get("duration_s"), "skipped": data.get("skipped")})
     rows.sort(key=lambda r: r["at"])
     return rows
 
@@ -38,13 +39,20 @@ def rate_value(rate: str | None) -> float | None:
 
 def render_curve(rows: list[dict], console: Console, title: str = "推翻率曲線") -> None:
     t = Table(box=box.SIMPLE, title=title)
-    t.add_column("#"); t.add_column("戰鬥"); t.add_column("結果"); t.add_column("據點"); t.add_column("推翻率"); t.add_column("曲線"); t.add_column("費用"); t.add_column("模型")
+    t.add_column("#"); t.add_column("戰鬥"); t.add_column("結果"); t.add_column("據點"); t.add_column("推翻率"); t.add_column("曲線"); t.add_column("費用"); t.add_column("戰後"); t.add_column("模型")
     for i, r in enumerate(rows, 1):
         v = rate_value(r["override_rate"])
         bar = "█" * int(round((v or 0) / 5)) if v is not None else "—"
         w = {"us": "勝", "enemy": "敗", "draw": "平"}.get(r["winner"], "?")
-        t.add_row(str(i), r["dir"], w, f"{r['score'][0]}:{r['score'][1]}" if r.get("score") else "—", f"{v}%" if v is not None else "—", bar, f"${r['cost']:.4f}", str(r["model"]))
+        aar = "跳過" if r.get("skipped") else (f"{r['aar_s']:.0f}s" if r.get("aar_s") is not None else "—")
+        t.add_row(str(i), r["dir"], w, f"{r['score'][0]}:{r['score'][1]}" if r.get("score") else "—", f"{v}%" if v is not None else "—", bar, f"${r['cost']:.4f}", aar, str(r["model"]))
     console.print(t)
+    done = [r for r in rows if r.get("aar_s") is not None]
+    if done:
+        skipped = sum(1 for r in done if r.get("skipped"))
+        times = sorted(r["aar_s"] for r in done if not r.get("skipped"))
+        median = times[len(times) // 2] if times else 0
+        console.print(f"戰後流程：中位數 {median:.0f} 秒（目標 < 120）｜跳過率 {100 * skipped / len(done):.0f}%（目標 < 30%）")
     vals = [rate_value(r["override_rate"]) for r in rows]
     vals = [v for v in vals if v is not None]
     if len(vals) >= 2:

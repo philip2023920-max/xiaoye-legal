@@ -11,16 +11,23 @@ from .report import BattleCard, card_summary_text, first_sentences
 MAX_ROUNDS = 3
 
 
-def quick_replies(card: BattleCard, lang: str) -> list[str]:
-    first = next((m for m in card.moments if m.kind == "override"), None)
+def quick_replies(card: BattleCard, lang: str, rnd: int = 1) -> list[str]:
+    """每回合不同：第 1 回合問原因，第 2 回合談下次，第 3 回合定規則。"""
+    overrides = [m for m in card.moments if m.kind == "override"]
+    first = overrides[0] if overrides else None
     tag = f"第{'①②③'[first.index - 1]}幕" if first else "這場"
-    zh = [f"為什麼{tag}你那樣做？", "下次這種情況先問我再動", "我錯了，照你的做法就好"]
-    if lang == "zh-CN":
-        return [f"为什么{tag}你那样做？", "下次这种情况先问我再动", "我错了，照你的做法就好"]
-    if lang == "en":
-        return [f"Why did you act that way in {('moment ' + str(first.index)) if first else 'this battle'}?",
-                "Next time, ask me before moving in that situation", "I was wrong, your way was fine"]
-    return zh
+    sets = {
+        "zh-TW": [[f"為什麼{tag}你那樣做？", "你覺得這場輸贏的關鍵在哪？", "我的推翻有哪一次是錯的？"],
+                  ["下次這種情況先問我再動", "下次遇到同樣敵情你會怎麼做？", "哪個單位你覺得我用錯了？"],
+                  ["把這個做法寫進準則", "我錯了，照你的做法就好", "這場先不改準則"]],
+        "zh-CN": [[f"为什么{tag}你那样做？", "你觉得这场输赢的关键在哪？", "我的推翻有哪一次是错的？"],
+                  ["下次这种情况先问我再动", "下次遇到同样敌情你会怎么做？", "哪个单位你觉得我用错了？"],
+                  ["把这个做法写进准则", "我错了，照你的做法就好", "这场先不改准则"]],
+        "en": [[f"Why did you act that way in {('moment ' + str(first.index)) if first else 'this battle'}?", "What decided this battle?", "Which of my overrides was wrong?"],
+               ["Next time, ask me before moving in that situation", "What would you do against the same enemy next time?", "Which unit did I misuse?"],
+               ["Write this into the doctrine", "I was wrong, your way was fine", "Leave the doctrine alone this time"]],
+    }
+    return sets.get(lang, sets["zh-TW"])[min(rnd, 3) - 1]
 
 
 def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console: Console, input_fn=input,
@@ -32,7 +39,7 @@ def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console:
     history: list[dict] = []
     rnd = 1
     while rnd <= max_rounds:
-        options = quick_replies(card, lang)
+        options = quick_replies(card, lang, rnd)
         console.print(Panel(Text("\n".join(f"{i+1}. {q}" for i, q in enumerate(options)) + "\n（輸入數字、或直接打字；Enter 結束討論）"),
                             title=f"討論 第 {rnd}/{max_rounds} 回合", border_style="cyan"))
         try:
