@@ -1,6 +1,6 @@
 # 10 Godot 專案骨架＋固定俯視攝影機＋5×5 分區地圖
 
-> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 10 項：高 1 中 2 低 7，全部修正；沙盒無頭測試 32 項全過）；待老闆本機 F5 與無頭測試。M1 第一張；ADR-0014。
+> 狀態：✅ 完成（2026-11-02；審查 10 項全部修正；沙盒無頭測試 32 項；老闆本機 Windows 無頭測試 exit 0，證明 console 版、`m0://` 路徑、Jolt 都正常）。M1 第一張；ADR-0014。
 
 **重用**：godot-rts-kit `addons/rts_kit`（MIT，不改）：`RTSCameraRig` 當攝影機；`RTSKit` 常數與群組契約。地圖資料直接讀 M0 的 `m0/samples/board_start.json`（Board v0.2），不另造一份地圖格式。自製：`SectorMap`（分區格、地形色、據點旗、方塊掩體、座標↔分區）、`BoardIO`、`Battle` 場景組裝、無頭測試。
 

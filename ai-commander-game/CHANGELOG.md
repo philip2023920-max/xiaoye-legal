@@ -2,6 +2,13 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十六次）— 施工單 10 本機驗收通過；施工單 11 方塊人、編制樹、編制 AI（程式完成）
+- 老闆本機 Windows 無頭測試 exit 0（console 版、`m0://` 路徑、Jolt 正常）→ 10 ✅
+- `godot/scripts/core/rules.gd`（讀同一份 `m0/rules`，查表邏輯同 rules.py）、`world/sector_grid.gd`（BFS 上左右下）、`units/order.gd`、`soldier.gd`（膠囊＋方塊頭、戰車方塊車、倒地）、`platoon.gd`（三班九人、站位、戰力＝存活比例）、`formation_ai.gd`（逐函式移植）、`orbat.gd`（雙方部隊樹、連令拆排、每 tick 推進、連級聚合）
+- 時間對應落地：中心到中心 20 m／30 s、機動力 0.5＝60 秒一格、進敵格停 30 秒、分區看實際位置（docs/10 §15）
+- `Battle`：讀 `board_deployed_balanced.json`＋`enemy_script_v1.json`、尋路格從掩體烘焙、HUD 顯示雙方戰力、空白鍵偵錯命令
+- `tests/harness.gd`（看門狗）、`tests/test_orbat.gd` 34 項全過；`m0/samples/board_deployed_balanced.json` 新增
+
 ## 2026-11-02（第二十五次）— M1 拍板（ADR-0014）、施工單 10～15 建檔、10 程式完成
 - 老闆「好了」＝D15～D21 全照建議 → `docs/adr/0014-m1-godot-stack.md`；決策紀錄第五輪 ✅
 - 施工單 10～15 建檔（`docs/issues/10～15`），索引與執行順序更新

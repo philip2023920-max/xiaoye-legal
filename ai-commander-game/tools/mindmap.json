@@ -1025,16 +1025,24 @@
               "children": []
             },
             {
-              "id": "n_6f2bf4c6",
-              "text": "施工單 10 骨架與地圖（審查 10 項已修；無頭測試 32 項；待老闆 F5）",
-              "status": "doing",
+              "id": "n_0239f48e",
+              "text": "施工單 10 骨架與地圖（審查 10 項已修；無頭測試 32 項；老闆本機通過）",
+              "status": "done",
               "link": "docs/issues/10-godot-skeleton-map.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_c8df5f4d",
-              "text": "施工單 11 方塊人與編制、12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能",
+              "id": "n_f8e1e76b",
+              "text": "施工單 11 方塊人、編制樹、編制 AI（規則表、格子邏輯、六種任務移植；無頭測試 34 項；審查中）",
+              "status": "doing",
+              "link": "docs/issues/11-godot-units-orbat.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_c9e64d6e",
+              "text": "施工單 12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能",
               "status": "todo",
               "link": "docs/issues/README.md",
               "note": "",
@@ -1508,8 +1516,8 @@
       ]
     }
   ],
-  "version": 39,
-  "updatedAt": "2026-11-02T13:40:06Z",
+  "version": 40,
+  "updatedAt": "2026-11-02T14:34:22Z",
   "updatedBy": "claude",
   "instructions": ""
 }

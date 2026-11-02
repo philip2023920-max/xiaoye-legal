@@ -1,0 +1,312 @@
+{
+  "schema_version": "0.2",
+  "battle_id": "hill-town-start",
+  "t": 0,
+  "time_unit": "turn",
+  "phase": "early",
+  "scale": "battle",
+  "era": "ww2_1944",
+  "weather": "clear",
+  "time_of_day": "day",
+  "map": {
+    "cols": 5,
+    "rows": 5,
+    "sectors": {
+      "A1": {
+        "id": "A1",
+        "terrain": "open",
+        "owner": "us",
+        "contested": false
+      },
+      "B1": {
+        "id": "B1",
+        "terrain": "open",
+        "owner": "us",
+        "contested": false
+      },
+      "C1": {
+        "id": "C1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "D1": {
+        "id": "D1",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "E1": {
+        "id": "E1",
+        "terrain": "forest",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.5
+      },
+      "A2": {
+        "id": "A2",
+        "terrain": "open",
+        "owner": "us",
+        "contested": false
+      },
+      "B2": {
+        "id": "B2",
+        "terrain": "hill",
+        "owner": "us",
+        "contested": false,
+        "cover": 0.4,
+        "objective": "O1"
+      },
+      "C2": {
+        "id": "C2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "D2": {
+        "id": "D2",
+        "terrain": "hill",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.4
+      },
+      "E2": {
+        "id": "E2",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "A3": {
+        "id": "A3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "B3": {
+        "id": "B3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "C3": {
+        "id": "C3",
+        "terrain": "town",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.6,
+        "objective": "O2"
+      },
+      "D3": {
+        "id": "D3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "E3": {
+        "id": "E3",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "A4": {
+        "id": "A4",
+        "terrain": "forest",
+        "owner": "none",
+        "contested": false,
+        "cover": 0.5
+      },
+      "B4": {
+        "id": "B4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "C4": {
+        "id": "C4",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "D4": {
+        "id": "D4",
+        "terrain": "river",
+        "owner": "enemy",
+        "contested": false,
+        "cover": 0.1,
+        "objective": "O3"
+      },
+      "E4": {
+        "id": "E4",
+        "terrain": "open",
+        "owner": "enemy",
+        "contested": false
+      },
+      "A5": {
+        "id": "A5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "B5": {
+        "id": "B5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "C5": {
+        "id": "C5",
+        "terrain": "open",
+        "owner": "none",
+        "contested": false
+      },
+      "D5": {
+        "id": "D5",
+        "terrain": "river",
+        "owner": "enemy",
+        "contested": false,
+        "cover": 0.1
+      },
+      "E5": {
+        "id": "E5",
+        "terrain": "open",
+        "owner": "enemy",
+        "contested": false
+      }
+    }
+  },
+  "orbat": [
+    {
+      "id": "co-A",
+      "name": "A 連",
+      "echelon": "company",
+      "type": "mixed",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "B2",
+      "controlled_by": "ai",
+      "cost": 94
+    },
+    {
+      "id": "plt-A1",
+      "name": "A1 步兵排",
+      "echelon": "platoon",
+      "type": "infantry",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "B2",
+      "controlled_by": "ai",
+      "cost": 10
+    },
+    {
+      "id": "plt-A2",
+      "name": "A2 步兵排",
+      "echelon": "platoon",
+      "type": "infantry",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "A2",
+      "controlled_by": "ai",
+      "cost": 10
+    },
+    {
+      "id": "plt-A3",
+      "name": "A3 步兵排",
+      "echelon": "platoon",
+      "type": "infantry",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "B1",
+      "controlled_by": "ai",
+      "cost": 10
+    },
+    {
+      "id": "plt-A4",
+      "name": "A4 機槍排",
+      "echelon": "platoon",
+      "type": "mg",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "A1",
+      "controlled_by": "ai",
+      "cost": 12
+    },
+    {
+      "id": "plt-A5",
+      "name": "A5 迫砲排",
+      "echelon": "platoon",
+      "type": "mortar",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "B2",
+      "controlled_by": "ai",
+      "cost": 14
+    },
+    {
+      "id": "plt-A6",
+      "name": "A6 反戰車排",
+      "echelon": "platoon",
+      "type": "at",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "A2",
+      "controlled_by": "ai",
+      "cost": 14
+    },
+    {
+      "id": "plt-A7",
+      "name": "A7 偵察排",
+      "echelon": "platoon",
+      "type": "recon",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "B1",
+      "controlled_by": "ai",
+      "cost": 12
+    },
+    {
+      "id": "plt-A8",
+      "name": "A8 工兵排",
+      "echelon": "platoon",
+      "type": "engineer",
+      "parent": "co-A",
+      "strength": 1.0,
+      "state": "idle",
+      "sector": "A1",
+      "controlled_by": "ai",
+      "cost": 12
+    }
+  ],
+  "enemy_known": [],
+  "objectives": [
+    {
+      "id": "O1",
+      "sector": "B2",
+      "value": 3,
+      "owner": "us"
+    },
+    {
+      "id": "O2",
+      "sector": "C3",
+      "value": 5,
+      "owner": "none"
+    },
+    {
+      "id": "O3",
+      "sector": "D4",
+      "value": 3,
+      "owner": "enemy"
+    }
+  ],
+  "events": [],
+  "fog": {
+    "visible_sectors": []
+  },
+  "overrides_this_battle": 0
+}
