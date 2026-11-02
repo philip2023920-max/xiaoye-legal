@@ -20,6 +20,7 @@ var nav: RTSNavGrid
 var writer: BoardWriter
 var _write_acc := 0.0
 var _tracer_mesh: ImmediateMesh
+var _tracer_second := -1
 
 func _ready() -> void:
 	board = BoardIO.load_board(board_path)
@@ -59,8 +60,8 @@ func _physics_process(delta: float) -> void:
 		return
 	orbat.advance(delta)
 	_write_acc += delta
-	if _write_acc >= WRITE_INTERVAL and writer != null and board_out != "":
-		_write_acc = 0.0
+	if _write_acc >= WRITE_INTERVAL - 1e-6 and writer != null and board_out != "":
+		_write_acc -= WRITE_INTERVAL
 		writer.write(board_out)
 
 ## 射線：這一秒的交火畫成細線（無貼圖、不發光）。
@@ -76,8 +77,9 @@ func _add_tracers() -> void:
 	add_child(mi)
 
 func _draw_tracers() -> void:
-	if _tracer_mesh == null or orbat == null or orbat.resolver == null:
+	if _tracer_mesh == null or orbat == null or orbat.resolver == null or orbat.resolver.last_second == _tracer_second:
 		return
+	_tracer_second = orbat.resolver.last_second
 	_tracer_mesh.clear_surfaces()
 	if orbat.resolver.tracers.is_empty():
 		return

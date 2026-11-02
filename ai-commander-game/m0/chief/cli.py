@@ -14,10 +14,24 @@ from .render import events_panel, map_table, render_board
 from .sim import Battle, load_script
 
 
+def load_board_retry(path: str, tries: int = 4, delay_s: float = 0.05):
+    """Godot 每 0.1 秒改寫 board.json；Windows 的改名是「先刪再搬」，可能短暫無檔或剛好在寫。讀不到就等一下再試。"""
+    import time
+    last: Exception | None = None
+    for i in range(tries):
+        try:
+            return load_board(path)
+        except BoardError as err:
+            last = err
+            if i < tries - 1:
+                time.sleep(delay_s)
+    raise last  # type: ignore[misc]
+
+
 def cmd_show(args: argparse.Namespace) -> int:
     console = Console()
     try:
-        board = load_board(args.path)
+        board = load_board_retry(args.path)
     except BoardError as err:
         Console(stderr=True).print(f"[red]{err}[/]")
         return 1

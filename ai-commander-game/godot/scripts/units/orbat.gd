@@ -38,6 +38,10 @@ func setup(map_: SectorMap, rules_: Rules) -> void:
 	grid = SectorGrid.new(map.cols, map.rows)
 	resolver = Resolver.new(self)
 
+## 目前的整數秒（浮點累加 119.9999 也算 120）。事件、戰情板、工具都用它。
+func second() -> int:
+	return int(floor(t + 1e-4))
+
 func log_event(at: int, kind: String, text: String, unit: String = "", sector: String = "") -> void:
 	var e := {"t": at, "kind": kind, "text": text}
 	if unit != "":
@@ -53,13 +57,16 @@ func set_conditions(wx: String, tod: String) -> void:
 			push_error("天氣「%s」不在 %s 規則表內" % [wx, rules.era])
 		else:
 			weather = wx
-			log_event(int(t), "weather", "天氣轉%s" % {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(wx, wx))
+			log_event(second(), "weather", "天氣轉%s" % {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(wx, wx))
 	if tod != "" and tod != time_of_day:
 		if not rules.time.has(tod):
 			push_error("時段「%s」不在 %s 規則表內" % [tod, rules.era])
 		else:
 			time_of_day = tod
-			log_event(int(t), "weather", "進入%s" % {"day": "日間", "night": "夜間"}.get(tod, tod))
+			log_event(second(), "weather", "進入%s" % {"day": "日間", "night": "夜間"}.get(tod, tod))
+	for pid in platoons.keys():   # 骨架迷霧的視距跟著天氣時段變
+		var p: Platoon = platoons[pid]
+		p.vision_radius = rules.sight(p.unit_type, weather, time_of_day) * SectorMap.SECTOR_SIZE
 
 ## 從戰情板的 orbat（我方）與敵方劇本的 units（敵方）生成；同格的排各占一個站位。葉節點兵種不合法就拒建並回 false。
 func build(board: Dictionary, enemy_units: Array = []) -> bool:
@@ -269,7 +276,7 @@ func apply_orders(side: String, orders: Array) -> Array[String]:
 			valid.append(o)
 		else:
 			rejected.append(problem)
-			log_event(int(t), "info", "%s的命令被引擎退回：%s" % ["參謀長" if side == "us" else "敵軍", problem], o.unit_id)
+			log_event(second(), "info", "%s的命令被引擎退回：%s" % ["參謀長" if side == "us" else "敵軍", problem])
 	var explicit := {}
 	for o in valid:
 		explicit[o.unit_id] = true
@@ -297,7 +304,7 @@ func _give_task(p: Platoon, task: Dictionary) -> void:
 
 func _log_order(side: String, who_name: String, o: Order) -> void:
 	if side == "us":
-		log_event(int(t), "order", "參謀長令 %s %s %s" % [who_name, Order.TASK_ZH.get(o.task, o.task), o.target], o.unit_id, o.target if map.sectors.has(o.target) else "")
+		log_event(second(), "order", "參謀長令 %s %s %s" % [who_name, Order.TASK_ZH.get(o.task, o.task), o.target], o.unit_id, o.target if map.sectors.has(o.target) else "")
 
 # ---- 推進 ----
 func advance(dt: float) -> void:
@@ -307,11 +314,13 @@ func advance(dt: float) -> void:
 		_advance_platoon(p, dt)
 	if resolver != null:
 		resolver.step(t)
-	var sec := int(floor(t + 1e-4))
+	var sec := second()
 	while _last_hook_second < sec:
 		_last_hook_second += 1
 		for hook in second_hooks:
-			hook.call(_last_hook_second)
+			if hook.is_valid():
+				hook.call(_last_hook_second)
+	if resolver != null:
 		for p in leaves("us") + leaves("enemy"):
 			p.fighting = resolver.fighting.has(p.id)
 			if p.state == "engaged" and not p.fighting:

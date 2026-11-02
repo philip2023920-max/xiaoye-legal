@@ -5,7 +5,7 @@ extends SceneTree
 var h: TestHarness
 
 func _initialize() -> void:
-	h = TestHarness.new(self, 30)
+	h = TestHarness.new(self, 34)
 	_run.call_deferred()
 
 ## 5×5 全平地（cover 0.2）的小戰情板；terrain 可覆寫某幾格。
@@ -86,7 +86,7 @@ func _run() -> void:
 	o6.map.set_sector_owner("D3", "enemy")
 	var e: Platoon = o6.platoons["e"]
 	o6.advance_for(2.5)
-	h.check(e.state == "routed" and e.task.is_empty() and o6.events.any(func(ev: Dictionary) -> bool: return ev["kind"] == "routed" and ev["unit"] == "e"), "每秒受 0.6/30=0.02：第 2 秒 0.28 < 0.30 → 潰散、任務清空、事件")
+	h.check(e.state == "routed" and e.task.is_empty() and o6.events.any(func(ev: Dictionary) -> bool: return ev["kind"] == "routed" and ev["unit"] == "e"), "開局 0.32 → 3 人 0.33；每秒受 0.6/30=0.02：第 2 秒 0.29 < 0.30 → 潰散、任務清空、事件")
 	var before: float = o6.platoons["u1"].strength
 	var e_after_rout := e.strength
 	o6.advance_for(1.0)
@@ -132,4 +132,22 @@ func _run() -> void:
 	o9.set_conditions("hail", "")
 	h.check(o9.weather == "rain", "不在表內的天氣不會寫進去")
 	h.check(o9.rules.has_unit("armor") and not o9.rules.has_unit("cavalry"), "兵種別名與未知兵種判定")
+	# ---- 潰散不受 30 秒停留限制；迫砲同時打本格與鄰格；分區沒填 cover 走地形預設 ----
+	var o10 := make(mini_board(), [unit("u", "infantry", "C3", "hold", "C3", 0.32), unit("u2", "infantry", "C3", "hold", "C3")],
+		[unit("e1", "mg", "C3", "hold", "C3"), unit("e2", "mg", "C3", "hold", "C3"), unit("e3", "mg", "C3", "hold", "C3")])
+	o10.map.set_sector_owner("A3", "us")
+	var u: Platoon = o10.platoons["u"]
+	u.pause_until = 1000.0   # 模擬「剛到達敵格、停 30 秒」
+	o10.advance_for(6.5)   # 每秒受 3.9×(0.33/1.33)×0.8×0.25/30 ≈ 0.0065：第 5 秒 0.298 < 0.30
+	h.check(u.state == "routed" and u.pause_until < 0.0 and u.step_target != "", "潰散後不受停留限制，下一 tick 就決定撤退步")
+	var o11 := make(mini_board(), [unit("inf", "infantry", "C3", "hold", "C3"), unit("mortar", "mortar", "B3", "hold", "B3")],
+		[unit("e1", "infantry", "C3", "hold", "C3"), unit("e2", "infantry", "B3", "hold", "B3")])
+	o11.advance_for(30.5)
+	h.check(h.approx(o11.platoons["e1"].strength, 0.62, 0.004) and h.approx(o11.platoons["e2"].strength, 0.82, 0.002) and h.approx(o11.platoons["mortar"].strength, 0.80, 0.002), "迫砲在 B3 與 e2 交戰（直接）同時支援 C3（間接）：e1 0.38、e2 0.18、迫砲只被 e2 打 0.2（§4 手算）")
+	var b12 := mini_board("clear", "day", {"C3": "town"})
+	b12["map"]["sectors"]["C3"].erase("cover")
+	var o12 := make(b12, [unit("u", "infantry", "C3", "hold", "C3")], [unit("e", "infantry", "C3", "hold", "C3")])
+	o12.advance_for(30.5)
+	h.check(h.approx(o12.platoons["e"].strength, 0.90, 0.002), "分區沒填 cover → 用地形預設（城鎮 0.6）：1.0×0.4×0.25 = 0.10")
+	h.check(o12.second() == 30 and o12.events.is_empty(), "second() 取整數秒；沒有命令就沒有事件")
 	h.finish()

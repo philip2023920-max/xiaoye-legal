@@ -2,9 +2,9 @@ class_name Resolver
 extends RefCounted
 ## 戰鬥解算（施工單 12）：docs/10 §4 v1 的查表公式，連續時間版（§15）。
 ##
-## 回合＝30 秒。每個回合開始時把所有單位的戰力拍一張「回合快照」，接下來 30 秒每秒套用
-## 「M0 一回合的傷害 ÷ 30」（用快照戰力算攻擊與分攤），所以 30 秒合計與 M0 手算例一致，
-## 而人是一個一個倒。中途加入交戰的單位以加入當下的戰力當快照。
+## 回合＝30 秒。每個回合開始時把「所有單位」的戰力拍一張回合快照（不管有沒有在交戰，與 M0 整回合用回合開始戰力相同），
+## 接下來 30 秒每秒套用「M0 一回合的傷害 ÷ 30」（用快照戰力算攻擊與分攤），所以 30 秒合計與 M0 手算例一致，
+## 而人是一個一個倒。回合中才建立的單位以建立當下的戰力當快照。
 ## 狀態門檻（§5）：戰力 < 0.30 潰散、≤ 0.05 殲滅，潰散／殲滅時任務清空；每秒結算後判定。
 
 const TURN_SECONDS := 30.0
@@ -135,8 +135,12 @@ func _add_tracers(shooters: Array, targets: Array) -> void:
 		var tgt: Platoon = targets[i % targets.size()]
 		i += 1
 		var shooter: Platoon = a
-		var from_man: Soldier = shooter.soldiers[(last_second * 7 + i) % shooter.soldiers.size()]
-		var to_man: Soldier = tgt.soldiers[(last_second * 5 + i) % tgt.soldiers.size()]
+		var from_men := shooter.soldiers.filter(func(m: Soldier) -> bool: return m.alive)
+		var to_men := tgt.soldiers.filter(func(m: Soldier) -> bool: return m.alive)
+		if from_men.is_empty() or to_men.is_empty():
+			continue
+		var from_man: Soldier = from_men[(last_second * 7 + i) % from_men.size()]
+		var to_man: Soldier = to_men[(last_second * 5 + i) % to_men.size()]
 		tracers.append({"from": from_man.global_position + Vector3(0, 1.2, 0), "to": to_man.global_position + Vector3(0, 1.0, 0)})
 
 func _transitions(sec: int) -> void:
@@ -149,9 +153,11 @@ func _transitions(sec: int) -> void:
 				p.state = "destroyed"
 				p.task = {}
 				p.step_target = ""
+				p.pause_until = -1.0
 				orbat.log_event(sec, "destroyed", "%s %s 在 %s 被殲滅" % [who, p.display_name, p.sector], p.id, p.sector)
 			elif p.strength < ROUT_THRESHOLD and p.state != "routed":
 				p.state = "routed"
 				p.task = {}
 				p.step_target = ""
+				p.pause_until = -1.0   # 潰散不受「進敵格停 30 秒」限制，下一 tick 就撤退（§2）
 				orbat.log_event(sec, "routed", "%s %s 在 %s 潰散" % [who, p.display_name, p.sector], p.id, p.sector)

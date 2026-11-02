@@ -50,7 +50,7 @@ func setup(data: Dictionary, side_: String, at: Vector3) -> void:
 	add_to_group(RTSKit.UNIT_GROUP)
 	add_to_group("platoons")
 	_spawn_men()
-	var dead := roundi((1.0 - strength) * MEN_PER_SQUAD * SQUADS)
+	var dead := MEN_PER_SQUAD * SQUADS - clampi(roundi(strength * MEN_PER_SQUAD * SQUADS), 0, MEN_PER_SQUAD * SQUADS)   # 與 sync_men 同一公式
 	for i in dead:
 		soldiers[soldiers.size() - 1 - i].fall()
 	recompute_strength()   # 戰力一律＝存活人數 ÷ 9（樣板 0.8 → 倒 2 人 → 0.78）

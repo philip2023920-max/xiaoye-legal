@@ -9,6 +9,7 @@
 - `scripts/core/board_writer.gd`：§6 歸屬、§2 視距敵情、Board v0.2、原子寫入；`Battle` 每 0.1 秒寫 `user://board.json`、HUD 加據點分、射線畫面；`tools/dump_board.gd`
 - `m0/samples/godot_board_sample.json`＋`m0/tests/test_godot_board.py`（M0 Board 模型讀 Godot 的板、`chief show` 可渲染、GODOT_BIN 現場跑）；M0 測試 175 → 178
 - 無頭測試：`test_combat.gd` 30、`test_board_writer.gd` 22（加上 10／11 共 134 項）
+- 12／13 審查 14 項全部修正（潰散清暫停、排序測試優先序、目標 owner 每秒同步、視距半徑跟天氣、寫檔週期、`second()`、射線、註解照實）；`chief show` 讀不到檔重試 4 次（Windows 改名先刪再搬）；測試 34＋27；D22 落單殘排留老闆拍板（建議維持）
 
 ## 2026-11-02（第二十六次）— 施工單 10 本機驗收通過；施工單 11 方塊人、編制樹、編制 AI（程式完成）
 - 老闆本機 Windows 無頭測試 exit 0（console 版、`m0://` 路徑、Jolt 正常）→ 10 ✅

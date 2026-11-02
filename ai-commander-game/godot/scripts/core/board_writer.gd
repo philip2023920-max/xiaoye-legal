@@ -53,6 +53,9 @@ func _ownership(sec: int) -> void:
 			owner = "enemy"
 		if owner != before or contested != bool(s["contested"]):
 			map.set_sector_owner(sid, owner, contested)
+		var obj_id = s["objective"]
+		if obj_id != null and map.objectives.has(obj_id):
+			map.objectives[obj_id]["owner"] = map.sectors[sid]["owner"]   # 目標 owner 無條件跟著分區（M0 每回合同步）
 		if owner != before:
 			var obj = s["objective"]
 			orbat.log_event(sec, "seized", "%s取得 %s%s" % ["我方" if owner == "us" else "敵方", sid, ("（目標 %s）" % obj) if obj != null else ""], "", sid)
@@ -129,14 +132,15 @@ func to_dict() -> Dictionary:
 	for cid in cids:
 		known.append(contacts[cid])
 	return {
-		"schema_version": SCHEMA_VERSION, "battle_id": battle_id, "t": int(floor(orbat.t + 1e-4)), "time_unit": "second",
+		"schema_version": SCHEMA_VERSION, "battle_id": battle_id, "t": orbat.second(), "time_unit": "second",
 		"phase": phase_of(orbat.t), "scale": "battle", "era": era, "weather": orbat.weather, "time_of_day": orbat.time_of_day,
 		"map": {"cols": map.cols, "rows": map.rows, "sectors": sectors},
 		"orbat": orbat_list, "enemy_known": known, "objectives": objectives, "events": orbat.events.duplicate(true),
 		"fog": {"visible_sectors": visible}, "overrides_this_battle": orbat.overrides_this_battle,
 	}
 
-## 原子寫入：先寫 path.tmp 再改名蓋過去；Python 端永遠讀到完整的檔。
+## 寫入：先寫 path.tmp 再改名蓋過去。讀端永遠不會讀到半截；但 Windows 的改名是「先刪再搬」（Godot 的 DirAccess 實作），
+## 可能短暫無檔，所以 M0 讀端遇到「找不到／JSON 不完整」要重試幾次（chief show 已做）。
 func write(path: String) -> bool:
 	var real := ProjectSettings.globalize_path(path)
 	var dir := real.get_base_dir()
@@ -150,9 +154,6 @@ func write(path: String) -> bool:
 	f.store_string(JSON.stringify(to_dict(), "", false))
 	f.close()
 	var err := DirAccess.rename_absolute(tmp, real)
-	if err != OK and FileAccess.file_exists(real):
-		DirAccess.remove_absolute(real)   # Windows 不能改名蓋過既有檔：先刪再改名（極短暫無檔）
-		err = DirAccess.rename_absolute(tmp, real)
 	if err != OK:
 		# 最後保險：直接寫（非原子）。只警告一次，避免 log 被洗版。
 		if not _warned:

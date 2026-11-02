@@ -1041,18 +1041,26 @@
               "children": []
             },
             {
-              "id": "n_c15fc018",
-              "text": "施工單 12 戰鬥解算（30 秒回合快照、手算例重現、潰散殲滅、射線；30 項測試；審查中）",
+              "id": "n_19939a41",
+              "text": "施工單 12 戰鬥解算（30 秒回合快照、與 M0 四位小數全同、潰散殲滅、射線；審查 14 項已修；34 項測試；待老闆 F5）",
               "status": "doing",
               "link": "docs/issues/12-godot-combat.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_80da0ce0",
-              "text": "施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒原子寫 board.json、Python 合約測試；審查中）",
+              "id": "n_b8a3c942",
+              "text": "施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒寫 board.json、Python 合約測試；審查已修；待老闆 chief show）",
               "status": "doing",
               "link": "docs/issues/13-godot-board-writer.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_473ad34d",
+              "text": "D22 落單殘排潰散後逃得掉：建議維持，等 14 的平衡煙霧測試",
+              "status": "doing",
+              "link": "docs/05-decisions.md",
               "note": "",
               "children": []
             },
@@ -1532,8 +1540,8 @@
       ]
     }
   ],
-  "version": 42,
-  "updatedAt": "2026-11-02T15:10:02Z",
+  "version": 43,
+  "updatedAt": "2026-11-02T15:29:38Z",
   "updatedBy": "claude",
   "instructions": ""
 }

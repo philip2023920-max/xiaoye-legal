@@ -28,5 +28,5 @@ func _run() -> void:
 	battle.orbat.apply_orders("us", [Order.make("co-A", "seize", "C3", "player", "dump")])
 	battle.orbat.advance_for(seconds)
 	var ok := battle.writer.write(out)
-	print("board written: %s ok=%s t=%d events=%d contacts=%d" % [out, ok, int(battle.orbat.t), battle.orbat.events.size(), battle.writer.contacts.size()])
+	print("board written: %s ok=%s t=%d events=%d contacts=%d" % [out, ok, battle.orbat.second(), battle.orbat.events.size(), battle.writer.contacts.size()])
 	quit(0 if ok else 1)
