@@ -110,4 +110,3 @@ def test_cli_evals_build_run_and_stats(tmp_path, monkeypatch, capsys):
     assert "對齊率" in out and (harness_root / "default" / "evals" / "last.json").exists()
     assert main(["stats", "--battles", str(tmp_path)]) == 0
     assert "推翻率" in capsys.readouterr().out
-    assert main(["acceptance", "--help"]) == 0 or True
