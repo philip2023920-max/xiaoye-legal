@@ -59,3 +59,22 @@ def test_live_godot_dump(tmp_path):
     _check(out)
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["t"] == 120
+
+
+# ---- 施工單 14：整場快照與 result.json（godot/tools/run_battle.gd -- difficulty=normal 產生）----
+BATTLE_DIR = ROOT / "samples" / "godot_battle_sample"
+
+
+def test_godot_battle_snapshots_replay_in_m0(capsys):
+    from chief.cli import main
+    assert sorted(int(p.stem[1:]) for p in BATTLE_DIR.glob("t*.json")) == list(range(0, 11))   # t0～t10
+    result = json.loads((BATTLE_DIR / "result.json").read_text(encoding="utf-8"))
+    assert result["winner"] == "us" and (result["score_us"], result["score_enemy"]) == (8, 3)   # docs/10 §14：normal 我方勝 8:3
+    assert result["end_reason"] == "turns" and result["seconds"] == 300 and result["turns_played"] == 10
+    last = load_board(BATTLE_DIR / "t10.json")
+    assert last.time_unit == "second" and last.t == 300 and last.phase == "late"
+    assert main(["replay", str(BATTLE_DIR)]) == 0
+    out = capsys.readouterr().out
+    assert "共 10 回合（每回合 30 秒）" in out and "t1 " in out and "t10" in out
+    assert "固守 B3" in out and "[weather] 天氣轉雨" in out and "我方取得 C3" in out   # 劇本命令、天氣變化、易手都落在正確回合
+    assert "t3 " in out and out.index("[weather] 天氣轉雨") > out.index("t3 ")

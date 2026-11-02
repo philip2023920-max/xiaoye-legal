@@ -1041,34 +1041,42 @@
               "children": []
             },
             {
-              "id": "n_19939a41",
-              "text": "施工單 12 戰鬥解算（30 秒回合快照、與 M0 四位小數全同、潰散殲滅、射線；審查 14 項已修；34 項測試；待老闆 F5）",
-              "status": "doing",
+              "id": "n_a0f99ac9",
+              "text": "施工單 12 戰鬥解算（30 秒回合快照、與 M0 四位小數全同；審查 14 項已修；老闆本機交火驗收）",
+              "status": "done",
               "link": "docs/issues/12-godot-combat.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_b8a3c942",
-              "text": "施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒寫 board.json、Python 合約測試；審查已修；待老闆 chief show）",
-              "status": "doing",
+              "id": "n_2e156cf6",
+              "text": "施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒寫 board.json；老闆本機 chief show 讀到）",
+              "status": "done",
               "link": "docs/issues/13-godot-board-writer.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_473ad34d",
-              "text": "D22 落單殘排潰散後逃得掉：建議維持，等 14 的平衡煙霧測試",
-              "status": "doing",
+              "id": "n_526348c7",
+              "text": "D22 落單殘排潰散後逃得掉：維持（三難度與 M0 同趨勢）",
+              "status": "done",
               "link": "docs/05-decisions.md",
               "note": "",
               "children": []
             },
             {
-              "id": "n_252f40c7",
-              "text": "施工單 14 五分鐘會戰、15 效能",
+              "id": "n_57d8a895",
+              "text": "施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；煙霧測試 14 項；審查中）",
+              "status": "doing",
+              "link": "docs/issues/14-godot-battle-director.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_c99b2c4a",
+              "text": "施工單 15 效能",
               "status": "todo",
-              "link": "docs/issues/README.md",
+              "link": "docs/issues/15-godot-performance.md",
               "note": "",
               "children": []
             },
@@ -1540,8 +1548,8 @@
       ]
     }
   ],
-  "version": 43,
-  "updatedAt": "2026-11-02T15:29:38Z",
+  "version": 44,
+  "updatedAt": "2026-11-02T15:49:26Z",
   "updatedBy": "claude",
   "instructions": ""
 }

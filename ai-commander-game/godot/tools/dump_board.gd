@@ -3,6 +3,9 @@ extends SceneTree
 ##   godot --headless --path . -s tools/dump_board.gd -- out=/abs/path/board.json seconds=120
 ## 開局先下「A 連 奪取 C3」讓它有接觸、歸屬變化與交火。
 func _initialize() -> void:
+	create_timer(300.0).timeout.connect(func() -> void:
+		printerr("逾時 300 秒（看上面的 SCRIPT ERROR）")
+		quit(2))
 	_run.call_deferred()
 
 func _run() -> void:

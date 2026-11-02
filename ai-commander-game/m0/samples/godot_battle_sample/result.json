@@ -1,0 +1,12 @@
+{
+  "battle_id": "hill-town-start",
+  "difficulty": "normal",
+  "end_reason": "turns",
+  "score_enemy": 3,
+  "score_us": 8,
+  "seconds": 300,
+  "strength_enemy": 4.344,
+  "strength_us": 6.7,
+  "turns_played": 10,
+  "winner": "us"
+}

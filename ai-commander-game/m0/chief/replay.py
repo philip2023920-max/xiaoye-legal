@@ -39,10 +39,16 @@ def replay_lines(battle_dir: str | Path, show_all: bool = False) -> list[str]:
     boards = {int(p.stem[1:]): load_board(p) for p in snaps}
     assess = _assessments(d)
     kinds = KEY_KINDS + (("contact", "info") if show_all else ())
-    lines = [f"{last.battle_id}｜世代 {last.era}｜共 {last.t} 回合｜據點 我 {sum(o.value for o in last.objectives if o.owner == 'us')} : 敵 {sum(o.value for o in last.objectives if o.owner == 'enemy')}"]
-    for t in range(1, last.t + 1):
+    seconds = last.time_unit == "second"            # M1（Godot）快照：t 是秒、每 30 秒一份 t<n>.json
+    turns = max(boards) if seconds else last.t
+    unit_note = "（每回合 30 秒）" if seconds else ""
+    lines = [f"{last.battle_id}｜世代 {last.era}｜共 {turns} 回合{unit_note}｜據點 我 {sum(o.value for o in last.objectives if o.owner == 'us')} : 敵 {sum(o.value for o in last.objectives if o.owner == 'enemy')}"]
+
+    def turn_of(e) -> int:
+        return min(turns, e.t // 30 + 1) if seconds else e.t   # 秒 → 回合：第 n 回合＝第 30(n−1)～30n−1 秒；結束那秒併入最後一回合
+    for t in range(1, turns + 1):
         b = boards.get(t, last)
-        evs = [e for e in last.events if e.t == t and e.kind in kinds]
+        evs = [e for e in last.events if turn_of(e) == t and e.kind in kinds]
         orders = [e.text.replace("參謀長令 ", "") for e in evs if e.kind == "order"]
         others = [f"[{e.kind}] {e.text}" for e in evs if e.kind != "order"]
         strength_us = round(sum(u.strength for u in b.orbat if u.echelon == "platoon" and u.state != "destroyed"), 2)

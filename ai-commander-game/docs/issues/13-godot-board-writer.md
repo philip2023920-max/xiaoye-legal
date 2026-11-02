@@ -1,6 +1,6 @@
 # 13 戰情板寫入：每 100 ms 原子寫 `user://board.json`（Board v0.2）
 
-> 狀態：🟡 程式完成並審查修正（2026-11-02；沙盒無頭測試 27 項＋Python 合約測試 3 項；dump 兩次逐位元相同）；待老闆本機 F5 與 `chief show`。ADR-0014（D18）。
+> 狀態：✅ 完成（2026-11-02；老闆本機 `chief show` 讀到 Godot 寫的板：t=45、命令、接觸、易手、交戰、爭奪中全部正確）。ADR-0014（D18）。
 
 **重用**：Board v0.2 合約（`docs/09`）、M0 的 `chief show`／`replay`／戰報卡讀同一份。自製：`BoardWriter`（組 JSON、原子寫入 tmp→rename、事件流、視距迷霧、歸屬判定）。
 

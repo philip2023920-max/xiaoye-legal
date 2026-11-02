@@ -3,9 +3,12 @@ extends Node3D
 ## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
-@export var enemy_path: String = "m0://samples/enemy_script_v1.json"
+@export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
+@export var friendly_path: String = ""        # 我方劇本（空＝靠空白鍵／M2 的參謀長）；命令列 -- friendly=... 可覆寫
+@export var difficulty: String = "normal"     # easy / normal / hard；命令列 -- difficulty=hard 可覆寫
 @export var era: String = "ww2_1944"
 @export var auto_advance: bool = true
+@export var snapshot_dir: String = "user://battles"   # 每 30 秒一份快照到 <snapshot_dir>/<battle_id>-<難度>/t<n>.json；"" 不寫
 @export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
 const WRITE_INTERVAL := 0.1
 
@@ -18,6 +21,9 @@ var camera_rig: RTSCameraRig
 var hud_label: Label
 var nav: RTSNavGrid
 var writer: BoardWriter
+var director: Director
+var friendly_script := {}
+var result_label: Label
 var _write_acc := 0.0
 var _tracer_mesh: ImmediateMesh
 var _tracer_second := -1
@@ -30,7 +36,15 @@ func _ready() -> void:
 	rules = Rules.load_era(str(board.get("era", era)))
 	if rules == null:
 		return
-	enemy_script = BoardIO.load_json(enemy_path) if enemy_path != "" else {}
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("difficulty="):
+			difficulty = a.trim_prefix("difficulty=")
+		elif a.begins_with("friendly="):
+			friendly_path = a.trim_prefix("friendly=")
+	if enemy_path == "":
+		enemy_path = Director.enemy_path_for(difficulty)
+	enemy_script = BoardIO.load_json(enemy_path)
+	friendly_script = BoardIO.load_json(friendly_path) if friendly_path != "" else {}
 	sector_map = SectorMap.new()
 	sector_map.name = "SectorMap"
 	add_child(sector_map)
@@ -45,6 +59,8 @@ func _ready() -> void:
 	writer = BoardWriter.new(orbat, str(board.get("battle_id", "battle")), str(board.get("era", era)))
 	orbat.second_hooks.append(writer.update)
 	writer.update(0)
+	var out := snapshot_dir.path_join("%s-%s" % [board.get("battle_id", "battle"), difficulty]) if snapshot_dir != "" else ""
+	director = Director.new(orbat, writer, friendly_script, enemy_script, difficulty, out)
 	if board_out != "":
 		print("戰情板輸出：", ProjectSettings.globalize_path(board_out), "（每 %.1f 秒）" % WRITE_INTERVAL)
 	_add_tracers()
@@ -56,9 +72,13 @@ func _ready() -> void:
 	orbat.nav = nav
 
 func _physics_process(delta: float) -> void:
-	if orbat == null or not auto_advance:
+	if orbat == null or not auto_advance or director == null:
 		return
-	orbat.advance(delta)
+	if director.finished:
+		return
+	director.tick(delta)
+	if director.finished:
+		show_result()
 	_write_acc += delta
 	if _write_acc >= WRITE_INTERVAL - 1e-6 and writer != null and board_out != "":
 		_write_acc -= WRITE_INTERVAL
@@ -136,7 +156,9 @@ func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
 	var en := orbat.total_strength("enemy") if orbat else 0.0
 	var wx: String = str({"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(orbat.weather, orbat.weather)) if orbat else ""
-	return "%s｜t=%ds %s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3" % [board.get("battle_id", ""), int(orbat.t) if orbat else 0, wx, us, en, _score_text(), mouse_desc]
+	var tod: String = str({"day": "日", "night": "夜"}.get(orbat.time_of_day, orbat.time_of_day)) if orbat else ""
+	var left: int = maxi(0, int(Director.TURN_SECONDS) * Director.MAX_TURNS - (orbat.second() if orbat else 0))
+	return "%s｜%s｜t=%ds（剩 %d 秒）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left, wx, tod, us, en, _score_text(), mouse_desc]
 
 func _score_text() -> String:
 	var su := 0
@@ -161,7 +183,26 @@ func _process(_delta: float) -> void:
 
 ## 偵錯用：空白鍵＝「A 連 奪取 C3」（施工單 11 的 30 秒驗收）。
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE and orbat != null:
-		var rejected := orbat.apply_orders("us", [Order.make("co-A", "seize", "C3", "player", "偵錯")])
-		for r in rejected:
-			push_warning(r)
+	if event is InputEventKey and event.pressed and not event.echo and orbat != null:
+		if event.keycode == KEY_SPACE:
+			var rejected := orbat.apply_orders("us", [Order.make("co-A", "seize", "C3", "player", "偵錯")])
+			for r in rejected:
+				push_warning(r)
+		elif event.keycode == KEY_R:
+			get_tree().reload_current_scene()
+
+## 結果畫面：一塊面板寫勝負、據點、戰力、用時（M0 BattleResult 同欄位，另存 result.json）。
+func show_result() -> void:
+	if director == null or not director.finished or result_label != null:
+		return
+	var hud := get_node_or_null("HUD")
+	if hud == null:
+		return
+	result_label = Label.new()
+	result_label.name = "Result"
+	result_label.text = director.summary() + "\n按 R 重開"
+	result_label.position = Vector2(40, 120)
+	result_label.add_theme_font_size_override("font_size", 28)
+	result_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	result_label.add_theme_constant_override("outline_size", 6)
+	hud.add_child(result_label)
