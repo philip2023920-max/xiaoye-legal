@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十五次）— M1 拍板（ADR-0014）、施工單 10～15 建檔、10 程式完成
+- 老闆「好了」＝D15～D21 全照建議 → `docs/adr/0014-m1-godot-stack.md`；決策紀錄第五輪 ✅
+- 施工單 10～15 建檔（`docs/issues/10～15`），索引與執行順序更新
+- `godot/`：project.godot（4.7.2、Compatibility、Jolt）、`addons/rts_kit`（MIT 複製）、`BoardIO`（m0:// 讀隔壁 m0）、`SectorMap`（20 m 分區、地形色、擁有方色調、據點旗、城鎮 6 掩體／森林 8 樹、格線、座標反查、易手改色）、`Battle` 場景（光、環境、RTSCameraRig 俯仰 60°、HUD）、`tools/make_scene.gd`、`tests/run_tests.gd` 26 項（沙盒無頭全過）、README
+- 心智圖 M1 節點更新；回寫 Artifact 資料庫
+
 ## 2026-11-02（第二十四次）— 老闆下令「進入 M1」：T1.0 重用檢查與選型（Stage 2）
 - 沙盒實測：Godot 4.7.2 Linux 無頭版可下載、可跑自寫的探針測試（3D、Jolt、JSON、user:// 寫檔）；第三方專案的測試受權限不執行
 - 重用檢查：godot-rts-kit（MIT、4.7、2,270 行、5 節點、無頭測試、效能基準）建議採用；rts_demo（2D、Compatibility、零素材）只參考；ccoyle95 排除；huginhelm 找不到；Kenney 等素材 M1 不需要

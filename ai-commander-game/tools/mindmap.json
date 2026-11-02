@@ -1009,10 +1009,10 @@
               "children": []
             },
             {
-              "id": "n_bf95bbdb",
-              "text": "選型決策 D15～D21（版本、渲染物理、骨架、戰情板寫檔、時間對應、測試、位置與美術）待老闆拍板",
-              "status": "doing",
-              "link": "docs/05-decisions.md",
+              "id": "n_273f37bf",
+              "text": "選型決策 D15～D21 已拍板（ADR-0014：4.7.2、Compatibility＋Jolt、godot-rts-kit、寫檔、1 回合＝30 秒、自寫測試、程式畫）",
+              "status": "done",
+              "link": "docs/adr/0014-m1-godot-stack.md",
               "note": "",
               "children": []
             },
@@ -1025,10 +1025,18 @@
               "children": []
             },
             {
-              "id": "n_0321487f",
-              "text": "施工單草案 10 骨架與地圖、11 方塊人與編制、12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能",
+              "id": "n_cad813c4",
+              "text": "施工單 10 骨架與地圖（程式完成，無頭測試 26 項；審查中；待老闆 F5）",
+              "status": "doing",
+              "link": "docs/issues/10-godot-skeleton-map.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_c8df5f4d",
+              "text": "施工單 11 方塊人與編制、12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能",
               "status": "todo",
-              "link": "",
+              "link": "docs/issues/README.md",
               "note": "",
               "children": []
             },
@@ -1500,8 +1508,8 @@
       ]
     }
   ],
-  "version": 36,
-  "updatedAt": "2026-11-02T03:15:18Z",
+  "version": 37,
+  "updatedAt": "2026-11-02T13:25:22Z",
   "updatedBy": "claude",
   "instructions": ""
 }
