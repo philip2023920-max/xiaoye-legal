@@ -50,9 +50,9 @@ def test_fenced_json_and_sloppy_fields_are_normalized():
 def test_ollama_requests_schema_mode_by_default():
     from chief.orders import ChiefOrders
     g = LiteLLMGateway(provider="ollama", model="qwen2.5:3b")
-    rf = g._response_format(ChiefOrders)
-    assert rf["type"] == "json_schema" and "properties" in rf["json_schema"]["schema"]
-    assert g.timeout_s == 120
+    rf = g.response_format_for(ChiefOrders)
+    assert rf["type"] == "json_schema" and "properties" in rf["json_schema"]["schema"]   # provider.json：ollama 走 json_schema
+    assert g.timeout_s == 120                                                           # docs/08 §1：Ollama 預設 120 秒 timeout
 
 
 def test_chat_returns_text_with_mock():
@@ -69,11 +69,11 @@ def test_connection_refused_is_reported_as_connection_not_bad_json():
 
 def test_usage_fallback_counts_cjk_like_board():
     from types import SimpleNamespace
-    from chief.gateway.litellm_adapter import _usage_from
+    from chief.gateway.litellm_adapter import usage_from_completion
     msgs = [{"role": "user", "content": "a" * 400 + "中" * 100}]
-    u = _usage_from(SimpleNamespace(usage=None), msgs, "字" * 40)
-    assert (u.prompt_tokens, u.completion_tokens, u.estimated) == (200, 40, True)
-    u2 = _usage_from(SimpleNamespace(usage=SimpleNamespace(prompt_tokens=1200, completion_tokens=80, prompt_tokens_details=SimpleNamespace(cached_tokens=1000))), msgs, "")
+    u = usage_from_completion(SimpleNamespace(usage=None), msgs, "字" * 40)
+    assert (u.prompt_tokens, u.completion_tokens, u.estimated) == (200, 40, True)     # docs/09 粗估法：400/4 + 100 = 200
+    u2 = usage_from_completion(SimpleNamespace(usage=SimpleNamespace(prompt_tokens=1200, completion_tokens=80, prompt_tokens_details=SimpleNamespace(cached_tokens=1000))), msgs, "")
     assert (u2.prompt_tokens, u2.cache_read_tokens, u2.estimated) == (1200, 1000, False)
 
 

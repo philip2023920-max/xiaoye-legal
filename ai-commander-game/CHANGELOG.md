@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十次）— 模擬總司令、測試軸修正、交接檔
+- `chief/commander.py`＋`samples/commander_steady.json`：規則驅動的模擬總司令（`chief play --commander`），五場驗收可全自動；fake 供應商有示範劇本（`--model fake/empty` 為空劇本）
+- 測試軸審查 14 項修正（期望值來源、公開介面、補 5 個測試）；測試 114 → 119；`docs/qa/m0-review.md` 三軸齊
+- `HANDOFF.md`：金鑰確認、五場自動驗收、回歸、雙供應商、下一步 08
+- 老闆問為何不能由 Claude 直接跑：雲端無 Ollama、無金鑰（設計如此）、Remote Control 不支援 Windows；解法 A＝金鑰加進雲端環境設定後由新 session 跑，B＝本機 Claude Code
+
 ## 2026-11-02（第十九次）— 07 審查修正、三審報告（PRD 軸、標準軸）
 - 07 審查 9 項全部修正：包內路徑強制、暫存夾驗證、rename 正則、匯出排除、zip 上限、戰例 id 用資料夾名、每場獨立輸出夾、試水溫不回滾、compare 無法判定保護、基準記模型與先建基準、戰例回歸後才寫入
 - PRD 符合度：推翻率唯一定義、S1／S2 補記、文件落後修正；`docs/qa/m0-review.md` 建立

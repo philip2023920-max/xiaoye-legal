@@ -79,7 +79,9 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `uv run chief doctrine show` / `undo` | 看準則／還原上一版 |
 | `uv run chief harness list` / `export default` / `import --file x.zip` | 參謀長包 |
 | `uv run chief evals run --provider ollama` | 戰例庫回歸（`--doctrine samples/bad_doctrine.md` 試壞準則） |
-| `uv run chief stats` / `chief acceptance --battles 5` | 推翻率曲線／M0 五場驗收 |
+| `uv run chief stats` / `chief acceptance --battles 5` | 推翻率曲線／M0 五場驗收（真人） |
+| `uv run chief play --provider anthropic --commander samples/commander_steady.json --quiet` | 模擬總司令全自動打一場（五場驗收不用真人） |
+| `HANDOFF.md` | 給下一個 session 的交接檔 |
 
 ## Effort 慣例（老闆 2026-11-01 問，Claude 建議）
 

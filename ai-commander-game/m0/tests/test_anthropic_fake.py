@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from chief.gateway.anthropic_adapter import AnthropicGateway, _split, usage_from_anthropic
+from chief.gateway.anthropic_adapter import AnthropicGateway, usage_from_anthropic
 from chief.meter import PriceTable, Usage
 from chief.orders import ChiefOrders
 from chief.prompts import build_messages
@@ -53,17 +53,16 @@ def test_cache_read_tokens_are_read_from_usage():
 
 def test_cost_with_cache_read_hand_example():
     # Haiku 5.5：輸入 $0.10／M、輸出 $0.50／M、快取讀 $0.01／M（prices.json）
-    pt = PriceTable("chief/prices.json")
+    from pathlib import Path
+    pt = PriceTable(Path(__file__).resolve().parent.parent / "chief" / "prices.json")
     cost = pt.cost("claude-haiku-5-5", Usage(prompt_tokens=100, completion_tokens=200, cache_read_tokens=900))
     assert cost == pytest.approx(100 * 0.10 / 1e6 + 200 * 0.50 / 1e6 + 900 * 0.01 / 1e6)   # = 0.000119
 
 
 def test_api_error_becomes_plain_language_not_crash():
-    import anthropic
-    err = anthropic.AuthenticationError.__new__(anthropic.AuthenticationError)
-    err.status_code = 401
-    err.args = ("invalid x-api-key",)
-    err.message = "invalid x-api-key"
+    import anthropic, httpx
+    resp = httpx.Response(401, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    err = anthropic.AuthenticationError("invalid x-api-key", response=resp, body=None)
     gw = AnthropicGateway(client=fake_client(error=err))
     resp = gw.issue_orders(build_messages("d", {}, 1))
     assert resp.orders is None and "金鑰" in (resp.error or "")
@@ -77,7 +76,8 @@ def test_refusal_and_truncation_are_reported():
 
 
 def test_make_gateway_builds_anthropic_without_network(monkeypatch):
-    import chief.gateway.anthropic_adapter as mod
-    monkeypatch.setattr(mod.AnthropicGateway, "__init__", lambda self, model=None, client=None, max_tokens=2048, effort=None: setattr(self, "model", model or "claude-haiku-5-5"))
+    import anthropic
+    monkeypatch.setattr(anthropic, "Anthropic", lambda *a, **k: fake_client(ok_response()))   # 不碰真 SDK client
     from chief.gateway import make_gateway
-    assert make_gateway("anthropic", None).model == "claude-haiku-5-5"
+    gw = make_gateway("anthropic", None)
+    assert gw.model == "claude-haiku-5-5" and gw.issue_orders(build_messages("d", {}, 1)).orders is not None

@@ -51,8 +51,8 @@ def test_remove_needs_exact_line_or_long_substring():
 
 
 def test_hand_edited_headings_are_recognised_and_notes_kept():
-    from chief.doctrine import _split_sections
-    title, buckets, last, notes = _split_sections("\ufeff# D\r\n\r\n## Rejected\r\n- r\r\n\r\n## Notes\r\n- keep me\r\n\r\n## Last adopted\r\n\r\n2026-11-01: 摘要\r\n")
+    from chief.doctrine import split_sections
+    title, buckets, last, notes = split_sections("\ufeff# D\r\n\r\n## Rejected\r\n- r\r\n\r\n## Notes\r\n- keep me\r\n\r\n## Last adopted\r\n\r\n2026-11-01: 摘要\r\n")
     assert buckets["rejected"] == ["- r"] and notes == ["## Notes", "- keep me"] and last == "- 2026-11-01: 摘要"
     new, rep = apply_diff("# D\n\n## Rejected\n- r\n\n## Notes\n- keep me\n", DoctrineDiff(summary="x", add=[], remove=[]), stamp="d")
     assert "- keep me" in new and "- r" in new
@@ -65,7 +65,7 @@ def test_discussion_three_rounds_and_two_sentence_replies(tmp_path):
     it = iter(["1", "自由輸入", "3", "4"])
     hist = run_discussion(gw, card, "doc", "zh-TW", Console(file=out, width=100), input_fn=lambda prompt="": next(it, ""))
     assert len(gw.chat_calls) == 3                                   # 第 4 次輸入不會被問
-    assert hist[1]["content"] == "一。二。" and hist[0]["content"].startswith("為什麼第①幕")
+    assert hist[1]["content"] == "一。二。" and "①" in hist[0]["content"]             # 第 1 回合的第 1 個選項指向第①幕
     assert hist[4]["content"] == "這場先不改準則"                      # 第 3 回合的第 3 個選項（輪替）
     assert gw.chat_calls[0][0]["role"] == "system" and "doc" in gw.chat_calls[0][0]["content"]
 

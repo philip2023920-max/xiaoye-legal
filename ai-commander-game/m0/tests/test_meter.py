@@ -10,7 +10,8 @@ from chief.meter import PriceTable, Usage, UsageMeter
 
 
 def test_haiku_cost_hand_example():
-    pt = PriceTable()
+    from pathlib import Path
+    pt = PriceTable(Path(__file__).resolve().parent.parent / "chief" / "prices.json")   # 04-3：用專案的價格表
     assert pt.cost("claude-haiku-5-5", Usage(prompt_tokens=1000, completion_tokens=200)) == pytest.approx(0.0002)
 
 

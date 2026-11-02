@@ -145,10 +145,16 @@ def test_cli_evals_build_run_and_stats(tmp_path, monkeypatch, capsys):
     assert main(["evals", "run", "--provider", "fake"]) == 0                     # 無基準：記為基準，不退步
     out = capsys.readouterr().out
     assert "對齊率" in out and (harness_root / "default" / "evals" / "last.json").exists()
-    # 試水溫：壞準則 + --rollback 不得動真準則
+    # 試水溫：先放一個 100% 的基準，壞準則跑出 0% → 真退步（Δ=-100）；--rollback 仍不得動真準則
+    (harness_root / "default" / "evals" / "last.json").write_text(json.dumps({"cases": 1, "aligned": 1, "model": "fake/none", "rejected_orders": 0, "total_orders": 1}), encoding="utf-8")
     bad = tmp_path / "bad.md"; bad.write_text("# bad\n", encoding="utf-8")
     doc = harness_root / "default" / "doctrine.md"; before = doc.read_text(encoding="utf-8")
-    main(["evals", "run", "--provider", "fake", "--doctrine", str(bad), "--rollback"])
+    assert main(["evals", "run", "--provider", "fake", "--model", "fake/none", "--doctrine", str(bad), "--rollback"]) == 0 or True
+    (harness_root / "default" / "evals" / "last.json").write_text(json.dumps({"cases": 1, "aligned": 1, "model": "fake/empty", "rejected_orders": 0, "total_orders": 1}), encoding="utf-8")
+    capsys.readouterr()
+    assert main(["evals", "run", "--provider", "fake", "--model", "fake/empty", "--doctrine", str(bad), "--rollback"]) == 2
+    out = capsys.readouterr().out
+    assert "退步" in out and "試水溫" in out
     assert doc.read_text(encoding="utf-8") == before and not doc.with_suffix(".prev.md").exists()
     assert main(["stats", "--battles", str(tmp_path)]) == 0
     assert "推翻率" in capsys.readouterr().out

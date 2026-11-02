@@ -29,7 +29,7 @@ DEFAULT_MODELS = {
 MAX_RETRIES = 2
 
 
-def _usage_from(completion, messages: list[dict], text: str) -> Usage:
+def usage_from_completion(completion, messages: list[dict], text: str) -> Usage:
     u = getattr(completion, "usage", None)
     if u and getattr(u, "prompt_tokens", None) is not None:
         details = getattr(u, "prompt_tokens_details", None)
@@ -88,7 +88,8 @@ class LiteLLMGateway:
         self._client = instructor.from_litellm(litellm.completion, mode=instructor.Mode.MD_JSON)
         self.schema_level = 2 if (provider == "ollama" and "response_format" not in self.extra) else 0  # 2=json_schema 1=json_object 0=無
 
-    def _response_format(self, response_model: Type[BaseModel]) -> dict | None:
+    def response_format_for(self, response_model: Type[BaseModel]) -> dict | None:
+        """公開：目前會送給端點的 response_format（schema → json_object → None）。"""
         if self.schema_level == 2:
             return {"type": "json_schema", "json_schema": {"name": response_model.__name__.lower(), "schema": response_model.model_json_schema()}}
         if self.schema_level == 1:
@@ -103,7 +104,7 @@ class LiteLLMGateway:
                       timeout=self.timeout_s, **self.extra)
         if self.api_base:
             kwargs["api_base"] = self.api_base
-        rf = self._response_format(response_model)
+        rf = self.response_format_for(response_model)
         if rf:
             kwargs["response_format"] = rf
         t0 = time.perf_counter()
@@ -114,7 +115,7 @@ class LiteLLMGateway:
                 if rf and _connection_problem(first) is None and "format" in str(first).lower():
                     self.schema_level -= 1          # 端點不吃這種 response_format：降一級再試一次
                     kwargs.pop("response_format", None)
-                    rf = self._response_format(response_model)
+                    rf = self.response_format_for(response_model)
                     if rf:
                         kwargs["response_format"] = rf
                     obj, completion = self._client.chat.completions.create_with_completion(**kwargs)
@@ -132,7 +133,7 @@ class LiteLLMGateway:
                 text = last.choices[0].message.content or "" if last else ""
             except Exception:  # noqa: BLE001
                 text = ""
-            usage = _usage_from(last, messages, text) if last else Usage(estimated=True)
+            usage = usage_from_completion(last, messages, text) if last else Usage(estimated=True)
             return ParsedResponse(parsed=None, usage=usage, attempts=attempts, latency_s=time.perf_counter() - t0,
                                   error=f"模型連續 {attempts} 次沒有回傳合法的 JSON（{response_model.__name__}）", raw=text[:500])
         except Exception as err:  # noqa: BLE001 - 連線／金鑰／模型不存在等
@@ -144,7 +145,7 @@ class LiteLLMGateway:
             text = completion.choices[0].message.content or ""
         except Exception:  # noqa: BLE001
             pass
-        return ParsedResponse(parsed=obj, usage=_usage_from(completion, messages, text), latency_s=time.perf_counter() - t0, raw=text[:500])
+        return ParsedResponse(parsed=obj, usage=usage_from_completion(completion, messages, text), latency_s=time.perf_counter() - t0, raw=text[:500])
 
     def issue_orders(self, messages: list[dict]) -> ChiefResponse:
         r = self.parse(messages, ChiefOrders)
@@ -170,4 +171,4 @@ class LiteLLMGateway:
             text = completion.choices[0].message.content or ""
         except Exception:  # noqa: BLE001
             pass
-        return ChatResponse(text=text, usage=_usage_from(completion, messages, text), latency_s=time.perf_counter() - t0)
+        return ChatResponse(text=text, usage=usage_from_completion(completion, messages, text), latency_s=time.perf_counter() - t0)

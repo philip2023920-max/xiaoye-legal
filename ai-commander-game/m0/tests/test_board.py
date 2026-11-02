@@ -49,7 +49,7 @@ def test_empty_fog_means_all_visible(capsys):
     from chief.render import render_board
     render_board(b)
     out = capsys.readouterr().out
-    assert out.count("?") == 1                # 只剩圖例那一個問號
+    assert out.count("?") == 1                # docs/09「終端機字元」：? 是迷霧符號；全圖可見時只剩圖例那一個
 
 
 def test_support_target_must_be_friendly_unit_not_self():
@@ -161,7 +161,8 @@ def test_missing_file_message_names_path():
     assert "does-not-exist.json" in str(err.value)
 
 
-def test_cli_show_prints_four_panels(capsys):
+def test_cli_show_prints_four_panels(capsys, monkeypatch):
+    monkeypatch.setenv("COLUMNS", "120")      # 固定終端寬度，窄終端不會把名稱折行
     assert main(["show", str(SAMPLE)]) == 0
     out = capsys.readouterr().out
     for panel in ("分區地圖", "友軍部隊樹", "目標", "事件流"):   # 驗收第 1 條的四個面板

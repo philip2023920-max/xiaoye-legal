@@ -1,13 +1,13 @@
 # M0 三審報告（Stage 3 結尾強制三審）
 
 > 日期：2026-11-02｜範圍：施工單 01～07（`m0/`）｜三軸分開列，互不抵銷。
-> 狀態：🟡 PRD 符合度軸、標準軸（07）已回並修正；測試軸審查中。
+> 狀態：✅ 三軸皆回並修正（2026-11-02）。剩餘：真機驗收三項（見 HANDOFF.md）。
 
 ## 一行摘要（待三軸齊）
 
 - PRD 符合度軸：① 缺口 3（另 11 項明確延後非缺陷）② 超出 2 ③ 可疑 7。最嚴重：三項真機驗收（五場推翻率下降、雙供應商打完、回歸抓壞準則）尚未執行，不能稱「迴圈驗證完成」。
 - 標準軸（07）：9 項（高 2、中 4、低 3）。最嚴重：匯入包的 manifest 路徑可指到包外（本機檔案會被當準則送進雲端模型）；戰例 id 互相覆蓋。**已全部修正**（見下）。
-- 測試軸：（待測試審查）
+- 測試軸：覆蓋率 88%（2,706 行）；鐵律 (a) 違規 4＋空期望 3、(b) 違規 4＋軟 3；40 條驗收 5 條無測試。**已修**：期望值改引用文件／手算、私有函式改公開、補連級 flank 手算、.env 對照、CLI harness/doctrine、真退步回滾路徑；測試 113 → 119。
 
 ## PRD 符合度軸（product-manager 視角，2026-11-02）
 
@@ -57,3 +57,17 @@
 | 低 | stats 用 mtime 排序 | 卡內記 `at` 時間戳 |
 
 另補測試：`cmd_acceptance` 以假供應商連打兩場（原本零測試）。文件：03／§12／issues 07 術語統一為「對齊率」，包內 provider.json 改為 manifest.suggested_provider。
+
+## 測試軸（test-automator，2026-11-02）— 已修
+
+- 量測：coverage 88%（validator／orders／badges 100；anthropic_adapter 74、cli 73 最低；doctor 0 屬環境體檢）。
+- 鐵律 (a) 期望值來源：4 處抄程式（timeout 120、迷霧符號、提示句、快速回覆字串）→ 改引用 docs/08、docs/09、或改為語義斷言；3 處空期望（回滾保護未觸發、後果任一、側翼 `!= C3`）→ 改為真退步（基準 100% vs 0%，rc 2，真準則不變）、§9 手算 👍、§3 手算 B2。
+- 鐵律 (b) 私有介面：`_response_format`、`_usage_from`、`_split_sections` 改為公開 API；移除未用的 `_split` 匯入；SDK 例外用正規建構；`make_gateway` 測試改 monkeypatch `anthropic.Anthropic`。
+- 補測試：連級 flank 拆分（手算 plt-A1 hold B2、plt-A2 第一步 B2）、`.env.example` ↔ 程式名稱（04-6）、`chief harness`／`chief doctrine` 走 cli.main、模擬總司令。
+- 不穩風險處置：價格表用絕對路徑；CLI 顯示測試固定 COLUMNS=120；其餘（跨午夜、127.0.0.1:9）記錄為已知。
+- 仍未覆蓋：`chief play --auto` 直走 cli.main（間接覆蓋）、anthropic chat（需真機）、formation_ai 17-20 已補。
+
+## 真機驗收（待老闆或新 session 執行，見 HANDOFF.md）
+- [ ] 五場模擬總司令曲線（Anthropic Haiku）：首場 → 末場下降
+- [ ] 回歸抓壞準則：`--doctrine samples/bad_doctrine.md` 對齊率明顯下降並印退步
+- [ ] 雙供應商：同一參謀長包在 Ollama（本機）與 Anthropic 各打完一場

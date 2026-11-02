@@ -70,7 +70,7 @@ class DoctrineStore:
 
     def opening_line(self) -> str:
         """下一場開局引用最近一次採納（不花 token）；只回摘要句，不含日期戳。"""
-        _, _, last, _ = _split_sections(self.load())
+        _, _, last, _ = split_sections(self.load())
         if not last:
             return ""
         body = last.lstrip("-• ").strip()
@@ -92,7 +92,7 @@ def _section_key(heading: str) -> str | None:
     return None
 
 
-def _split_sections(text: str) -> tuple[str, dict[str, list[str]], str, list[str]]:
+def split_sections(text: str) -> tuple[str, dict[str, list[str]], str, list[str]]:
     """回傳（標題行, {section_key: lines}, last_adopted 行, 其他段落原文）。手改檔的未知標題整段保留在 notes。"""
     text = text.lstrip("\ufeff")
     title = ""
@@ -147,7 +147,7 @@ def _render(title: str, buckets: dict[str, list[str]], last: str, notes: list[st
 def apply_diff(text: str, diff: DoctrineDiff, stamp: str | None = None) -> tuple[str, dict]:
     """套用 diff。刪除：每個 needle 最多刪 1 行，先找整行相同、再找 ≥8 字的子字串（防止短字串誤殺）。
     上限：超過 2,000 字先淘汰最舊的假設 → 戰術 → 被否決 → 畫像（剛新增的不淘汰），仍超過就硬截。"""
-    title, buckets, _, notes = _split_sections(text)
+    title, buckets, _, notes = split_sections(text)
     removed = 0
     ignored: list[str] = []
     for needle in diff.remove[:3]:

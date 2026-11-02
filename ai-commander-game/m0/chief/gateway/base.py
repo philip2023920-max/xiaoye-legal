@@ -88,6 +88,8 @@ class FakeGateway:
 
 def make_gateway(provider: str, model: str | None = None, **kwargs) -> "Gateway":
     """依供應商名稱建立閘道。provider：ollama / openai / deepseek / openrouter / anthropic（04）/ fake。"""
+    if provider == "fake" and model == "fake/empty":
+        return FakeGateway([], model="fake/empty")   # 測試用：永遠沒有命令
     if provider == "fake":
         # 離線示範用：固定劇本（第 1 回合對三個排下令，之後固守），讓老闆不接模型也能走完推翻→戰例→回歸
         from ..orders import ChiefOrders

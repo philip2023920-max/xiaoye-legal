@@ -74,7 +74,8 @@ def test_override_marks_unit_player_and_blocks_chief_next_turn(tmp_path):
     assert res.overrides == 1 and res.turns[1]["rejected"][0].startswith("V2 plt-A3")
     recs = [json.loads(l) for l in (tmp_path / "b" / "overrides.jsonl").read_text(encoding="utf-8").splitlines()]
     assert recs[0]["ai_order"]["task"] == "seize" and recs[0]["player_order"]["target"] == "B2" and recs[0]["turn"] == 1
-    assert recs[0]["outcome"] in ("👍", "👎", "➖") and recs[0]["judged_turn"] == 2   # t+1 回合結束判定
+    # §9 手算：t1 接管 plt-A3 固守 B2（戰力 1.0）；敵軍最早 t7 才到 B2，t2 結束戰力仍 1.0、B2 仍我方 → 👍
+    assert recs[0]["outcome"] == "👍" and recs[0]["judged_turn"] == 2 and recs[0]["strength_at"] == 1.0
     assert Path(recs[0]["snapshot_ref"]).exists()                                     # 指向開局快照 t0.json
     assert "推翻率：1/2" in out and "推翻後果：t1 plt-A3" in out                       # 第 1 回合參謀長放行 2 條，推翻 1
 

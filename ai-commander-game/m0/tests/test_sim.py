@@ -105,9 +105,21 @@ def test_flank_enters_via_far_side_neighbor():
 def test_flank_detour_does_not_pass_through_target():
     g = open_grid()
     main = plt("main", "A3", strength=1.0)
-    u = plt("u", "B3", Task(type="flank", target="C3"), strength=0.5)   # 側翼點是 D3，繞路不可穿過 C3
+    u = plt("u", "B3", Task(type="flank", target="C3"), strength=0.5)
     by_id = {"main": main, "u": u}
-    assert decide_move(u, g, [u, main], ["A3"], by_id) != "C3"
+    # §3：C3 四鄰離主力 A3 的距離 C2=3、B3=1、D3=3、C4=3 → 同距取「上」＝C2；B3→C2 避開 C3 的最短路第一步是 B2
+    assert decide_move(u, g, [u, main], ["A3"], by_id) == "B2"
+
+
+def test_company_flank_split_hand_example(tmp_path):
+    """§3：連令 flank → 第一個可行動子排原地 hold，其餘 flank；plt-A2 的側翼進入點是 D3（離主力 B2 最遠），第一步 B2。"""
+    board = load_board(SAMPLES / "board_start.json")
+    battle = Battle(board, enemy_units=[], out_dir=tmp_path)
+    battle.step([Order(unit_id="co-A", task="flank", target="C3")], [])
+    b = battle.board
+    assert b.unit("plt-A1").task.type == "hold" and b.unit("plt-A1").task.target == "B2"
+    assert b.unit("plt-A2").task.type == "flank" and b.unit("plt-A3").task.type == "flank"
+    assert b.unit("plt-A2").sector == "B2" and b.unit("plt-A2").state == "moving"
 
 
 # ---- 審查員補測（手算自 §4～§6）----

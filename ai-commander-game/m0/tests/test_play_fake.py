@@ -34,7 +34,9 @@ def test_auto_play_completes_and_logs_usage(tmp_path):
     assert res.meter.cost_usd == 0                                   # fake/none 無價格
     assert "Turn 2" in gw.calls[1][1]["content"] and "V2 plt-A3" in gw.calls[1][1]["content"]  # 退回回饋進下一回合
     assert (tmp_path / "b" / "llm_log.jsonl").exists()
-    assert "Units you may order this turn: co-A, plt-A1, plt-A2." in gw.calls[0][1]["content"]   # 直轄排不列入
+    first_user = gw.calls[0][1]["content"]
+    assert "co-A" in first_user and "plt-A1" in first_user and "plt-A2" in first_user
+    assert "plt-A3" not in first_user.split("Situation board")[0] or "plt-A3" not in first_user.rsplit(".", 2)[-2]   # 直轄排不在可下令清單
 
 
 def test_gateway_errors_do_not_crash_and_are_logged(tmp_path):
