@@ -7,7 +7,7 @@
 
 目標：不用遊戲引擎，把中樞（戰情板）、參謀長、推翻、AAR 全部跑通。
 
-- [ ] T0.0 重用檢查：逐項驗證 `07-reuse-catalog.md` 中 M0 會用到的套件（Textual、LiteLLM、instructor）授權與版本，建立 `THIRD_PARTY.md`
+- [x] T0.0 重用檢查：M0 套件授權與版本已於 Stage 2 沙盒實測並寫入 `THIRD_PARTY.md`（Textual 最終只用到 Rich，留給 M2）
 - [x] T0.1 戰情板資料格式（JSON schema）＋終端機側欄渲染（分區地圖、部隊樹、事件流）
 - [x] T0.2 `chief sim`（原 sandbox.py）：連級模擬會戰，10 回合，3 兵種，分區地圖，編制 AI 執行任務式命令
 - [x] T0.3 LLM 閘道介面＋Anthropic 原生 adapter＋OpenAI 相容 adapter（先用 Ollama 本地測）
