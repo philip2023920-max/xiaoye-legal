@@ -13,6 +13,8 @@ M0（文字版沙盤＋AI 參謀長迴圈）程式完成：施工單 01～07 全
    uv run python -c "import anthropic; print([m.id for m in anthropic.Anthropic().models.list(limit=3).data])"
    ```
    印出模型清單＝通。金鑰可能放在環境變數 `ANTHROPIC_API_KEY` 或備用名 `CHIEF_ANTHROPIC_KEY`（`chief` 指令會自動轉換；直接用 SDK 時先 `export ANTHROPIC_API_KEY=$CHIEF_ANTHROPIC_KEY`）。若 401／authentication 錯誤或 SDK 說 api_key must be set：請老闆到雲端環境設定的 Environment variables 檢查（不要貼進聊天），再開新對話。
+   > **2026-11-02 第二個 session 的實測（第 1 步沒通過）**：環境裡沒有 `ANTHROPIC_API_KEY`，也沒有 `CHIEF_ANTHROPIC_KEY`，只有 `ANTHROPIC_BASE_URL=https://api.anthropic.com`。打 API 回 `401 Invalid bearer token`。原因：`api.anthropic.com` 在代理的 `noProxy` 名單裡（`curl -sS "$HTTPS_PROXY/__agentproxy/status"` 可查），流量不經過代理，所以 Network secrets 設的標頭加不上去。**解法**：老闆在雲端環境設定的 Environment variables 加 `CHIEF_ANTHROPIC_KEY`（或 `ANTHROPIC_API_KEY`）＝真金鑰，然後開新 session。119 個測試仍然全綠。
+
 2. **五場全自動驗收（模擬總司令）**：風格固定在 `samples/commander_steady.json`。五場各自有資料夾，戰後自動討論、採納、回歸。
    ```bash
    for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --quiet --out battles/sim-$i; done
