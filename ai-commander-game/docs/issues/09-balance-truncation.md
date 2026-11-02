@@ -18,7 +18,7 @@
 - [x] **參謀長看得到分數**：每回合 user 訊息加「Score now: us X : enemy Y. Objectives not ours: … Turns left including this one: N.」，落後時加「不奪取至少一個據點就輸」；系統提示加「據點分定勝負、攻城要集中三個排＋迫砲、不要分散 support」
 - [x] **截斷重試**：Anthropic `max_tokens` 2048 → 4096；以回應的 `stop_reason=max_tokens` 判斷（API 例外不算）把精簡要求併進同一則 user 訊息再試一次，兩次都計費（attempts=2）；仍截斷才「本回合無新命令」。系統提示改評估 ≤ 120 字、reason ≤ 60 字可空、整則 < 600 字（LiteLLM 路徑由 instructor 的驗證重試涵蓋，不另改）
 - [x] **戰報卡提示**（§11）：沒贏且整場沒拿下任何開局不屬於我方的目標 → 卡上一行「整場沒有奪取任何新據點：O2（5 分，C3）一直是敵方…」，寫進 `aar.json` 與給參謀長的摘要；討論第 1 回合第一個快速回覆變成「為什麼整場沒去拿新據點？」
-- [ ] 真機：`chief play --provider anthropic --model claude-haiku-5-5 --auto --template balanced --difficulty normal --skip-aar` 一場，看評估變短、有去攻 C3（老闆本機）
+- [ ] 真機：`chief play --provider anthropic --model claude-haiku-5-5 --auto --template balanced --difficulty normal --skip-aar` 一場，看評估變短、有去攻 C3（老闆本機）。第一次（2026-11-02 10:46，用五場學完的 default 準則）仍 3:8，輸入 15,410／輸出 13,671 token；用 `chief replay` 看每回合命令後再判斷
 
 ## 30 秒驗收腳本
 ```bash
@@ -33,7 +33,7 @@ uv run chief play --provider anthropic --model claude-haiku-5-5 --auto --templat
 對齊判定放寬（support 同格算對齊）、獨立 `evals run` 的基準戰例集註記（真機驗收發現 2、3）；K 值等資料表數字不動。
 
 ## 預估檔案
-`chief/sim.py`（潰散撤出）、`chief/gateway/anthropic_adapter.py`、`chief/prompts.py`、`chief/prompts/chief_system.md`（＋harness 副本）、`chief/cli.py`（--difficulty）、`chief/report.py`、`chief/play.py`、`chief/discussion.py`、`samples/orders_v1_assault.json`、`samples/enemy_v1_easy.json`、`samples/enemy_v1_hard.json`、`tests/test_balance.py`、`docs/10` §2／§11／§14
+`chief/replay.py`＋`chief replay`（回放，離線）、`chief/sim.py`（潰散撤出）、`chief/gateway/anthropic_adapter.py`、`chief/prompts.py`、`chief/prompts/chief_system.md`（＋harness 副本）、`chief/cli.py`（--difficulty）、`chief/report.py`、`chief/play.py`、`chief/discussion.py`、`samples/orders_v1_assault.json`、`samples/enemy_v1_easy.json`、`samples/enemy_v1_hard.json`、`tests/test_balance.py`、`docs/10` §2／§11／§14
 
 ## 審查紀錄（2026-11-02，code-reviewer 軸）
 10 項全部修正：easy 劇本 t8 連令把反戰車排拉進城造成「一回合賽跑」（seed 7 會輸）→ 拿掉，40 個種子 40 勝；§2／驗收／測試把潰散撤出的效果誤寫成「分區才易手」→ 改為「不再分攤火力」並用手算 0.20 vs 0.1667 鎖住；潰散退路改為避開敵格；`--enemy` 預設改 None，給了就忽略 `--difficulty`，`deploy` 不再收這個選項；Anthropic 重試改看 `stop_reason`（API 例外不重試）；提示文字「戰後仍是敵方」、未佔領目標印 `unowned`、平手改「do not win on points」；測試補 `end_reason`、easy 不推 B2、hard 第 1 回合壓 C2、cache 欄位相加；HANDOFF 加「09 後先刪舊成績檔重建基準」。

@@ -83,6 +83,7 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `uv run chief harness list` / `export default` / `import --file x.zip` | 參謀長包 |
 | `uv run chief evals run --provider ollama` | 戰例庫回歸（`--doctrine samples/bad_doctrine.md` 試壞準則） |
 | `uv run chief stats` / `chief acceptance --battles 5` | 推翻率曲線／M0 五場驗收（真人） |
+| `uv run chief replay battles/<場資料夾>` | 回放一場：每回合評估、命令、關鍵事件（`--all` 含敵情與退回）（09） |
 | `uv run chief play --provider anthropic --commander samples/commander_steady.json --quiet` | 模擬總司令全自動打一場（五場驗收不用真人） |
 | `HANDOFF.md` | 給下一個 session 的交接檔 |
 

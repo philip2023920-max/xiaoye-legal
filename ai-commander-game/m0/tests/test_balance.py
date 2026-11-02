@@ -212,3 +212,17 @@ def test_play_fills_hint_in_auto_mode(tmp_path):
     aar = json.loads((tmp_path / "p" / "aar.json").read_text(encoding="utf-8"))
     card = aar.get("card", aar)
     assert "O2（5 分，C3）" in card["hint"]                                               # 空劇本不動 → 沒拿 C3 → 提示
+
+
+# ---- chief replay（回放，離線）----
+def test_replay_prints_orders_and_key_events(tmp_path, capsys):
+    from chief.cli import main
+    assert main(["play", "--provider", "fake", "--auto", "--skip-aar", "--quiet", "--harness", "", "--ledger", "",
+                 "--template", "balanced", "--difficulty", "normal", "--out", str(tmp_path / "b")]) == 0
+    capsys.readouterr()
+    assert main(["replay", str(tmp_path / "b")]) == 0
+    out = capsys.readouterr().out
+    assert "共 10 回合" in out and "t1 " in out and "令：A1 步兵排 奪取 C3" in out and "[seized]" in out
+    assert "[contact]" not in out
+    assert main(["replay", str(tmp_path / "b"), "--all"]) == 0 and "[contact]" in capsys.readouterr().out
+    assert main(["replay", str(tmp_path / "nothing")]) == 1

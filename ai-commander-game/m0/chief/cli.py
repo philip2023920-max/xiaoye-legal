@@ -322,6 +322,20 @@ def cmd_evals(args: argparse.Namespace) -> int:
     return 2
 
 
+def cmd_replay(args: argparse.Namespace) -> int:
+    """`chief replay battles/<場>`：把一場的每回合評估、命令、關鍵事件印成短短幾行（給老闆貼回來看、也給自己回放）。"""
+    from .replay import replay_lines
+    console = Console()
+    try:
+        lines = replay_lines(args.battle_dir, show_all=args.all)
+    except BoardError as err:
+        Console(stderr=True).print(f"[red]{err}[/]")
+        return 1
+    for line in lines:
+        console.print(line, markup=False, highlight=False, soft_wrap=True)
+    return 0
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     from .acceptance import battle_stats, render_curve
     rows = battle_stats(args.battles)
@@ -452,6 +466,10 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--doctrine", default=None, help="用另一份準則跑（例如 samples/bad_doctrine.md），不記錄成績")
     ev.add_argument("--rollback", action="store_true", help="退步時自動回滾準則")
     ev.set_defaults(func=cmd_evals)
+    rp = sub.add_parser("replay", help="回放一場：每回合的評估、命令、關鍵事件（施工單 09）")
+    rp.add_argument("battle_dir", help="戰鬥資料夾，例如 battles/hill-town-start-1102-104637")
+    rp.add_argument("--all", action="store_true", help="連 contact／info 事件也印")
+    rp.set_defaults(func=cmd_replay)
     st = sub.add_parser("stats", help="列出歷史戰鬥與推翻率曲線")
     st.add_argument("--battles", default="battles"); st.add_argument("--last", type=int, default=10)
     st.set_defaults(func=cmd_stats)
