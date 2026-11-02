@@ -226,3 +226,10 @@ def test_replay_prints_orders_and_key_events(tmp_path, capsys):
     assert "[contact]" not in out
     assert main(["replay", str(tmp_path / "b"), "--all"]) == 0 and "[contact]" in capsys.readouterr().out
     assert main(["replay", str(tmp_path / "nothing")]) == 1
+
+
+def test_harness_and_ledger_accept_none_for_powershell(tmp_path, capsys):
+    from chief.cli import main
+    rc = main(["play", "--provider", "fake", "--model", "fake/empty", "--auto", "--skip-aar", "--quiet", "--harness", "none", "--ledger", "none",
+               "--doctrine", str(SAMPLES / "doctrine_fresh.md"), "--template", "balanced", "--difficulty", "normal", "--out", str(tmp_path / "p")])
+    assert rc == 0 and (tmp_path / "p" / "t1.json").exists() and not Path("none").exists()

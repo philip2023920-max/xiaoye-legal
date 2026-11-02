@@ -21,7 +21,7 @@ M0 完成：施工單 01～09 全部實作、審查、173 個測試全綠（09�
    for i in 1 2 3 4 5; do uv run chief play --provider anthropic --model claude-haiku-5-5 --commander samples/commander_steady.json --harness default --template balanced --difficulty normal --quiet --out battles/sim-$i; done
    uv run chief stats --battles battles
    ```
-   先用不花錢的 fake 供應商走一遍流程確認指令沒打錯：`uv run chief play --provider fake --model fake/empty --auto --skip-aar --quiet --harness "" --template balanced --enemy samples/enemy_script_v1.json --ledger "" --out battles/dry-run`。
+   先用不花錢的 fake 供應商走一遍流程確認指令沒打錯：`uv run chief play --provider fake --model fake/empty --auto --skip-aar --quiet --harness none --template balanced --difficulty normal --ledger none --out battles/dry-run`。
    看最後一行「首場 x% → 末場 y%」。目標：下降。把曲線、每場的推翻率、`harness/default/doctrine.md` 的變化貼回給老闆。
 3. **回歸抓壞準則**：
    ```bash

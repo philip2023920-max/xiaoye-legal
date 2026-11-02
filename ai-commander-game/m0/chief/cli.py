@@ -106,6 +106,8 @@ def cmd_play(args: argparse.Namespace) -> int:
     from .prompts import use_template
     evals_dir = None
     doctrine_path = args.doctrine
+    if args.harness in ("none", "-", "off"):
+        args.harness = ""   # PowerShell 會吃掉空字串引數，所以也接受 --harness none
     if args.doctrine != "harness/default/doctrine.md" and args.harness == "default":
         args.harness = ""   # 老闆明確指定 --doctrine 時，不要被預設的參謀長包蓋掉
     if args.harness:
@@ -132,7 +134,7 @@ def cmd_play(args: argparse.Namespace) -> int:
     from .meter import Ledger
     prices_path = args.prices or (os.path.join(os.path.dirname(__file__), "prices.json"))
     prices = PriceTable(prices_path)
-    ledger = Ledger(args.ledger) if args.ledger else None
+    ledger = Ledger(args.ledger) if args.ledger and args.ledger not in ("none", "-", "off") else None
     if not args.out:
         args.out = str(Path("battles") / f"{board.battle_id}-{time_tag()}")   # 每場自己的資料夾，不互相覆蓋
     commander = None
@@ -425,7 +427,7 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--enemy", default=None, help="敵方劇本；給了就忽略 --difficulty（預設 samples/enemy_script.json）")
     y.add_argument("--difficulty", default=None, choices=["easy", "normal", "hard"], help="敵方劇本難度：easy／normal／hard（09）")
     y.add_argument("--doctrine", default="harness/default/doctrine.md")
-    y.add_argument("--harness", default="default", help="參謀長包名稱（harness/<名稱>/）；給空字串則只用 --doctrine")
+    y.add_argument("--harness", default="default", help="參謀長包名稱（harness/<名稱>/）；給 none 則只用 --doctrine（PowerShell 不能用空字串）")
     y.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
     y.add_argument("--seed", type=int, default=None)
     y.add_argument("--prices", default=None, help="價格表 JSON（預設 chief/prices.json；覆寫 LiteLLM 內建表）")
@@ -435,7 +437,7 @@ def build_parser() -> argparse.ArgumentParser:
     y.add_argument("--aar-model", default=None, help="戰後檢討用的模型（anthropic 預設 claude-sonnet-5-5）")
     y.add_argument("--effort", default=None, choices=["low", "medium", "high"], help="Anthropic 思考深度（預設 medium；下命令可試 low 省錢）")
     y.add_argument("--budget", type=float, default=None, help="本場預算（美元）：到 80%% 提醒，到 100%% 參謀長暫停")
-    y.add_argument("--ledger", default="battles/ledger.jsonl", help="跨場帳本路徑（算今天／本月）；給空字串停用")
+    y.add_argument("--ledger", default="battles/ledger.jsonl", help="跨場帳本路徑（算今天／本月）；給 none 停用")
     y.add_argument("--out", default=None)
     y.add_argument("--quiet", action="store_true")
     y.add_argument("--verbose", action="store_true")
