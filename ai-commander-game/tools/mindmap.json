@@ -1073,8 +1073,8 @@
               "children": []
             },
             {
-              "id": "n_438aac48",
-              "text": "施工單 15 效能（HUD FPS 與人數、壓力模式、CPU 基準 0.34 ms/tick＝預算 2%、守門測試；畫面 FPS 待老闆讀數）",
+              "id": "n_73079d61",
+              "text": "施工單 15 效能（HUD FPS／幀時間／人數、壓力模式關 V-Sync、CPU 基準 0.34 ms/tick p99 1.0、方塊人共用材質；審查 10 項已修；畫面幀時間待老闆讀數）",
               "status": "doing",
               "link": "docs/issues/15-godot-performance.md",
               "note": "",
@@ -1556,8 +1556,8 @@
       ]
     }
   ],
-  "version": 46,
-  "updatedAt": "2026-11-02T16:46:54Z",
+  "version": 47,
+  "updatedAt": "2026-11-02T17:08:26Z",
   "updatedBy": "claude",
   "instructions": ""
 }

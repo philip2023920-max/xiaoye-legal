@@ -9,7 +9,7 @@ extends Node3D
 @export var era: String = "ww2_1944"
 @export var auto_advance: bool = true
 @export var use_cmdline_args: bool = true     # 工具與測試自己設定屬性時關掉，避免命令列引數污染
-@export var stress: int = 0                     # 施工單 15：額外擺 stress×72 個不動的方塊人（純畫面負載），命令列 -- stress=5
+@export var stress: int = 0                     # 施工單 15：額外擺 stress×126 個不動的方塊人（＝每倍一整個會戰的人數；純畫面負載），命令列 -- stress=10
 @export var snapshot_dir: String = "user://battles"   # 每 30 秒一份快照到 <snapshot_dir>/<battle_id>-<難度>/t<n>.json；"" 不寫
 @export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
 const WRITE_INTERVAL := 0.1
@@ -95,18 +95,22 @@ func _physics_process(delta: float) -> void:
 		_write_acc -= WRITE_INTERVAL
 		writer.write(board_out)
 
-## 壓力模式：在地圖上均勻撒 stress×72 個不動的方塊人，只量畫面負載（不進 Orbat、不耗邏輯）。
+## 壓力模式：在地圖上均勻撒 stress×126 個不動的方塊人，只量畫面負載（不進 Orbat、不耗邏輯）。
+## 壓力模式下關掉 V-Sync，HUD 的 FPS 才不會被螢幕更新率封頂。
 func _add_stress_men() -> void:
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var holder := Node3D.new()
 	holder.name = "StressMen"
 	add_child(holder)
 	var rect := sector_map.world_rect()
-	var total := stress * 72
+	var total := stress * 126
 	var cols := ceili(sqrt(float(total)))
+	var rows := ceili(float(total) / float(cols))
 	for i in total:
 		var man := Soldier.new()
-		var x := rect.position.x + 2.0 + (i % cols) * (rect.size.x - 4.0) / maxf(1.0, float(cols))
-		var z := rect.position.y + 2.0 + floori(i / float(cols)) * (rect.size.y - 4.0) / maxf(1.0, float(cols))
+		var x := rect.position.x + 2.0 + (i % cols) * (rect.size.x - 4.0) / maxf(1.0, float(cols - 1))
+		var z := rect.position.y + 2.0 + floori(i / float(cols)) * (rect.size.y - 4.0) / maxf(1.0, float(rows - 1))
 		man.setup("infantry" if i % 7 != 0 else "tank", "us" if i % 2 == 0 else "enemy", Vector3(x, 0.0, z))
 		holder.add_child(man)
 
@@ -196,7 +200,8 @@ func _status_text(mouse_desc: String) -> String:
 	var left: int = maxi(0, int(Director.TURN_SECONDS) * Director.MAX_TURNS - (orbat.second() if orbat else 0))
 	var left_text := "已結束" if (director != null and director.finished) else "剩 %d 秒" % left
 	var fps := Engine.get_frames_per_second()
-	return "%d FPS｜%d 人｜%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [fps, soldier_count(), board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
+	var frame_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0 + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	return "%d FPS（%.1f ms）｜%d 個方塊人｜%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [fps, frame_ms, soldier_count(), board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
 
 func _score_text() -> String:
 	var su := 0

@@ -15,6 +15,32 @@ var target_point := Vector3.ZERO
 var _body: MeshInstance3D
 var _head: MeshInstance3D
 
+## 共用資源：同兵種／陣營的人共用同一份 mesh 與材質（Compatibility 渲染器不會自動合批；1,700 人各自一份材質是最差情況）。
+static var _mesh_cache := {}
+static var _mat_cache := {}
+
+static func _shared_mesh(key: String) -> Mesh:
+	if not _mesh_cache.has(key):
+		var m: Mesh
+		match key:
+			"capsule":
+				m = CapsuleMesh.new(); m.radius = 0.35; m.height = 1.6
+			"tank_body":
+				m = BoxMesh.new(); m.size = Vector3(1.6, 1.0, 2.6)
+			"head":
+				m = BoxMesh.new(); m.size = Vector3(0.55, 0.55, 0.55)
+			"tank_head":
+				m = BoxMesh.new(); m.size = Vector3(1.0, 0.5, 1.0)
+		_mesh_cache[key] = m
+	return _mesh_cache[key]
+
+static func _shared_material(key: String, color: Color) -> StandardMaterial3D:
+	if not _mat_cache.has(key):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		_mat_cache[key] = mat
+	return _mat_cache[key]
+
 func setup(type_: String, side_: String, at: Vector3) -> void:
 	unit_type = type_
 	side = side_
@@ -22,30 +48,19 @@ func setup(type_: String, side_: String, at: Vector3) -> void:
 	target_point = at
 	_body = MeshInstance3D.new()
 	_body.name = "Body"
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = SIDE_COLORS.get(side, Color.WHITE)
 	if unit_type == "tank":
-		var box := BoxMesh.new()
-		box.size = Vector3(1.6, 1.0, 2.6)
-		_body.mesh = box
+		_body.mesh = _shared_mesh("tank_body")
 		_body.position.y = 0.5
 	else:
-		var capsule := CapsuleMesh.new()
-		capsule.radius = 0.35
-		capsule.height = 1.6
-		_body.mesh = capsule
+		_body.mesh = _shared_mesh("capsule")
 		_body.position.y = 0.8
-	_body.material_override = body_mat
+	_body.material_override = _shared_material("body:" + side, SIDE_COLORS.get(side, Color.WHITE))
 	add_child(_body)
 	_head = MeshInstance3D.new()
 	_head.name = "Head"
-	var head := BoxMesh.new()
-	head.size = Vector3(0.55, 0.55, 0.55) if unit_type != "tank" else Vector3(1.0, 0.5, 1.0)
-	_head.mesh = head
+	_head.mesh = _shared_mesh("tank_head" if unit_type == "tank" else "head")
 	_head.position.y = 1.85 if unit_type != "tank" else 1.25
-	var head_mat := StandardMaterial3D.new()
-	head_mat.albedo_color = TYPE_HEAD_COLORS.get(unit_type, Color.WHITE)
-	_head.material_override = head_mat
+	_head.material_override = _shared_material("head:" + unit_type, TYPE_HEAD_COLORS.get(unit_type, Color.WHITE))
 	add_child(_head)
 
 func head_color() -> Color:
@@ -56,10 +71,9 @@ func fall() -> void:
 	alive = false
 	rotation.x = deg_to_rad(90.0)
 	position.y = 0.4
-	for m in [_body, _head]:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.45, 0.45, 0.45)
-		m.material_override = mat
+	var grey := _shared_material("fallen", Color(0.45, 0.45, 0.45))
+	_body.material_override = grey
+	_head.material_override = grey
 
 ## 朝自己的站位走（speed 公尺／秒），帶一點搖晃。
 func advance(dt: float, speed: float) -> void:
