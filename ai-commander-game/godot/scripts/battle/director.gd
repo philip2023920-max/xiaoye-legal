@@ -33,11 +33,31 @@ func _init(orbat_: Orbat, writer_: BoardWriter, friendly_: Dictionary, enemy_: D
 	out_dir = out_dir_
 	initial["us"] = orbat.total_strength("us")
 	initial["enemy"] = orbat.total_strength("enemy")
-	orbat.second_hooks.append(_on_second)
+	orbat.second_hooks.append(_on_second)   # 依賴順序：BoardWriter.update 先掛，_on_second 後掛（快照時歸屬與敵情已是當秒的）
+	_clear_out_dir()
 	_snapshot(0)
 
+## 已知的難度才算；其他一律當 normal 並警告（M0 的 CLI 是直接拒收）。
+static func normalize_difficulty(d: String) -> String:
+	if DIFFICULTY_SCRIPTS.has(d):
+		return d
+	push_warning("難度「%s」不是 easy／normal／hard，改用 normal" % d)
+	return "normal"
+
 static func enemy_path_for(difficulty_: String) -> String:
-	return DIFFICULTY_SCRIPTS.get(difficulty_, DIFFICULTY_SCRIPTS["normal"])
+	return DIFFICULTY_SCRIPTS[normalize_difficulty(difficulty_)]
+
+## 開局清掉資料夾裡上一場的快照與結果，回放才不會拼到舊場次。
+func _clear_out_dir() -> void:
+	if out_dir == "":
+		return
+	var real := ProjectSettings.globalize_path(out_dir)
+	if not DirAccess.dir_exists_absolute(real):
+		DirAccess.make_dir_recursive_absolute(real)
+		return
+	for f in DirAccess.get_files_at(real):
+		if (f.begins_with("t") and f.ends_with(".json")) or f == "result.json" or f.ends_with(".tmp"):
+			DirAccess.remove_absolute(real.path_join(f))
 
 ## 每個物理 tick 呼叫：回合邊界先下令、改天氣，再推進。
 func tick(dt: float) -> void:
@@ -80,7 +100,7 @@ func _on_second(sec: int) -> void:
 func _snapshot(n: int) -> void:
 	if out_dir == "" or writer == null:
 		return
-	writer.update(orbat.second())
+	writer.update(orbat.second())   # 保險：正常情況 hook 順序已讓它更新過
 	if writer.write(out_dir.path_join("t%d.json" % n)):
 		snapshots += 1
 
@@ -97,6 +117,8 @@ func scores() -> Array[int]:
 
 func _finish() -> void:
 	finished = true
+	if orbat.second() % int(TURN_SECONDS) != 0:
+		_snapshot(int(ceil(orbat.second() / TURN_SECONDS)))   # 提早結束：最後一份快照＝結束那秒（檔名＝turns_played）
 	var sc := scores()
 	var stu := orbat.total_strength("us")
 	var ste := orbat.total_strength("enemy")
@@ -128,4 +150,6 @@ func run_to_end(dt: float = 1.0 / 60.0) -> Dictionary:
 	while not finished and guard < 100000:
 		tick(dt)
 		guard += 1
+	if not finished:
+		push_error("會戰在 %d tick 內沒有結束" % guard)
 	return result

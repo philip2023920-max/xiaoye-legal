@@ -6,7 +6,8 @@
 - 老闆本機 `chief show` 讀到 Godot 寫的板（t=45、命令、接觸、易手、交戰）→ 12／13 ✅；D22 老闆未反對 → 維持
 - `scripts/battle/director.gd`：劇本排程（第 n 回合＝第 30(n−1) 秒）、天氣變化、結束判定、結果（M0 同欄位）、每 30 秒快照、`run_to_end`；`Battle` 加難度／我方劇本（命令列 `-- difficulty= friendly=`）、HUD 剩餘秒數與據點、結果畫面、R 重開；`tools/run_battle.gd`
 - 三難度結果與 M0 §14 同趨勢且接近（easy 8:3 剩 7.02:1.79、normal 8:3 剩 6.70:4.34、hard 3:8 剩 6.16:4.98）；`tests/smoke_battle.gd` 14 項
-- M0 `chief replay` 支援秒制快照；`m0/samples/godot_battle_sample/`（t0～t10＋result.json）＋測試；M0 測試 178 → 179
+- M0 `chief replay` 支援秒制快照並印 result.json 勝負；`m0/samples/godot_battle_sample/`（t0～t10＋result.json）＋測試；M0 測試 178 → 179
+- 14 審查 9 項全部修正：開局清舊快照（回放拼接）、提早結束補最後快照、未知難度、結束那秒寫板、工具失敗 exit 1、命令列引數不污染測試、煙霧測試 14 → 24
 
 ## 2026-11-02（第二十七次）— 11 本機驗收通過；施工單 12 戰鬥解算、13 戰情板寫入（程式完成）
 - 老闆本機 `test_orbat.gd` 50 項通過 → 11 ✅

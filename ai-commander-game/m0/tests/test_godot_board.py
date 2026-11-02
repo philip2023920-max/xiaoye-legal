@@ -77,4 +77,5 @@ def test_godot_battle_snapshots_replay_in_m0(capsys):
     out = capsys.readouterr().out
     assert "共 10 回合（每回合 30 秒）" in out and "t1 " in out and "t10" in out
     assert "固守 B3" in out and "[weather] 天氣轉雨" in out and "我方取得 C3" in out   # 劇本命令、天氣變化、易手都落在正確回合
-    assert "t3 " in out and out.index("[weather] 天氣轉雨") > out.index("t3 ")
+    assert "t3 " in out and out.index("t3 ") < out.index("[weather] 天氣轉雨") < out.index("t4 ")   # 第 3 回合（60 秒）轉雨
+    assert "結果：我方勝（5 分鐘打完，300 秒，難度 normal）" in out

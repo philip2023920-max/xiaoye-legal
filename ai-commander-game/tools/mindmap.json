@@ -1065,8 +1065,8 @@
               "children": []
             },
             {
-              "id": "n_57d8a895",
-              "text": "施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；煙霧測試 14 項；審查中）",
+              "id": "n_c8862c09",
+              "text": "施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；審查 9 項已修；煙霧測試 24 項；待老闆 F5）",
               "status": "doing",
               "link": "docs/issues/14-godot-battle-director.md",
               "note": "",
@@ -1548,8 +1548,8 @@
       ]
     }
   ],
-  "version": 44,
-  "updatedAt": "2026-11-02T15:49:26Z",
+  "version": 45,
+  "updatedAt": "2026-11-02T16:04:16Z",
   "updatedBy": "claude",
   "instructions": ""
 }

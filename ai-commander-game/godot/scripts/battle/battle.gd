@@ -8,6 +8,7 @@ extends Node3D
 @export var difficulty: String = "normal"     # easy / normal / hard；命令列 -- difficulty=hard 可覆寫
 @export var era: String = "ww2_1944"
 @export var auto_advance: bool = true
+@export var use_cmdline_args: bool = true     # 工具與測試自己設定屬性時關掉，避免命令列引數污染
 @export var snapshot_dir: String = "user://battles"   # 每 30 秒一份快照到 <snapshot_dir>/<battle_id>-<難度>/t<n>.json；"" 不寫
 @export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
 const WRITE_INTERVAL := 0.1
@@ -36,11 +37,13 @@ func _ready() -> void:
 	rules = Rules.load_era(str(board.get("era", era)))
 	if rules == null:
 		return
-	for a in OS.get_cmdline_user_args():
-		if a.begins_with("difficulty="):
-			difficulty = a.trim_prefix("difficulty=")
-		elif a.begins_with("friendly="):
-			friendly_path = a.trim_prefix("friendly=")
+	if use_cmdline_args:
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("difficulty="):
+				difficulty = a.trim_prefix("difficulty=")
+			elif a.begins_with("friendly="):
+				friendly_path = a.trim_prefix("friendly=")
+	difficulty = Director.normalize_difficulty(difficulty)
 	if enemy_path == "":
 		enemy_path = Director.enemy_path_for(difficulty)
 	enemy_script = BoardIO.load_json(enemy_path)
@@ -79,6 +82,9 @@ func _physics_process(delta: float) -> void:
 	director.tick(delta)
 	if director.finished:
 		show_result()
+		if writer != null and board_out != "":
+			writer.write(board_out)   # 結束那秒的板也要寫出去（之後不再寫）
+		return
 	_write_acc += delta
 	if _write_acc >= WRITE_INTERVAL - 1e-6 and writer != null and board_out != "":
 		_write_acc -= WRITE_INTERVAL
@@ -158,7 +164,8 @@ func _status_text(mouse_desc: String) -> String:
 	var wx: String = str({"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(orbat.weather, orbat.weather)) if orbat else ""
 	var tod: String = str({"day": "日", "night": "夜"}.get(orbat.time_of_day, orbat.time_of_day)) if orbat else ""
 	var left: int = maxi(0, int(Director.TURN_SECONDS) * Director.MAX_TURNS - (orbat.second() if orbat else 0))
-	return "%s｜%s｜t=%ds（剩 %d 秒）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left, wx, tod, us, en, _score_text(), mouse_desc]
+	var left_text := "已結束" if (director != null and director.finished) else "剩 %d 秒" % left
+	return "%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
 
 func _score_text() -> String:
 	var su := 0
@@ -198,6 +205,8 @@ func show_result() -> void:
 	var hud := get_node_or_null("HUD")
 	if hud == null:
 		return
+	if hud_label != null:
+		hud_label.text = _status_text("")   # 無頭模式沒有 _process，這裡也更新一次（顯示「已結束」）
 	result_label = Label.new()
 	result_label.name = "Result"
 	result_label.text = director.summary() + "\n按 R 重開"

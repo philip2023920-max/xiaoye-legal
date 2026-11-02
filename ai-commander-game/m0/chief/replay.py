@@ -43,6 +43,15 @@ def replay_lines(battle_dir: str | Path, show_all: bool = False) -> list[str]:
     turns = max(boards) if seconds else last.t
     unit_note = "（每回合 30 秒）" if seconds else ""
     lines = [f"{last.battle_id}｜世代 {last.era}｜共 {turns} 回合{unit_note}｜據點 我 {sum(o.value for o in last.objectives if o.owner == 'us')} : 敵 {sum(o.value for o in last.objectives if o.owner == 'enemy')}"]
+    result_file = d / "result.json"
+    if result_file.exists():   # M1 導演寫的結果：勝負、原因、秒數
+        try:
+            r = json.loads(result_file.read_text(encoding="utf-8"))
+            w = {"us": "我方勝", "enemy": "敵方勝", "draw": "平手"}.get(r.get("winner"), r.get("winner"))
+            why = {"turns": "5 分鐘打完", "strength": "一方戰力低於初始 30%"}.get(r.get("end_reason"), r.get("end_reason"))
+            lines.append(f"結果：{w}（{why}，{r.get('seconds', '?')} 秒，難度 {r.get('difficulty', '?')}）｜剩餘總戰力 我 {r.get('strength_us')} : 敵 {r.get('strength_enemy')}")
+        except (json.JSONDecodeError, OSError):
+            pass
 
     def turn_of(e) -> int:
         return min(turns, e.t // 30 + 1) if seconds else e.t   # 秒 → 回合：第 n 回合＝第 30(n−1)～30n−1 秒；結束那秒併入最後一回合

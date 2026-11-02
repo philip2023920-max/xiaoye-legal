@@ -23,7 +23,9 @@ func _run() -> void:
 	var scene: PackedScene = load("res://scenes/Battle.tscn")
 	var battle: Battle = scene.instantiate()
 	battle.auto_advance = false
+	battle.use_cmdline_args = false
 	battle.board_out = ""
+	battle.snapshot_dir = ""   # 只要一份板，不留快照
 	get_root().add_child(battle)
 	await process_frame
 	await physics_frame
