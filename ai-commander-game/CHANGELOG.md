@@ -9,7 +9,8 @@
 - `chief/deploy.py`＋`chief deploy`（範本／自選配比／`--suggest` 請參謀長挑、`--out` 存板）；`chief sim/play --template --units --weather --time --era`；標題列顯示世代與天氣
 - 系統提示注入 `{rules}`（約 340 token）；`samples/enemy_script_v1.json`（戰車、迫砲、反戰車；t3 雨、t6 夜、t8 霧）
 - 文件：`docs/10` v1（§2、§4 查表與四組手算、§8 天氣變化、§13 部署）、`docs/09` v0.2、施工單 08 勾選、路線圖 T0.11；測試 123 → 146（`tests/test_rules.py`、`tests/test_combat_v1.py`）
-- 心智圖：戰鬥模型 v1 與施工單 08 節點改 🟡（審查中；待金鑰 session 重跑 5 場）；回寫 Artifact 資料庫
+- 08 審查（code-reviewer 軸）12 項全部修正：壞 era／壞劇本天氣／`mixed` 葉節點以人話退回、`--era` 生效、潰散只退 1 格、工兵加成要守該格、過河以回合開始位置為準、`armor` 一律轉 `tank`、`{rules}` 保底、`equipment` 欄位、快速單位進敵格即停、提示補迫砲觀測條件、地圖標題帶天氣；測試 146 → 157
+- 心智圖：戰鬥模型 v1 與施工單 08 節點改 🟡（審查已修；待金鑰 session 重跑 5 場）；回寫 Artifact 資料庫
 
 ## 2026-11-02（第二十次）— 模擬總司令、測試軸修正、交接檔
 - `chief/commander.py`＋`samples/commander_steady.json`：規則驅動的模擬總司令（`chief play --commander`），五場驗收可全自動；fake 供應商有示範劇本（`--model fake/empty` 為空劇本）

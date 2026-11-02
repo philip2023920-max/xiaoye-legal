@@ -105,7 +105,10 @@ class Rules(BaseModel):
         return self.aliases.get(unit_type, unit_type)
 
     def unit(self, unit_type: str) -> UnitStats:
-        return self.units[self.resolve_type(unit_type)]
+        t = self.resolve_type(unit_type)
+        if t not in self.units:
+            raise BoardError(f"兵種「{unit_type}」不在 {self.era} 規則表內。可用：{', '.join(self.units)}")
+        return self.units[t]
 
     def template_cost(self, name: str) -> int:
         return sum(self.unit(u).cost for u in self.templates[name].units)
@@ -144,7 +147,7 @@ class Rules(BaseModel):
 
     # ---- 給 LLM 的精簡說明（放進系統提示）----
     def prompt_text(self) -> str:
-        rows = [f"- {k}: soft {v.fire_soft}, hard {v.fire_hard}, armor {v.armor}, speed {v.speed}, sight {v.sight}, cost {v.cost}{', indirect fire (hits adjacent sector)' if v.indirect else ''}"
+        rows = [f"- {k}: soft {v.fire_soft}, hard {v.fire_hard}, armor {v.armor}, speed {v.speed}, sight {v.sight}, cost {v.cost}{', indirect fire: also hits adjacent sectors where friendly units are fighting, and is not hit back from there' if v.indirect else ''}"
                 for k, v in self.units.items()]
         terr = [f"{k}: cover {v.cover}{'' if v.armor_passable else ', tanks cannot enter' + (' unless an engineer is there' if v.engineer_bridges else '')}" for k, v in self.terrain.items()]
         wx = [f"{k}: fire x{v.fire_mult}, cover +{v.cover_bonus}, sight {v.sight:+d}, tank mobility x{v.armor_mobility}, all mobility x{v.all_mobility}" for k, v in self.weather.items()]

@@ -1,6 +1,6 @@
 # 08 戰鬥模型 v1：兵種、科技世代、天氣地形、部署配比
 
-> 狀態：🟡 程式完成（2026-11-02，測試 123 → 146），審查中；「重跑 07 的 5 場驗收」待有金鑰的 session 執行（HANDOFF.md）。
+> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 12 項：中 4 低 8，全部修正；測試 123 → 157）；「重跑 07 的 5 場驗收」待有金鑰的 session 執行（HANDOFF.md）。
 
 **重用**：pydantic（表格 schema）、現有引擎結構（§4 公式改成查表）。素材面：兵種數值參考公開的二戰編制與武器資料（⚠️ 進單時列來源）。自製：修正表格式、部署階段。
 
@@ -13,7 +13,7 @@
 ## 驗收清單
 - [x] `rules/ww2_1944.json`：七種兵種 × 屬性（fire 對步兵／對裝甲、armor、speed、sight、cost、indirect）；地形 5 種 × 天氣 4 種 × 時段 2 種的修正表（移動、視距、掩蔽、裝甲通行）；表格有 schema 檢查與人話錯誤
 - [x] 預留 `rules/coldwar_early.json`、`rules/coldwar_late.json` 空骨架（同 schema）
-- [x] 戰情板合約 v0.2：`era`、`weather`、`time_of_day`、單位 `equipment`／`cost`；`compact()` 仍 < 2K token
+- [x] 戰情板合約 v0.2：`era`、`weather`、`time_of_day`、單位 `equipment`（可選備註，不進壓縮快照）／`cost`；`compact()` 仍 < 2K token（均衡 8 排約 450～530）
 - [x] 部署階段 `chief deploy`：點數預算、三種範本（均衡／裝甲突擊／步兵固守）、參謀長可建議配比
 - [x] 戰鬥解算改查表：手算三個例子（步兵 vs 戰車在雨天平地；機槍在霧夜城鎮；迫砲間接射擊）寫進 `docs/10-sim-rules.md` v1 當測試期望值
 - [x] 天氣在一場中依劇本變化，事件流記「天氣轉雨」
@@ -22,7 +22,10 @@
 - [x] 效能：10 回合解算 < 1 秒（為 M1 每 100 ms 更新鋪路）
 
 ## 30 秒驗收腳本
-`uv run chief deploy --template armor` → 看到部隊清單與點數 → `uv run chief play --provider ollama --auto --template balanced --enemy samples/enemy_script_v1.json --weather rain --time night` → 標題列顯示天氣／時段，事件流有「天氣轉霧」等紀錄，戰果與晴天不同（`--seed 7` 兩次對照）。
+`uv run chief deploy --template armor` → 看到部隊清單與點數 → `uv run chief play --provider ollama --auto --template balanced --enemy samples/enemy_script_v1.json --weather fog` → 地圖標題顯示「霧／日間」、t3 事件流「天氣轉雨」、t6「進入夜間」、t8「天氣轉霧」；對照 `--weather clear` 同一 seed：第 1 回合起視距就不同（霧天看不到鄰格敵情）。注意劇本的天氣變化會蓋過開局覆寫。
 
 ## 預估檔案
 `rules/ww2_1944.json`（＋冷戰骨架）、`chief/rules.py`（schema 與查表，取代原估的 rules/schema.py）、`chief/deploy.py`、`chief/sim.py`（改查表）、`chief/board.py`（v0.2）、`chief/prompts/chief_system.md`、`samples/enemy_script_v1.json`、`tests/test_rules.py`、`tests/test_combat_v1.py`（含部署測試）、`docs/09` v0.2、`docs/10` v1
+
+## 審查紀錄（2026-11-02，code-reviewer 軸）
+核心公式與 docs/10 手算全部對上；無高級別。12 項全部修正：壞 `--era`／壞板 era 由 CLI 以人話退回；劇本 `weather_changes`／`time_changes` 改 Literal 驗值；`mixed` 葉節點開局即退回；`--era` 不搭部署也生效；潰散只退 1 格；工兵加成要 hold 該格；過河以回合開始工兵位置為準（不隨 id 序變）；`armor` 不論版本一律轉 `tank`；`{rules}` 掛點缺失時附在結尾並警告；補 `equipment` 欄位；快速單位進敵格即停；提示補迫砲觀測條件；地圖標題帶天氣；補 11 個測試（含 `chief sim --template`、`--suggest` 斷言）。

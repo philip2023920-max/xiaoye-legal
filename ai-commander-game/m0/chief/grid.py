@@ -33,7 +33,7 @@ def distance(a: str, b: str) -> int:
 
 
 def next_step(grid: MapGrid, start: str, goal: str, avoid: set[str] | None = None) -> str | None:
-    """BFS 最短路徑的第一步；已到達或無路回 None。所有地形可通行；avoid 內的格子不當中繼（goal 除外）。"""
+    """BFS 最短路徑的第一步；已到達、無路、或 goal 本身在 avoid 內（進不去）都回 None。avoid 內的格子不當中繼。"""
     if start == goal:
         return None
     avoid = avoid or set()

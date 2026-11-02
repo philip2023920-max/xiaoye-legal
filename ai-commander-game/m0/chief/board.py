@@ -10,7 +10,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 SCHEMA_VERSION = "0.2"
 UPGRADABLE_VERSIONS = ("0.1",)   # 舊版載入時自動補預設值
@@ -94,6 +94,12 @@ class Unit(BaseModel):
     task: Optional[Task] = None
     controlled_by: Controller = "ai"
     cost: int = Field(0, ge=0, description="部署點數（v0.2；0＝未計）")
+    equipment: Optional[str] = Field(None, max_length=60, description="裝備備註（v0.2，可選，例如 M4 Sherman；不進 compact()）")
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _old_type_names(cls, v):
+        return "tank" if v == "armor" else v   # 舊名 armor 一律轉 tank（0.1 升級以外的路徑也要）
 
 
 class Contact(BaseModel):
@@ -105,6 +111,11 @@ class Contact(BaseModel):
     strength_est: float = Field(1.0, ge=0.0, le=1.0)
     last_seen: int = Field(description="最後目擊的 t")
     confidence: float = Field(0.5, ge=0.0, le=1.0)
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _old_type_names(cls, v):
+        return "tank" if v == "armor" else v
 
 
 class Objective(BaseModel):

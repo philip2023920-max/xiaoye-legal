@@ -31,7 +31,9 @@ TASK_ZH = {"seize": "奪取", "hold": "固守", "flank": "側翼", "withdraw": "
 
 def map_table(board: Board, console: Console | None = None) -> Table:
     g = glyphs(console)
-    t = Table(box=box.SQUARE, show_lines=True, title=f"分區地圖 {board.map.cols}x{board.map.rows}（t={board.t}）", padding=(0, 1))
+    wx = {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(board.weather, board.weather)
+    tod = {"day": "日間", "night": "夜間"}.get(board.time_of_day, board.time_of_day)
+    t = Table(box=box.SQUARE, show_lines=True, title=f"分區地圖 {board.map.cols}x{board.map.rows}（t={board.t}｜{wx}／{tod}）", padding=(0, 1))
     t.add_column(" ", justify="right", style="dim")
     for c in range(board.map.cols):
         t.add_column(COL_LETTERS[c], justify="center", min_width=7)

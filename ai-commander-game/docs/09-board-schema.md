@@ -49,7 +49,7 @@
 |---|---|
 | `id`、`name` | 識別與顯示名；`id` 不得與任何分區 id 同名、不得重複 |
 | `echelon` | `squad` 班／`platoon` 排／`company` 連／`battalion` 營／`brigade` 旅／`army_group` 軍團 |
-| `type` | 七種兵種 `infantry` 步兵／`mg` 機槍／`mortar` 迫砲／`at` 反戰車／`tank` 戰車／`recon` 偵察／`engineer` 工兵；`mixed` 是連級容器；舊名 `armor` 載入時轉成 `tank`；預設 `infantry` |
+| `type` | 七種兵種 `infantry` 步兵／`mg` 機槍／`mortar` 迫砲／`at` 反戰車／`tank` 戰車／`recon` 偵察／`engineer` 工兵；`mixed` 是連級容器；舊名 `armor` 不論版本一律轉成 `tank`；預設 `infantry` |
 | `parent` | 上級 id；上級層級必須比自己高；不能是自己 |
 | `strength` | 戰力 0～1；預設 `1.0` |
 | `state` | `idle` 待命／`moving`／`engaged` 交戰／`routed` 潰散／`destroyed` 殲滅；預設 `idle`。殲滅單位留在部隊樹供回放，但 `units_in()` 與 `compact()` 不算它 |
@@ -57,6 +57,7 @@
 | `task` | 目前任務 `{type, target}`；`type` 六種：`seize` 奪取／`hold` 固守／`flank` 側翼／`withdraw` 撤退／`support` 支援／`reserve` 預備。`target`：`support` 必須是友軍單位 id（不能是自己）；其他五種必須是分區 id |
 | `controlled_by` | `ai`（參謀長）／`player`（總司令直轄；參謀長不得對它下令）；預設 `ai` |
 | `cost` | 部署點數（v0.2；`chief deploy` 填入，0＝未計） |
+| `equipment` | 裝備備註（v0.2，可選，≤ 60 字，例如 `M4 Sherman`）；只給人看，不進 `compact()`、不影響解算（兵種屬性以 `type` 查表） |
 
 ## Contact（已知敵情）
 

@@ -14,7 +14,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
-from .board import Board, BoardError, Contact, Event, Task, TaskType, Unit, save_board
+from .board import Board, BoardError, Contact, Event, Task, TaskType, TimeOfDay, Unit, Weather, save_board
 from .formation_ai import decide_move, split_company_task
 from .grid import distance, neighbors
 from .rules import Rules, load_rules
@@ -44,8 +44,8 @@ class Script(BaseModel):
     """照回合排好的命令：{"1": [...], "3": [...]}。enemy 劇本另含敵方初始部隊與天氣／時段變化。"""
     units: list[Unit] = Field(default_factory=list)
     orders: dict[str, list[Order]] = Field(default_factory=dict)
-    weather_changes: dict[str, str] = Field(default_factory=dict, description="回合 → 天氣（clear/rain/snow/fog）")
-    time_changes: dict[str, str] = Field(default_factory=dict, description="回合 → 時段（day/night）")
+    weather_changes: dict[str, Weather] = Field(default_factory=dict, description="回合 → 天氣（clear/rain/snow/fog）")
+    time_changes: dict[str, TimeOfDay] = Field(default_factory=dict, description="回合 → 時段（day/night）")
 
     def for_turn(self, t: int) -> list[Order]:
         return self.orders.get(str(t), [])
@@ -144,6 +144,11 @@ class Battle:
         self.board = board.model_copy(deep=True)
         self.enemy = [u.model_copy(deep=True) for u in enemy_units]
         self.rules = rules or load_rules(self.board.era)
+        for side in ("us", "enemy"):
+            for u in self.leaves(side):
+                if self.rules.resolve_type(u.type) not in self.rules.units:
+                    raise BoardError(f"{'我方' if side == 'us' else '敵方'}單位 {u.id} 的兵種「{u.type}」不在 {self.rules.era} 規則表內"
+                                     f"（mixed 只能用在有子排的連）。可用：{', '.join(self.rules.units)}")
         self.rng = random.Random(seed) if seed is not None else None
         self.variance = variance if variance is not None else (seed is not None)
         self.out_dir = Path(out_dir) if out_dir is not None else Path("battles") / board.battle_id
@@ -174,27 +179,38 @@ class Battle:
         return {u.id: u for u in self.units(side)}
 
     def engineer_in(self, side: str, sector_id: str, holding_only: bool = False) -> bool:
+        """本方有非潰散工兵排在該格；holding_only 時還要任務是 hold 該格（路過不算）。"""
         for u in self.leaves(side):
             if u.sector == sector_id and self.rules.resolve_type(u.type) == "engineer" and u.state not in ("routed", "destroyed"):
-                if not holding_only or (u.task is not None and u.task.type == "hold"):
+                if not holding_only or (u.task is not None and u.task.type == "hold" and u.task.target == sector_id):
                     return True
         return False
+
+    def engineer_sectors(self, side: str) -> set[str]:
+        return {u.sector for u in self.leaves(side)
+                if self.rules.resolve_type(u.type) == "engineer" and u.state not in ("routed", "destroyed")}
 
     def cover_for(self, side: str, sector_id: str) -> float:
         s = self.board.map.sectors[sector_id]
         return self.rules.effective_cover(s.terrain, self.board.weather, self.board.time_of_day, s.cover,
                                           engineer_holding=self.engineer_in(side, sector_id, holding_only=True))
 
-    def blocked_sectors(self, side: str, unit: Unit) -> set[str]:
-        """這個單位進不去的分區（戰車 vs 森林／河川；河川有本方工兵在場就能過）。"""
+    def blocked_sectors(self, side: str, unit: Unit, engineer_sectors: set[str] | None = None) -> set[str]:
+        """這個單位進不去的分區（戰車 vs 森林／河川；河川有本方工兵在場就能過）。
+        engineer_sectors 給定時以它為準（回合開始的工兵位置，結果不隨單位 id 順序變）。"""
+        eng = engineer_sectors if engineer_sectors is not None else self.engineer_sectors(side)
         out: set[str] = set()
         for sid, s in self.board.map.sectors.items():
-            if not self.rules.can_enter(unit.type, s.terrain, engineer_present=self.engineer_in(side, sid)):
+            if not self.rules.can_enter(unit.type, s.terrain, engineer_present=(sid in eng)):
                 out.add(sid)
         return out
 
     # ---- 回合 ----
     def set_conditions(self, weather: str | None, time_of_day: str | None, report: TurnReport) -> None:
+        if weather and weather not in self.rules.weather:
+            raise BoardError(f"天氣「{weather}」不在 {self.rules.era} 規則表內。可用：{', '.join(self.rules.weather)}")
+        if time_of_day and time_of_day not in self.rules.time:
+            raise BoardError(f"時段「{time_of_day}」不在 {self.rules.era} 規則表內。可用：{', '.join(self.rules.time)}")
         if weather and weather != self.board.weather:
             self.board.weather = weather  # type: ignore[assignment]
             report.events.append(Event(t=self.t, kind="weather", text=f"天氣轉{WEATHER_ZH.get(weather, weather)}"))
@@ -251,6 +267,8 @@ class Battle:
             own = self.own_sectors(side)
             by_id = self._by_id(side)
             leaves = self.leaves(side)
+            eng = self.engineer_sectors(side)                      # 回合開始的工兵位置，過河判定以此為準（§2）
+            hostile = {e.sector for e in self.leaves(OTHER[side]) if e.state != "destroyed"}
             for u in sorted(leaves, key=lambda x: x.id):
                 if u.state not in ("routed", "destroyed"):
                     u.state = "idle"  # 每回合先歸零，交戰階段再標 engaged
@@ -259,8 +277,8 @@ class Battle:
                 mobility = self.rules.mobility(u.type, self.board.weather)
                 if mobility < 1.0 and self.t % 2 == 1:
                     continue  # 機動力減半：只在偶數回合移動（§2 v1）
-                steps = self.rules.unit(u.type).speed
-                avoid = self.blocked_sectors(side, u)
+                steps = 1 if u.state == "routed" else self.rules.unit(u.type).speed   # 潰散只退 1 格（§2）
+                avoid = self.blocked_sectors(side, u, eng)
                 moved = False
                 for _ in range(steps):
                     dest = decide_move(u, grid, leaves, own, by_id, avoid=avoid)
@@ -268,6 +286,8 @@ class Battle:
                         break
                     u.sector = dest
                     moved = True
+                    if dest in hostile:
+                        break  # 進到有敵軍的格子就停下（多格移動不穿越敵軍，§2）
                 if moved:
                     report.moves[u.id] = u.sector
                     if u.state not in ("routed", "destroyed"):

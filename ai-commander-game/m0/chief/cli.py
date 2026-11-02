@@ -40,12 +40,16 @@ def cmd_sim(args: argparse.Namespace) -> int:
     except BoardError as err:
         err_console.print(f"[red]{err}[/]")
         return 1
-    _apply_conditions(board, args)
-    if getattr(args, "template", None) or getattr(args, "units", None):
-        board, _ = _deploy_board(board, args, console, err_console)
-        if board is None:
-            return 1
-    battle = Battle(board, enemy.units, seed=args.seed, variance=(not args.no_variance) if args.seed is not None else False, out_dir=args.out)
+    try:
+        _apply_conditions(board, args)
+        if getattr(args, "template", None) or getattr(args, "units", None):
+            board, _ = _deploy_board(board, args, console, err_console)
+            if board is None:
+                return 1
+        battle = Battle(board, enemy.units, seed=args.seed, variance=(not args.no_variance) if args.seed is not None else False, out_dir=args.out)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
 
     def on_turn(b: Battle, report) -> None:
         if args.quiet:
@@ -61,7 +65,11 @@ def cmd_sim(args: argparse.Namespace) -> int:
             lines = [Text(f"[{e.kind}] {e.text}") for e in report.events] or [Text("（本回合無事件）", style="dim")]
             console.print(Panel(Group(*lines), title=f"第 {report.t} 回合事件", border_style="blue"))
 
-    result = battle.run(friendly, enemy, on_turn=on_turn)
+    try:
+        result = battle.run(friendly, enemy, on_turn=on_turn)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
     if not args.quiet:
         console.rule("戰後")
         render_board(battle.board, console)
@@ -85,7 +93,11 @@ def cmd_play(args: argparse.Namespace) -> int:
     except (BoardError, ValueError, NotImplementedError) as err:
         err_console.print(f"[red]{err}[/]")
         return 1
-    _apply_conditions(board, args)
+    try:
+        _apply_conditions(board, args)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
     if getattr(args, "template", None) or getattr(args, "units", None):
         board, _ = _deploy_board(board, args, console, err_console)
         if board is None:
@@ -131,15 +143,23 @@ def cmd_play(args: argparse.Namespace) -> int:
         except BoardError as err:
             err_console.print(f"[red]{err}[/]")
             return 1
-    run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out, commander=commander,
-             prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
-             budget_usd=args.budget, ledger=ledger, auto=args.auto,
-             doctrine_path=doctrine_path, aar_gateway=aar_gateway, skip_aar=args.skip_aar, evals_dir=evals_dir)
+    try:
+        run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out, commander=commander,
+                 prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
+                 budget_usd=args.budget, ledger=ledger, auto=args.auto,
+                 doctrine_path=doctrine_path, aar_gateway=aar_gateway, skip_aar=args.skip_aar, evals_dir=evals_dir)
+    except BoardError as err:
+        err_console.print(f"[red]{err}[/]")
+        return 1
     return 0
 
 
 def _apply_conditions(board, args) -> None:
-    """--weather / --time 覆寫開局天氣與時段（引擎與提示都吃戰情板上的值）。"""
+    """--weather / --time / --era 覆寫開局條件（引擎與提示都吃戰情板上的值）。壞的 era 在這裡就以人話退回。"""
+    from .rules import load_rules
+    if getattr(args, "era", None):
+        board.era = args.era
+    load_rules(board.era)   # 驗一次：找不到規則檔 → BoardError（人話）
     if getattr(args, "weather", None):
         board.weather = args.weather
     if getattr(args, "time", None):
@@ -150,8 +170,8 @@ def _deploy_board(board, args, console, err_console):
     """--template / --units：部署階段，換掉戰情板上的友軍部隊。回傳 (board, plan) 或 (None, None) 表示失敗。"""
     from .deploy import apply_plan, plan_from_list, plan_from_template, plan_lines
     from .rules import load_rules
-    rules = load_rules(getattr(args, "era", None) or board.era)
     try:
+        rules = load_rules(getattr(args, "era", None) or board.era)
         plan = plan_from_template(rules, args.template) if getattr(args, "template", None) else plan_from_list(rules, args.units.split(","))
         board = apply_plan(board, plan, rules)
     except BoardError as err:
@@ -347,11 +367,11 @@ def cmd_doctrine(args: argparse.Namespace) -> int:
 
 def add_conditions(sp: argparse.ArgumentParser) -> None:
     """開局條件與部署（施工單 08）：sim / play / deploy 共用。"""
-    sp.add_argument("--weather", default=None, choices=["clear", "rain", "snow", "fog"], help="覆寫開局天氣（預設用戰情板的值）")
+    sp.add_argument("--weather", default=None, choices=["clear", "rain", "snow", "fog"], help="覆寫開局天氣（預設用戰情板的值；敵方劇本的 weather_changes 之後仍會改）")
     sp.add_argument("--time", default=None, choices=["day", "night"], help="覆寫開局時段")
     sp.add_argument("--template", default=None, help="部署範本：balanced 均衡／armor 裝甲突擊／infantry 步兵固守（換掉戰情板上的友軍）")
     sp.add_argument("--units", default=None, help="自選配比，逗號分隔，例如 infantry,infantry,mg,tank（預算見 rules/<era>.json）")
-    sp.add_argument("--era", default=None, help="世代規則檔（預設用戰情板的 era，例如 ww2_1944）")
+    sp.add_argument("--era", default=None, help="覆寫世代規則檔（預設用戰情板的 era；可用：ww2_1944、coldwar_early、coldwar_late）")
 
 
 def build_parser() -> argparse.ArgumentParser:

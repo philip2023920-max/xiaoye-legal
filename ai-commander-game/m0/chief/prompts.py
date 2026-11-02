@@ -32,7 +32,12 @@ def system_prompt(doctrine: str, lang: str = "zh-TW", era: str = "ww2_1944") -> 
     template = src.read_text(encoding="utf-8-sig")
     rules_text = load_rules(era).prompt_text()
     if "{rules}" not in template:
-        template = template.replace("## Doctrine", rules_text + "\n\n## Doctrine", 1)
+        if "## Doctrine" in template:
+            template = template.replace("## Doctrine", "{rules}\n\n## Doctrine", 1)
+        else:   # 舊參謀長包的模板沒有掛點：附在最後，並提醒一次
+            import sys
+            print(f"⚠️ 系統提示模板 {src} 沒有 {{rules}} 掛點，戰鬥模型說明附在結尾", file=sys.stderr)
+            template = template.rstrip() + "\n\n{rules}\n"
     return (template.replace("{language}", LANG_NAME.get(lang, lang)).replace("{doctrine}", doctrine.strip())
             .replace("{rules}", rules_text))
 
