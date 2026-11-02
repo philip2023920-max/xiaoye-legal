@@ -7,7 +7,7 @@ extends SceneTree
 ## 任何失敗 exit 1。EXPECTED_CHECKS 只防「有人誤刪 check 行」；執行期錯誤會讓 _run 中途斷掉、永遠跑不到 quit，
 ## 所以另有看門狗：WATCHDOG_S 秒內沒結束就 exit 2 並印提示。
 
-const EXPECTED_CHECKS := 31
+const EXPECTED_CHECKS := 32
 const WATCHDOG_S := 60.0
 
 var _checks := 0

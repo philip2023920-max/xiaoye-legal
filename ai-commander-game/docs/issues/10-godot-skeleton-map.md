@@ -1,6 +1,6 @@
 # 10 Godot 專案骨架＋固定俯視攝影機＋5×5 分區地圖
 
-> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 10 項：高 1 中 2 低 7，全部修正；沙盒無頭測試 31 項全過）；待老闆本機 F5 與無頭測試。M1 第一張；ADR-0014。
+> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 10 項：高 1 中 2 低 7，全部修正；沙盒無頭測試 32 項全過）；待老闆本機 F5 與無頭測試。M1 第一張；ADR-0014。
 
 **重用**：godot-rts-kit `addons/rts_kit`（MIT，不改）：`RTSCameraRig` 當攝影機；`RTSKit` 常數與群組契約。地圖資料直接讀 M0 的 `m0/samples/board_start.json`（Board v0.2），不另造一份地圖格式。自製：`SectorMap`（分區格、地形色、據點旗、方塊掩體、座標↔分區）、`BoardIO`、`Battle` 場景組裝、無頭測試。
 
@@ -15,7 +15,7 @@
 - [x] `BoardIO`：讀 `m0/samples/board_start.json`（開發期走 `res://../m0`，匯出時可改 `res://data`）；schema_version 不是 0.2 就報錯（人話）
 - [x] `SectorMap`：分區邊長 20 m，A1 在左上角（x 向右＝欄、z 向下＝列）；`center_of("C3") == (50, 0, 50)`；`sector_at(world)` 反查，出界回空字串；地形 5 色＋擁有方色調；據點旗（含 id 與分數的 Label3D）；城鎮 6 個方塊掩體、森林 8 棵樹（StaticBody3D，碰撞層 2，給之後的尋路烘焙）；格線
 - [x] `Battle.tscn`：組裝地圖、光、環境、`RTSCameraRig`（俯仰 60°、距離 70、邊界＝地圖矩形、地面碰撞層 1 的地面碰撞體）、HUD 一行文字（戰鬥 id、滑鼠下分區）
-- [x] 無頭測試 `tests/run_tests.gd`：31 項檢查、`EXPECTED_CHECKS` 防誤刪＋60 秒看門狗（執行期錯誤 exit 2）；沙盒 exit 0（老闆本機待跑）
+- [x] 無頭測試 `tests/run_tests.gd`：32 項檢查、`EXPECTED_CHECKS` 防誤刪＋60 秒看門狗（執行期錯誤 exit 2）；沙盒 exit 0（老闆本機待跑）
 - [x] `godot/README.md`：怎麼開、怎麼測、資料夾說明
 
 ## 30 秒驗收腳本
