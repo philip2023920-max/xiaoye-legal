@@ -24,7 +24,11 @@ var time_of_day := "day"
 var t := 0.0                        # 遊戲秒
 var platoons := {}                  # id -> Platoon（雙方）
 var companies := {}                 # id -> Dictionary（雙方；見 _company_dict）
-var events: Array[String] = []      # 本 tick 以來的事件文字（施工單 13 收走）
+var events: Array[Dictionary] = []  # {t, kind, text, unit, sector}，與 M0 Event 同欄位（施工單 13 寫進戰情板）
+var resolver: Resolver = null        # 戰鬥解算（施工單 12）
+var overrides_this_battle := 0
+var second_hooks: Array[Callable] = []   # 每跨過一個整數秒呼叫（戰情板的歸屬與敵情，施工單 13）
+var _last_hook_second := 0
 var _next_index := 0                # 戰情板順序（連令拆排、主力判定都照它，與 M0 的 units 原序一致）
 var _cache := {}                    # 每 tick 一次：leaves / hostile / engineers（施工單 15 效能）
 
@@ -32,6 +36,30 @@ func setup(map_: SectorMap, rules_: Rules) -> void:
 	map = map_
 	rules = rules_
 	grid = SectorGrid.new(map.cols, map.rows)
+	resolver = Resolver.new(self)
+
+func log_event(at: int, kind: String, text: String, unit: String = "", sector: String = "") -> void:
+	var e := {"t": at, "kind": kind, "text": text}
+	if unit != "":
+		e["unit"] = unit
+	if sector != "":
+		e["sector"] = sector
+	events.append(e)
+
+## 天氣／時段變化（劇本在指定秒數呼叫）：寫 weather 事件。
+func set_conditions(wx: String, tod: String) -> void:
+	if wx != "" and wx != weather:
+		if not rules.weather.has(wx):
+			push_error("天氣「%s」不在 %s 規則表內" % [wx, rules.era])
+		else:
+			weather = wx
+			log_event(int(t), "weather", "天氣轉%s" % {"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(wx, wx))
+	if tod != "" and tod != time_of_day:
+		if not rules.time.has(tod):
+			push_error("時段「%s」不在 %s 規則表內" % [tod, rules.era])
+		else:
+			time_of_day = tod
+			log_event(int(t), "weather", "進入%s" % {"day": "日間", "night": "夜間"}.get(tod, tod))
 
 ## 從戰情板的 orbat（我方）與敵方劇本的 units（敵方）生成；同格的排各占一個站位。葉節點兵種不合法就拒建並回 false。
 func build(board: Dictionary, enemy_units: Array = []) -> bool:
@@ -241,7 +269,7 @@ func apply_orders(side: String, orders: Array) -> Array[String]:
 			valid.append(o)
 		else:
 			rejected.append(problem)
-			events.append("%s的命令被引擎退回：%s" % ["參謀長" if side == "us" else "敵軍", problem])
+			log_event(int(t), "info", "%s的命令被引擎退回：%s" % ["參謀長" if side == "us" else "敵軍", problem], o.unit_id)
 	var explicit := {}
 	for o in valid:
 		explicit[o.unit_id] = true
@@ -269,7 +297,7 @@ func _give_task(p: Platoon, task: Dictionary) -> void:
 
 func _log_order(side: String, who_name: String, o: Order) -> void:
 	if side == "us":
-		events.append("參謀長令 %s %s %s" % [who_name, Order.TASK_ZH.get(o.task, o.task), o.target])
+		log_event(int(t), "order", "參謀長令 %s %s %s" % [who_name, Order.TASK_ZH.get(o.task, o.task), o.target], o.unit_id, o.target if map.sectors.has(o.target) else "")
 
 # ---- 推進 ----
 func advance(dt: float) -> void:
@@ -277,6 +305,19 @@ func advance(dt: float) -> void:
 	_refresh_cache()
 	for p in leaves("us") + leaves("enemy"):
 		_advance_platoon(p, dt)
+	if resolver != null:
+		resolver.step(t)
+	var sec := int(floor(t + 1e-4))
+	while _last_hook_second < sec:
+		_last_hook_second += 1
+		for hook in second_hooks:
+			hook.call(_last_hook_second)
+		for p in leaves("us") + leaves("enemy"):
+			p.fighting = resolver.fighting.has(p.id)
+			if p.state == "engaged" and not p.fighting:
+				p.state = "moving" if p.step_target != "" else "idle"
+			elif p.fighting and p.state != "routed" and p.state != "destroyed":
+				p.state = "engaged"
 	aggregate()
 
 func advance_for(seconds: float, dt: float = 1.0 / 60.0) -> void:
@@ -292,6 +333,7 @@ func _advance_platoon(p: Platoon, dt: float) -> void:
 		return
 	p.sector = map.sector_at(p.anchor)
 	var speed := speed_mps(p)
+	var was_engaged := p.state == "engaged"
 	if t < p.pause_until:
 		p.follow_anchor(dt, speed)
 		return
@@ -305,12 +347,14 @@ func _advance_platoon(p: Platoon, dt: float) -> void:
 			p.follow_anchor(dt, speed)
 			return
 		p.step_target = next
+		if was_engaged:
+			p.state = "engaged"
 		var goal := free_slot(p, next)
 		p.waypoints = nav.route(p.anchor, goal) if nav != null else PackedVector3Array([goal])
 		if p.waypoints.is_empty():
 			p.waypoints = PackedVector3Array([goal])
 		p.waypoints[p.waypoints.size() - 1] = goal   # 路線終點一律是站位（尋路格的終點可能是最近的開放格）
-		if p.state != "routed":
+		if p.state != "routed" and p.state != "engaged":
 			p.state = "moving"
 	var target := p.waypoints[0]
 	target.y = 0.0

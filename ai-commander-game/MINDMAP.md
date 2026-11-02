@@ -142,8 +142,10 @@ markmap:
   - 選型決策 D15～D21 已拍板（ADR-0014：4.7.2、Compatibility＋Jolt、godot-rts-kit、寫檔、1 回合＝30 秒、自寫測試、程式畫） ✅ → docs/adr/0014-m1-godot-stack.md
   - 沙盒可跑 Godot 4.7.2 無頭測試（探針專案通過）；畫面與 FPS 只能在老闆本機驗 ✅
   - 施工單 10 骨架與地圖（審查 10 項已修；無頭測試 32 項；老闆本機通過） ✅ → docs/issues/10-godot-skeleton-map.md
-  - 施工單 11 方塊人、編制樹、編制 AI（規則表、格子邏輯、六種任務移植；審查 15 項已修；無頭測試 50 項；待老闆 F5） 🟡 → docs/issues/11-godot-units-orbat.md
-  - 施工單 12 戰鬥、13 戰情板寫入、14 五分鐘會戰、15 效能 ⬜ → docs/issues/README.md
+  - 施工單 11 方塊人、編制樹、編制 AI（審查 15 項已修；老闆本機 50 項通過） ✅ → docs/issues/11-godot-units-orbat.md
+  - 施工單 12 戰鬥解算（30 秒回合快照、手算例重現、潰散殲滅、射線；30 項測試；審查中） 🟡 → docs/issues/12-godot-combat.md
+  - 施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒原子寫 board.json、Python 合約測試；審查中） 🟡 → docs/issues/13-godot-board-writer.md
+  - 施工單 14 五分鐘會戰、15 效能 ⬜ → docs/issues/README.md
   - 環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜

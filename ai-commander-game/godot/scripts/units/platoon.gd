@@ -26,6 +26,7 @@ var anchor := Vector3.ZERO         # 排的中心點，Orbat 帶著它走
 var step_target := ""              # 正在走向的分區；"" 表示要重新決定
 var waypoints := PackedVector3Array()
 var pause_until := -1.0            # 進到有敵軍的格子後停一回合（秒）
+var fighting := false              # 這一秒有交戰（Resolver 設、Orbat 推狀態用）
 var soldiers: Array[Soldier] = []
 
 func setup(data: Dictionary, side_: String, at: Vector3) -> void:
@@ -72,9 +73,20 @@ func alive_count() -> int:
 			n += 1
 	return n
 
-## 戰力＝存活人數比例（四捨五入到 0.01）。
+## 戰力是連續血量（與 M0 strength 同義，0～1）；畫面上倒下的人數＝round((1 − 戰力) × 9)。
 func recompute_strength() -> void:
 	strength = snappedf(float(alive_count()) / float(MEN_PER_SQUAD * SQUADS), 0.01)
+
+## 讓倒下的人數追上血量（解算後呼叫）。
+func sync_men() -> void:
+	var should_alive := clampi(roundi(strength * MEN_PER_SQUAD * SQUADS), 0, MEN_PER_SQUAD * SQUADS)
+	var n := alive_count() - should_alive
+	for s in soldiers:
+		if n <= 0:
+			break
+		if s.alive:
+			s.fall()
+			n -= 1
 
 ## 殺掉 n 人（施工單 12 的解算會用；測試也用）。
 func kill(n: int) -> void:

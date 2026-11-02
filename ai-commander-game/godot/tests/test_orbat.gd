@@ -52,14 +52,14 @@ func _run() -> void:
 	o.advance_for(20.0)
 	h.check(a1.sector == "C2" and a1.state == "moving", "37 秒後過了 C2 中心還在走（中途分區不算到達，仍是 moving）")
 	o.advance_for(25.0)
-	h.check(a1.sector == "C3" and a1.state == "idle" and a1.anchor == o.map.center_of("C3"), "62 秒後到 C3 中心並待命（40 m ÷ 0.667 m/s ＝ 60 秒，減兩次 0.5 m 吸附）")
-	h.check(o.events.any(func(e: String) -> bool: return e.begins_with("參謀長令 A1 步兵排 奪取 C3")), "事件流記下命令")
+	h.check(a1.sector == "C3" and a1.state == "engaged" and a1.anchor == o.map.center_of("C3"), "62 秒後到 C3 中心（40 m ÷ 0.667 m/s ＝ 60 秒，減兩次 0.5 m 吸附）；C3 有敵軍 → engaged")
+	h.check(o.events.any(func(e: Dictionary) -> bool: return e["kind"] == "order" and e["text"].begins_with("參謀長令 A1 步兵排 奪取 C3")), "事件流記下命令（結構化：t／kind／text／unit／sector）")
 
 	# ---- 偵察排速度 2：B1 → C3 共 3 格，45 秒 ----
 	var a7 := put(o, "plt-A7", "B1")
 	o.apply_orders("us", [Order.make("plt-A7", "seize", "C3")])
 	o.advance_for(46.0)
-	h.check(a7.sector == "C3" and a7.anchor.distance_to(o.map.center_of("C3")) < 12.0 and a7.state == "idle", "偵察排速度 2：B1 到 C3 共 3 格 45 秒到（站到 C3 的空站位）")
+	h.check(a7.sector == "C3" and a7.anchor.distance_to(o.map.center_of("C3")) < 12.0 and a7.state == "engaged", "偵察排速度 2：B1 到 C3 共 3 格 45 秒到（站到 C3 的空站位，加入交戰）")
 
 	# ---- 進敵格停一回合（§2）----
 	var o2 := make_orbat()
@@ -67,7 +67,7 @@ func _run() -> void:
 	var e12: Platoon = o2.platoons["e-plt-12"]      # 敵機槍在 C3
 	o2.apply_orders("us", [Order.make("plt-A3", "seize", "D3")])
 	o2.advance_for(31.0)
-	h.check(b.sector == "C3" and e12.sector == "C3" and b.state == "moving", "31 秒到有敵軍的 C3（中途分區，狀態仍 moving）")
+	h.check(b.sector == "C3" and e12.sector == "C3" and b.state == "engaged", "31 秒到有敵軍的 C3（中途分區，交戰 → engaged）")
 	o2.advance_for(31.0)
 	h.check(b.sector == "C3", "停一回合：62 秒仍在 C3")
 	o2.advance_for(31.0)
@@ -158,7 +158,7 @@ func _run() -> void:
 	h.check(f.sector == "B2" and f.state == "moving", "flank：繞路不穿過 C3，BFS 先往上 → B3 → B2 → C2 → D2 → D3")
 	o7.place_platoon(f, o7.map.center_of("D3"))
 	o7.advance_for(31.0)
-	h.check(f.sector == "C3" and f.state == "idle", "flank：到了進入點 D3 再進目標 C3")
+	h.check(f.sector == "C3" and f.state == "engaged", "flank：到了進入點 D3 再進目標 C3（有敵軍 → engaged）")
 
 	# ---- 戰力聚合、連狀態、潰散撤退、全殲滅不當機 ----
 	var o8 := make_orbat()

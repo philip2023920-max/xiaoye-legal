@@ -6,6 +6,8 @@ extends Node3D
 @export var enemy_path: String = "m0://samples/enemy_script_v1.json"
 @export var era: String = "ww2_1944"
 @export var auto_advance: bool = true
+@export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
+const WRITE_INTERVAL := 0.1
 
 var board := {}
 var enemy_script := {}
@@ -15,6 +17,9 @@ var orbat: Orbat
 var camera_rig: RTSCameraRig
 var hud_label: Label
 var nav: RTSNavGrid
+var writer: BoardWriter
+var _write_acc := 0.0
+var _tracer_mesh: ImmediateMesh
 
 func _ready() -> void:
 	board = BoardIO.load_board(board_path)
@@ -36,6 +41,10 @@ func _ready() -> void:
 	add_child(orbat)
 	orbat.setup(sector_map, rules)
 	orbat.build(board, enemy_script.get("units", []))
+	writer = BoardWriter.new(orbat, str(board.get("battle_id", "battle")), str(board.get("era", era)))
+	orbat.second_hooks.append(writer.update)
+	writer.update(0)
+	_add_tracers()
 	_add_hud()
 	# 掩體進物理世界後才能烘焙尋路格
 	await get_tree().physics_frame
@@ -44,8 +53,37 @@ func _ready() -> void:
 	orbat.nav = nav
 
 func _physics_process(delta: float) -> void:
-	if orbat != null and auto_advance:
-		orbat.advance(delta)
+	if orbat == null or not auto_advance:
+		return
+	orbat.advance(delta)
+	_write_acc += delta
+	if _write_acc >= WRITE_INTERVAL and writer != null and board_out != "":
+		_write_acc = 0.0
+		writer.write(board_out)
+
+## 射線：這一秒的交火畫成細線（無貼圖、不發光）。
+func _add_tracers() -> void:
+	var mi := MeshInstance3D.new()
+	mi.name = "Tracers"
+	_tracer_mesh = ImmediateMesh.new()
+	mi.mesh = _tracer_mesh
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.9, 0.4)
+	mi.material_override = mat
+	add_child(mi)
+
+func _draw_tracers() -> void:
+	if _tracer_mesh == null or orbat == null or orbat.resolver == null:
+		return
+	_tracer_mesh.clear_surfaces()
+	if orbat.resolver.tracers.is_empty():
+		return
+	_tracer_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	for tr in orbat.resolver.tracers:
+		_tracer_mesh.surface_add_vertex(tr["from"])
+		_tracer_mesh.surface_add_vertex(tr["to"])
+	_tracer_mesh.surface_end()
 
 func _add_light_and_environment() -> void:
 	var sun := DirectionalLight3D.new()
@@ -93,11 +131,24 @@ func _add_hud() -> void:
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
 	var en := orbat.total_strength("enemy") if orbat else 0.0
-	return "%s｜t=%ds｜我方戰力 %.2f：敵 %.2f｜滑鼠：%s｜WASD 平移、滾輪縮放、空白鍵＝A 連奪取 C3" % [board.get("battle_id", ""), int(orbat.t) if orbat else 0, us, en, mouse_desc]
+	var wx: String = str({"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(orbat.weather, orbat.weather)) if orbat else ""
+	return "%s｜t=%ds %s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3" % [board.get("battle_id", ""), int(orbat.t) if orbat else 0, wx, us, en, _score_text(), mouse_desc]
+
+func _score_text() -> String:
+	var su := 0
+	var se := 0
+	for oid in sector_map.objectives.keys():
+		var o: Dictionary = sector_map.objectives[oid]
+		if o["owner"] == "us":
+			su += int(o["value"])
+		elif o["owner"] == "enemy":
+			se += int(o["value"])
+	return "%d:%d" % [su, se]
 
 func _process(_delta: float) -> void:
 	if hud_label == null or camera_rig == null or DisplayServer.get_name() == "headless":
 		return
+	_draw_tracers()
 	var under := sector_map.sector_at(camera_rig.ground_under_mouse())
 	var desc := ""
 	if under != "":

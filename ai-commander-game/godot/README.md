@@ -12,6 +12,9 @@ Godot **4.7.2 標準版**、Compatibility 渲染器、Jolt 物理。骨架 `addo
 godot --headless --path . --import
 godot --headless --path . -s tests/run_tests.gd      # 施工單 10：地圖與攝影機
 godot --headless --path . -s tests/test_orbat.gd     # 施工單 11：部隊與編制 AI
+godot --headless --path . -s tests/test_combat.gd    # 施工單 12：戰鬥解算（手算例）
+godot --headless --path . -s tests/test_board_writer.gd   # 施工單 13：戰情板寫入
+godot --headless --path . -s tools/dump_board.gd -- out=/tmp/board.json seconds=120   # 跑 120 秒把戰情板寫出來
 ```
 Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerShell）：
 ```powershell
@@ -25,5 +28,7 @@ Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerSh
 - `scripts/core/` 讀戰情板與規則表（`m0://` 代表隔壁 m0 資料夾；規則表直接讀 `m0/rules/<era>.json`）
 - `scripts/world/` 分區地圖與格子邏輯（BFS 鄰格順序上左右下）
 - `scripts/units/` 方塊人、排（三班九人）、編制 AI（六種任務）、部隊樹與移動推進（`Orbat.advance`）
+- `scripts/combat/` 每秒戰鬥解算（30 秒回合快照，查 m0 規則表）
+- `scripts/core/board_writer.gd` 歸屬、視距敵情、Board v0.2 JSON、原子寫入 `user://board.json`（M0 的 `chief show` 直接讀）
 - `scripts/battle/` 場景組裝；導演 `director.gd` 在施工單 14
 - `tests/` 無頭測試；`tools/` 產生場景等小工具

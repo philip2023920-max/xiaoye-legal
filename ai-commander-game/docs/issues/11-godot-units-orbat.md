@@ -1,6 +1,6 @@
 # 11 方塊人、班／排／連編制樹、編制 AI 執行六種任務
 
-> 狀態：🟡 程式完成並審查修正（2026-11-02；code-reviewer 軸 15 項：高 2 中 3 低 10，全部修正；沙盒無頭測試 50 項全過）；待老闆本機 F5。Blocked by 10（已驗收）。ADR-0014。
+> 狀態：✅ 完成（2026-11-02；審查 15 項全部修正；沙盒與老闆本機無頭測試 50 項全過）。ADR-0014。
 
 **重用**：`RTSNavGrid`（格狀 A*，從掩體碰撞烘焙）、`RTSKit.formation`／`assign_slots`（班內站位）；任務邏輯移植 `m0/chief/formation_ai.py`（§3）。自製：`Soldier`（膠囊體＋方塊頭）、`Squad`（三人一組）、`Platoon`／`Company` 節點與戰力聚合、`FormationAI`。
 

@@ -2,6 +2,14 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第二十七次）— 11 本機驗收通過；施工單 12 戰鬥解算、13 戰情板寫入（程式完成）
+- 老闆本機 `test_orbat.gd` 50 項通過 → 11 ✅
+- `scripts/combat/resolver.gd`：30 秒回合快照、每秒 1/30 傷害、迫砲鄰格、工兵本格、門檻與任務清空、射線；五組手算例在引擎重現（容差 1%）；§15 記下與 M0 的差異（落單殘排潰散後逃得掉）
+- `Orbat`：結構化事件 {t, kind, text, unit, sector}、`set_conditions` 天氣事件、engaged 狀態推導、每秒 hook
+- `scripts/core/board_writer.gd`：§6 歸屬、§2 視距敵情、Board v0.2、原子寫入；`Battle` 每 0.1 秒寫 `user://board.json`、HUD 加據點分、射線畫面；`tools/dump_board.gd`
+- `m0/samples/godot_board_sample.json`＋`m0/tests/test_godot_board.py`（M0 Board 模型讀 Godot 的板、`chief show` 可渲染、GODOT_BIN 現場跑）；M0 測試 175 → 178
+- 無頭測試：`test_combat.gd` 30、`test_board_writer.gd` 22（加上 10／11 共 134 項）
+
 ## 2026-11-02（第二十六次）— 施工單 10 本機驗收通過；施工單 11 方塊人、編制樹、編制 AI（程式完成）
 - 老闆本機 Windows 無頭測試 exit 0（console 版、`m0://` 路徑、Jolt 正常）→ 10 ✅
 - `godot/scripts/core/rules.gd`（讀同一份 `m0/rules`，查表邏輯同 rules.py）、`world/sector_grid.gd`（BFS 上左右下）、`units/order.gd`、`soldier.gd`（膠囊＋方塊頭、戰車方塊車、倒地）、`platoon.gd`（三班九人、站位、戰力＝存活比例）、`formation_ai.gd`（逐函式移植）、`orbat.gd`（雙方部隊樹、連令拆排、每 tick 推進、連級聚合）
