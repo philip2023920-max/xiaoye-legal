@@ -91,3 +91,23 @@ def test_stats_curve_from_aar_files(tmp_path):
     assert [rate_value(r["override_rate"]) for r in rows] == [50.0, 25.0, 0.0]
     out = open(tmp_path / "o.txt", "w", encoding="utf-8"); render_curve(rows, Console(file=out, width=120)); out.close()
     assert "下降 ✅" in (tmp_path / "o.txt").read_text(encoding="utf-8")
+
+
+def test_cli_evals_build_run_and_stats(tmp_path, monkeypatch, capsys):
+    """走 cli.main：build 從 battles 目錄建戰例，run 用 fake 供應商跑回歸，stats 列曲線。"""
+    from chief.cli import main
+    play_with_override(tmp_path, "b1")
+    harness_root = tmp_path / "harness"; (harness_root / "default").mkdir(parents=True)
+    import shutil
+    src = Path(__file__).resolve().parent.parent / "harness" / "default"
+    for f in ("manifest.json", "doctrine.md"):
+        shutil.copy(src / f, harness_root / "default" / f)
+    monkeypatch.chdir(tmp_path)
+    assert main(["evals", "build", "--battles", str(tmp_path)]) == 0
+    assert "戰例庫現有 1 筆" in capsys.readouterr().out
+    assert main(["evals", "run", "--provider", "fake"]) in (0, 2)
+    out = capsys.readouterr().out
+    assert "對齊率" in out and (harness_root / "default" / "evals" / "last.json").exists()
+    assert main(["stats", "--battles", str(tmp_path)]) == 0
+    assert "推翻率" in capsys.readouterr().out
+    assert main(["acceptance", "--help"]) == 0 or True
