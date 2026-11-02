@@ -128,3 +128,12 @@ M0 敵方不用 AI，走 `samples/enemy_script.json`：`units` 是敵方初始�
 
 關鍵三幕：先取推翻點（最多 3），不足再依時間順序補轉折事件（`seized`／`routed`／`destroyed`）。
 討論最多 3 回合（數字越界不算回合），參謀長回覆截到 2 句（中文標點一律算句尾；英文 .!? 只在後接空白＋大寫或句末時算，小數與 e.g. 不算）；準則 diff 最多新增 3、刪除 3。刪除：每條最多刪一行，先找整行相同、再找 ≥ 8 字的子字串，太短或找不到的略過並顯示。準則總長 ≤ 2,000 字，超過先淘汰最舊的待驗證假設 → 已驗證戰術 → 被否決 → 畫像（剛新增的不淘汰），仍超過才硬截。採納後 `doctrine.prev.md` 保留上一版（一層），`chief doctrine undo` 還原；`## Last adopted` 一行供下一場開局引用。自動模式只出戰報卡，不呼叫 LLM；戰後呼叫（一句話、討論、diff）全部計費，phase=aar。
+
+## 12. 戰例庫回歸與參謀長包（施工單 07）
+
+- **戰例**＝一次推翻：推翻當下的戰情板（上一回合快照）、參謀長原令、玩家改令、後果。每場結束自動寫入 `harness/<包>/evals/cases.jsonl`，只留最新 10 筆。
+- **回歸**＝用現在的準則，把戰例裡的單位還給參謀長、重問同一局；參謀長（或其上級）對該單位下的令與玩家當時的令「任務與目標都相同」就算**對齊**。
+- **成績**：對齊率＝對齊數 ÷ 戰例數；退回率＝被驗證器退回的命令 ÷ 命令總數。
+- **退步**：對齊率比上一版低超過 5 個百分點。採納準則後自動回歸，退步就回滾（`doctrine undo`）並作廢該次採納；`chief evals run --doctrine samples/bad_doctrine.md` 可拿壞準則試水溫（不記成績）。
+- **參謀長包**：`harness/<名稱>/`＝manifest.json、doctrine.md、prompts/chief_system.md、evals/；`chief harness export` 打包成 zip（不含金鑰、不含 .prev），`import` 驗 manifest 與路徑安全。
+- **推翻率曲線**：`chief stats` 從 `battles/*/aar.json` 列出歷史戰鬥；`chief acceptance --battles 5` 連打 5 場並印曲線，M0 驗收目標是首場到末場下降。

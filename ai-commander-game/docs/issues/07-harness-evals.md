@@ -9,10 +9,10 @@
 04、06。
 
 ## 驗收清單
-- [ ] `uv run chief harness export default` 產生 zip；`import` 還原並驗 manifest
-- [ ] 戰例庫：每場自動存 10 個快照到 `evals/`；`uv run chief evals run` 印預測推翻率
-- [ ] 回歸：塞入 `samples/bad_doctrine.md` 後 `evals run` 判定退步並回滾，事件流有紀錄
-- [ ] 5 場連打腳本 `uv run chief acceptance --provider ollama`：印每場推翻率曲線（M0 驗收：趨勢下降；若本地小模型做不到，報告如實寫並改用 Anthropic 跑一次）
+- [x] `uv run chief harness export default` 產生 zip；`import` 還原並驗 manifest（含路徑安全）
+- [x] 戰例庫：每次推翻自動存成戰例（最新 10 筆）到 `harness/<包>/evals/cases.jsonl`；`uv run chief evals run` 印對齊率與退回率（§12）
+- [x] 回歸：採納後自動回歸，退步（對齊率掉 > 5 點）自動回滾並告知；`evals run --doctrine samples/bad_doctrine.md` 可手動試
+- [x] 5 場連打腳本 `uv run chief acceptance --provider ollama --battles 5`（互動）＋ `chief stats` 曲線：印每場推翻率曲線（M0 驗收：趨勢下降；若本地小模型做不到，報告如實寫並改用 Anthropic 跑一次）
 - [ ] 同一個參謀長包在 ollama 與 anthropic 兩個供應商都能打完一場
 - [ ] 三審（code-reviewer／test-automator／PRD 符合度）報告附在 `docs/qa/m0-review.md`
 

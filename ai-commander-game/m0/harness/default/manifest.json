@@ -4,6 +4,6 @@
   "author": "CHIEF",
   "language": "en",
   "scale": "battle",
-  "files": {"doctrine": "doctrine.md", "system_prompt": "../../chief/prompts/chief_system.md"},
+  "files": {"doctrine": "doctrine.md", "system_prompt": "prompts/chief_system.md", "evals": "evals/"},
   "suggested_provider": {"provider": "ollama", "model": "ollama/qwen2.5:3b"}
 }

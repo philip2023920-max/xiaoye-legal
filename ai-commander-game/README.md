@@ -77,6 +77,9 @@ Artifact 資料庫 mindmap/main ◀──ArtifactData get/set──▶ tools/min
 | `uv run chief play --provider ollama --model qwen2.5:3b` | 互動：Enter 採納、數字改令、+ 接管、- 放手、q 結束；戰後戰報卡 → 討論 → 採納準則 |
 | `--budget 0.5` `--effort low` `--aar-provider anthropic --aar-model claude-sonnet-5-5` `--skip-aar` | 預算、Anthropic 思考深度、戰後檢討模型、跳過戰後 |
 | `uv run chief doctrine show` / `undo` | 看準則／還原上一版 |
+| `uv run chief harness list` / `export default` / `import --file x.zip` | 參謀長包 |
+| `uv run chief evals run --provider ollama` | 戰例庫回歸（`--doctrine samples/bad_doctrine.md` 試壞準則） |
+| `uv run chief stats` / `chief acceptance --battles 5` | 推翻率曲線／M0 五場驗收 |
 
 ## Effort 慣例（老闆 2026-11-01 問，Claude 建議）
 

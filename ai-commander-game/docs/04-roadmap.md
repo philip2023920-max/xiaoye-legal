@@ -14,8 +14,8 @@
 - [x] T0.4 命令合約 `issue_orders`＋驗證器＋重試
 - [x] T0.5 終端機推翻介面：每回合顯示 AI 的令，按鍵接管某一級並改令；記錄推翻紀錄
 - [x] T0.6 AAR 檢討官：讀推翻紀錄＋戰果，輸出 Doctrine diff
-- [ ] T0.7 戰例庫回歸：存 10 個快照，準則更新後重跑，印推翻率預測
-- [ ] T0.8 參謀長包最小格式（manifest＋doctrine＋prompts＋provider.json）
+- [x] T0.7 戰例庫回歸：存 10 個快照，準則更新後重跑，印推翻率預測
+- [x] T0.8 參謀長包最小格式（manifest＋doctrine＋prompts＋provider.json）
 - [x] T0.9 Token 計量：UsageMeter、價格表（LiteLLM 內建＋prices.json 覆寫）、每場費用小結（終端機印出）
 - [x] T0.10 戰報卡文字版：從推翻紀錄自動挑三幕＋後果判定（不呼叫 LLM）；討論三回合（終端機）；採納 diff
 - [ ] T0.11 戰鬥模型 v1（施工單 08，ADR-0013）：七種兵種、二戰世代資料表、天氣×時段修正、部署配比、戰情板欄位、提示更新、新敵方劇本

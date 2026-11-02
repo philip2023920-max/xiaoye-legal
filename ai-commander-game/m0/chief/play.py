@@ -70,6 +70,7 @@ def run_play(
     doctrine_path: str | Path | None = None,
     aar_gateway: Gateway | None = None,
     skip_aar: bool = False,
+    evals_dir: str | Path | None = None,
 ) -> PlayResult:
     console = console or Console()
     store = DoctrineStore(doctrine_path) if doctrine_path else None
@@ -174,12 +175,17 @@ def run_play(
     if result.budget_hit:
         console.print("[yellow]本場已達預算上限，參謀長中途暫停。[/]")
     console.print(f"[dim]快照、usage.jsonl、llm_log.jsonl 已存：{battle.out_dir}[/]")
+    if evals_dir and overrides.records:    # 這場的推翻進戰例庫（§12）
+        from .evals import build_cases_from_battle, save_cases
+        n = save_cases(build_cases_from_battle(battle.out_dir), Path(evals_dir) / "cases.jsonl")
+        console.print(f"[dim]戰例庫：本場新增 {len(overrides.records)} 筆，現有 {n} 筆[/]")
     if not skip_aar:
-        result.card = _aar_flow(console, gateway, aar_gateway or gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger)
+        result.card = _aar_flow(console, gateway, aar_gateway or gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger,
+                                evals_dir=evals_dir)
     return result
 
 
-def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger=None) -> BattleCard:
+def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger=None, evals_dir=None) -> BattleCard:
     """戰後：戰報卡（不花 token）→ 參謀長一句話 → 討論（最多三回合）→ 準則 diff 一鍵採納。
     自動模式只出卡（不呼叫 LLM）。戰後每次呼叫都計費（phase=aar）。"""
     def bill(gw):
@@ -231,6 +237,10 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
         store.save(new_text)
         console.print(Text(f"準則已更新：新增 {report['added']}、刪除 {report['removed']}" + (f"、因超過上限淘汰 {report['trimmed']}" if report['trimmed'] else "")
                            + f"（{report['chars']}/2000 字）。反悔可用 `chief doctrine undo`。", style="green"))
+        if evals_dir:
+            regressed = regression_check(console, gateway, store, Path(evals_dir), lang, bill(gateway))
+            if regressed:
+                report["rolled_back"] = True
     elif ok:
         console.print(Text("沒有變更。", style="dim"))
     else:
@@ -240,6 +250,26 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
     console.print(Text(f"戰後流程費用：${sum(e.cost_usd for e in meter.entries if e.phase == 'aar'):.4f}（已計入帳本）", style="dim"))
     save_aar(battle.out_dir / "aar.json", summary, transcript, diff, bool(ok and (diff.add or diff.remove)), report, card=card_dict(card))
     return card
+
+
+def regression_check(console, gateway, store, evals_dir: Path, lang: str, on_usage=None) -> bool:
+    """採納後用戰例庫重問參謀長；對齊率退步超過 5 點就回滾準則。回傳是否回滾。"""
+    from .evals import compare, load_cases, load_result, run_evals, save_result
+    cases = load_cases(evals_dir / "cases.jsonl")
+    if not cases:
+        console.print(Text("戰例庫還是空的，略過回歸測試。", style="dim"))
+        return False
+    console.print(Text(f"戰例庫回歸：重跑 {len(cases)} 個戰例…", style="dim"))
+    res = run_evals(gateway, cases, store.load(), store.path.parent.name, lang, on_usage=on_usage)
+    prev = load_result(evals_dir / "last.json")
+    regressed, msg = compare(prev, res)
+    console.print(Text(f"回歸結果：{msg}；退回率 {res.rejected_pct}%", style="red" if regressed else "green"))
+    if regressed:
+        store.undo()
+        console.print(Text("準則退步，已自動回滾到上一版（這次採納作廢）。", style="yellow"))
+        return True
+    save_result(res, evals_dir / "last.json")
+    return False
 
 
 def _orders_table(accepted, rejected: list[Rejection], numbered: bool = False) -> Table:

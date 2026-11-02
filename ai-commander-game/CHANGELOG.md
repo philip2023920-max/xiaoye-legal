@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-02（第十八次）— 07 參謀長包＋戰例庫回歸＋驗收曲線
+- `harness.py`（manifest 驗證、export zip 不含金鑰、import 路徑安全、rename/overwrite）、`evals.py`（戰例＝推翻當下快照＋原令＋改令；回歸＝重問對齊率；退步 > 5 點）、`acceptance.py`（stats 曲線、連打 N 場）
+- `play.py`：每場推翻自動進戰例庫；採納後自動回歸，退步自動回滾；`--harness` 載入包（準則＋提示模板）
+- CLI：`chief harness list|export|import`、`chief evals build|run [--doctrine 壞準則] [--rollback]`、`chief stats`、`chief acceptance --battles N`
+- 規則 §12；`samples/bad_doctrine.md`；測試 99 → 106；三審（code-reviewer／test-automator／PRD 符合度）啟動
+
 ## 2026-11-01（第十七次）— 06 審查修正
 - 審查員 9 項：準則刪除改「整行相同或 ≥8 字子字串、每條最多刪一行」（原本 "e" 會清空整份）、戰後 LLM 呼叫全部計費（phase=aar）並進帳本、2,000 字上限改為硬保證且剛新增的不淘汰、英文兩句截斷修正（小數、縮寫、空白）、手改準則的標題辨識與未知段落保留、自動模式不呼叫 LLM、討論數字越界重問、開局引用不含日期、標題 escape、aar.json 含完整卡
 - 文件：03 徽章與 AAR 模型說明對齊程式；§11 補規則；README 加指令速查；測試 95 → 99

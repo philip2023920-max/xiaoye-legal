@@ -17,8 +17,18 @@ def load_doctrine(path: str | Path) -> str:
     return p.read_text(encoding="utf-8-sig")
 
 
+_template_override: Path | None = None
+
+
+def use_template(path: str | Path | None) -> None:
+    """參謀長包可帶自己的系統提示模板（harness/<name>/prompts/chief_system.md）。"""
+    global _template_override
+    _template_override = Path(path) if path else None
+
+
 def system_prompt(doctrine: str, lang: str = "zh-TW") -> str:
-    template = SYSTEM_TEMPLATE_PATH.read_text(encoding="utf-8")
+    src = _template_override if (_template_override and _template_override.exists()) else SYSTEM_TEMPLATE_PATH
+    template = src.read_text(encoding="utf-8-sig")
     return template.replace("{language}", LANG_NAME.get(lang, lang)).replace("{doctrine}", doctrine.strip())
 
 
