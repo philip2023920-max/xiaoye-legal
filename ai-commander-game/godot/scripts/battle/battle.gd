@@ -9,6 +9,7 @@ extends Node3D
 @export var era: String = "ww2_1944"
 @export var auto_advance: bool = true
 @export var use_cmdline_args: bool = true     # 工具與測試自己設定屬性時關掉，避免命令列引數污染
+@export var stress: int = 0                     # 施工單 15：額外擺 stress×72 個不動的方塊人（純畫面負載），命令列 -- stress=5
 @export var snapshot_dir: String = "user://battles"   # 每 30 秒一份快照到 <snapshot_dir>/<battle_id>-<難度>/t<n>.json；"" 不寫
 @export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
 const WRITE_INTERVAL := 0.1
@@ -43,6 +44,8 @@ func _ready() -> void:
 				difficulty = a.trim_prefix("difficulty=")
 			elif a.begins_with("friendly="):
 				friendly_path = a.trim_prefix("friendly=")
+			elif a.begins_with("stress="):
+				stress = int(a.trim_prefix("stress="))
 	difficulty = Director.normalize_difficulty(difficulty)
 	if enemy_path == "":
 		enemy_path = Director.enemy_path_for(difficulty)
@@ -67,6 +70,8 @@ func _ready() -> void:
 	if board_out != "":
 		print("戰情板輸出：", ProjectSettings.globalize_path(board_out), "（每 %.1f 秒）" % WRITE_INTERVAL)
 	_add_tracers()
+	if stress > 0:
+		_add_stress_men()
 	_add_hud()
 	# 掩體進物理世界後才能烘焙尋路格
 	await get_tree().physics_frame
@@ -89,6 +94,31 @@ func _physics_process(delta: float) -> void:
 	if _write_acc >= WRITE_INTERVAL - 1e-6 and writer != null and board_out != "":
 		_write_acc -= WRITE_INTERVAL
 		writer.write(board_out)
+
+## 壓力模式：在地圖上均勻撒 stress×72 個不動的方塊人，只量畫面負載（不進 Orbat、不耗邏輯）。
+func _add_stress_men() -> void:
+	var holder := Node3D.new()
+	holder.name = "StressMen"
+	add_child(holder)
+	var rect := sector_map.world_rect()
+	var total := stress * 72
+	var cols := ceili(sqrt(float(total)))
+	for i in total:
+		var man := Soldier.new()
+		var x := rect.position.x + 2.0 + (i % cols) * (rect.size.x - 4.0) / maxf(1.0, float(cols))
+		var z := rect.position.y + 2.0 + floori(i / float(cols)) * (rect.size.y - 4.0) / maxf(1.0, float(cols))
+		man.setup("infantry" if i % 7 != 0 else "tank", "us" if i % 2 == 0 else "enemy", Vector3(x, 0.0, z))
+		holder.add_child(man)
+
+## 畫面上的方塊人總數（部隊＋壓力模式）。
+func soldier_count() -> int:
+	var n := 0
+	if orbat != null:
+		n += orbat.total_soldiers("us") + orbat.total_soldiers("enemy")
+	var holder := get_node_or_null("StressMen")
+	if holder != null:
+		n += holder.get_child_count()
+	return n
 
 ## 射線：這一秒的交火畫成細線（無貼圖、不發光）。
 func _add_tracers() -> void:
@@ -165,7 +195,8 @@ func _status_text(mouse_desc: String) -> String:
 	var tod: String = str({"day": "日", "night": "夜"}.get(orbat.time_of_day, orbat.time_of_day)) if orbat else ""
 	var left: int = maxi(0, int(Director.TURN_SECONDS) * Director.MAX_TURNS - (orbat.second() if orbat else 0))
 	var left_text := "已結束" if (director != null and director.finished) else "剩 %d 秒" % left
-	return "%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
+	var fps := Engine.get_frames_per_second()
+	return "%d FPS｜%d 人｜%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [fps, soldier_count(), board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
 
 func _score_text() -> String:
 	var su := 0

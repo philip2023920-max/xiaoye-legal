@@ -66,7 +66,7 @@ markmap:
 - 單位：膠囊體＋方塊頭；兵種七種（步兵、機槍、迫砲、反戰車、戰車、偵察、工兵） ⬜
 - 地圖：平面＋據點＋方塊掩體 ⬜
 - 敵方：固定劇本 AI，三級難度 easy／normal／hard（對決模式時換成另一個參謀長） ✅ → docs/10-sim-rules.md
-- 效能目標：會戰規模 60 FPS，2018 內顯筆電 ⬜
+- 效能目標：會戰規模 60 FPS，2018 內顯筆電（CPU 側已驗 0.34 ms/tick；畫面待讀數） 🟡 → docs/issues/15-godot-performance.md
 - 戰鬥模型 v1（ADR-0013，資料表驅動；完成並真機驗證；平衡待調） ✅ → docs/10-sim-rules.md
   - 兵種七種 × 屬性；點數預算部署配比＋三種範本（D11）
   - 科技世代：二戰 1944 先做；早期／晚期冷戰預留表格（D12）
@@ -146,8 +146,9 @@ markmap:
   - 施工單 12 戰鬥解算（30 秒回合快照、與 M0 四位小數全同；審查 14 項已修；老闆本機交火驗收） ✅ → docs/issues/12-godot-combat.md
   - 施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒寫 board.json；老闆本機 chief show 讀到） ✅ → docs/issues/13-godot-board-writer.md
   - D22 落單殘排潰散後逃得掉：維持（三難度與 M0 同趨勢） ✅ → docs/05-decisions.md
-  - 施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；審查 9 項已修；煙霧測試 24 項；待老闆 F5） 🟡 → docs/issues/14-godot-battle-director.md
-  - 施工單 15 效能 ⬜ → docs/issues/15-godot-performance.md
+  - 施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；審查 9 項已修；老闆本機打完一場並回放） ✅ → docs/issues/14-godot-battle-director.md
+  - 施工單 15 效能（HUD FPS 與人數、壓力模式、CPU 基準 0.34 ms/tick＝預算 2%、守門測試；畫面 FPS 待老闆讀數） 🟡 → docs/issues/15-godot-performance.md
+  - M1 驗收「5 分鐘會戰無 LLM 打完」老闆本機達成 ✅
   - 環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json ⬜
 - M2 參謀長接入＋玩家接管 UI（4 週） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
