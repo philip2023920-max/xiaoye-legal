@@ -103,7 +103,7 @@ def card_dict(card: BattleCard) -> dict:
     return {"battle_id": card.battle_id, "winner": card.winner, "score": [card.score_us, card.score_enemy], "turns": card.turns,
             "end_reason": card.end_reason, "overrides": card.overrides, "override_rate": card.override_rate, "cost_usd": card.cost_usd,
             "provider": card.provider, "model": card.model, "badges": [b.id for b in card.badges],
-            "moments": [m.__dict__ for m in card.moments], "chief_line": card.chief_line}
+            "moments": [m.__dict__ for m in card.moments], "chief_line": card.chief_line, "at": __import__("time").time()}
 
 
 def card_summary_text(card: BattleCard) -> str:

@@ -84,6 +84,8 @@ def cmd_play(args: argparse.Namespace) -> int:
     from .prompts import use_template
     evals_dir = None
     doctrine_path = args.doctrine
+    if args.doctrine != "harness/default/doctrine.md" and args.harness == "default":
+        args.harness = ""   # 老闆明確指定 --doctrine 時，不要被預設的參謀長包蓋掉
     if args.harness:
         try:
             h = load_harness(args.harness)
@@ -109,6 +111,8 @@ def cmd_play(args: argparse.Namespace) -> int:
     prices_path = args.prices or (os.path.join(os.path.dirname(__file__), "prices.json"))
     prices = PriceTable(prices_path)
     ledger = Ledger(args.ledger) if args.ledger else None
+    if not args.out:
+        args.out = str(Path("battles") / f"{board.battle_id}-{time_tag()}")   # 每場自己的資料夾，不互相覆蓋
     run_play(gateway, board, enemy, doctrine, lang=args.lang, seed=args.seed, out_dir=args.out,
              prices=prices, console=console, verbose=args.verbose, quiet=args.quiet,
              budget_usd=args.budget, ledger=ledger, auto=args.auto,
@@ -182,9 +186,11 @@ def cmd_evals(args: argparse.Namespace) -> int:
         console.print(f"[bold]{msg}[/]；退回率 {res.rejected_pct}%（{res.rejected_orders}/{res.total_orders}）")
         for d in res.details:
             console.print(f"  {'✅' if d['aligned'] else '❌'} {d['case']}：期望 {d['expected']}；參謀長 {', '.join(d['got']) or '（無）'}{('；' + d['error']) if d['error'] else ''}", markup=False)
-        if regressed and args.rollback:
+        if regressed and args.rollback and not args.doctrine:   # 試水溫（--doctrine）不碰真準則
             if store.undo():
                 console.print("[yellow]退步 → 已回滾準則到上一版。[/]")
+        elif regressed and args.doctrine:
+            console.print("[yellow]這是試水溫，真準則未變。[/]")
         elif not regressed and not args.doctrine:
             save_result(res, h.evals_dir / "last.json")
             console.print(f"[dim]已記錄為最新成績：{h.evals_dir / 'last.json'}[/]")
@@ -225,7 +231,7 @@ def cmd_acceptance(args: argparse.Namespace) -> int:
 
 def time_tag() -> str:
     import time
-    return time.strftime("%m%d-%H%M")
+    return time.strftime("%m%d-%H%M%S")
 
 
 def cmd_doctrine(args: argparse.Namespace) -> int:

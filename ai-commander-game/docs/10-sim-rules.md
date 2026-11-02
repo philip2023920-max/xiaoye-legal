@@ -135,5 +135,6 @@ M0 敵方不用 AI，走 `samples/enemy_script.json`：`units` 是敵方初始�
 - **回歸**＝用現在的準則，把戰例裡的單位還給參謀長、重問同一局；參謀長（或其上級）對該單位下的令與玩家當時的令「任務與目標都相同」就算**對齊**。
 - **成績**：對齊率＝對齊數 ÷ 戰例數；退回率＝被驗證器退回的命令 ÷ 命令總數。
 - **退步**：對齊率比上一版低超過 5 個百分點。採納準則後自動回歸，退步就回滾（`doctrine undo`）並作廢該次採納；`chief evals run --doctrine samples/bad_doctrine.md` 可拿壞準則試水溫（不記成績）。
-- **參謀長包**：`harness/<名稱>/`＝manifest.json、doctrine.md、prompts/chief_system.md、evals/；`chief harness export` 打包成 zip（不含金鑰、不含 .prev），`import` 驗 manifest 與路徑安全。
+- **參謀長包**：`harness/<名稱>/`＝manifest.json（含 suggested_provider）、doctrine.md、prompts/chief_system.md、evals/；`chief harness export` 打包成 zip（不含金鑰、不含 doctrine.prev.md 與 evals/prev.json、不含快取），`import` 驗 manifest、files.* 路徑必須在包內、zip 路徑與大小安全。
+- **基準與公平**：成績記模型；沒有同模型基準時，採納前先用舊準則跑一次建立基準；本次 0 個戰例或過半無回應時「無法判定」不算退步；試水溫（`--doctrine`）不記成績也不回滾。戰例在回歸之後才寫入戰例庫，基準與本次用同一組戰例。每場戰鬥存在各自的 `battles/<id>-<時間>/`，戰例 id 以資料夾名區分。
 - **推翻率曲線**：`chief stats` 從 `battles/*/aar.json` 列出歷史戰鬥；`chief acceptance --battles 5` 連打 5 場並印曲線，M0 驗收目標是首場到末場下降。

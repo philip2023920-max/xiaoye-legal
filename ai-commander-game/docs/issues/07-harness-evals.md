@@ -17,7 +17,7 @@
 - [ ] 三審（code-reviewer／test-automator／PRD 符合度）報告附在 `docs/qa/m0-review.md`
 
 ## 30 秒驗收腳本
-`uv run chief acceptance --provider ollama` → 看到 5 場摘要表與推翻率曲線 → `uv run chief evals run` → 看到「預測推翻率 xx%，與上版相比 ±x」。
+`uv run chief acceptance --provider ollama --battles 5` → 看到 5 場摘要表與推翻率曲線 → `uv run chief evals run --provider ollama` → 看到「對齊率 xx%（基準 模型 yy%，±x 點）」與退回率。
 
 ## 預估檔案
 `chief/harness.py`、`chief/evals.py`、`chief/acceptance.py`、`tests/test_harness.py`、`tests/test_evals.py`、`docs/qa/m0-review.md`

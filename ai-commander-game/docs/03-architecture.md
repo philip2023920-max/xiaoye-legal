@@ -122,17 +122,17 @@ TABS 式「每個人都是布娃娃」只在遭遇戰規模成立；會戰以上
 
 ```
 harness/<名稱>/
-  manifest.json     名稱、版本、作者、適用規模、語言
-  doctrine.md       作戰準則
+  manifest.json     名稱、版本、作者、適用規模、語言、建議供應商與模型（suggested_provider；不含金鑰）
+  doctrine.md       作戰準則（doctrine.prev.md 為上一版，不打包）
   prompts/          系統提示模板（英文為主，附語言指令）
-  provider.json     建議供應商與模型（不含金鑰）
-  evals/            戰例庫成績（採納率、模擬戰果）
+  evals/            戰例庫 cases.jsonl 與成績 last.json（對齊率、退回率；§12）
 ```
+（M0 實作：manifest 的 files.* 路徑必須留在包內，匯入時先驗證再搬入；zip 有大小與數量上限。）
 
 - 匯出＝打包成 zip；匯入＝解壓驗證 manifest。
 - **參謀長對決**：遊戲同時開兩個閘道實例，各讀一個包、各指揮一方；玩家可旁觀或接管一方。
 - **官方挑戰包**：老闆釋出的參謀長包放在 GitHub Releases，遊戲內可一鍵下載。
-- 對決不設限制（ADR-0010）：任何包搭任何模型。對決畫面與排行榜必須顯示雙方模型與每場花費，讓「DeepSeek vs Fable」本身成為看點。
+- 對決不設限制（ADR-0010）：任何包搭任何模型。對決畫面與排行榜必須顯示雙方模型與每場花費，讓「DeepSeek vs Fable」本身成為看點。回歸成績也記模型：不同模型的成績不互相判退步（`chief stats` 與回歸訊息都顯示模型）。
 
 ## Token 計量與費用估算（F13）
 

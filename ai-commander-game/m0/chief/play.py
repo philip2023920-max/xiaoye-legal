@@ -66,13 +66,14 @@ def run_play(
     budget_usd: float | None = None,
     ledger: Ledger | None = None,
     auto: bool = True,
-    input_fn=input,
+    input_fn=None,
     doctrine_path: str | Path | None = None,
     aar_gateway: Gateway | None = None,
     skip_aar: bool = False,
     evals_dir: str | Path | None = None,
 ) -> PlayResult:
     console = console or Console()
+    input_fn = input_fn or input   # 執行時才取 builtins.input（可被測試或 UI 替換）
     store = DoctrineStore(doctrine_path) if doctrine_path else None
     if store and not quiet:
         opening = store.opening_line()
@@ -175,13 +176,13 @@ def run_play(
     if result.budget_hit:
         console.print("[yellow]本場已達預算上限，參謀長中途暫停。[/]")
     console.print(f"[dim]快照、usage.jsonl、llm_log.jsonl 已存：{battle.out_dir}[/]")
-    if evals_dir and overrides.records:    # 這場的推翻進戰例庫（§12）
-        from .evals import build_cases_from_battle, save_cases
-        n = save_cases(build_cases_from_battle(battle.out_dir), Path(evals_dir) / "cases.jsonl")
-        console.print(f"[dim]戰例庫：本場新增 {len(overrides.records)} 筆，現有 {n} 筆[/]")
     if not skip_aar:
         result.card = _aar_flow(console, gateway, aar_gateway or gateway, battle, start_board, result, overrides, doctrine, store, lang, auto, input_fn, meter, ledger,
                                 evals_dir=evals_dir)
+    if evals_dir and overrides.records:    # 這場的推翻進戰例庫（§12）——放在回歸之後，讓基準與本次用同一組戰例
+        from .evals import build_cases_from_battle, save_cases
+        n = save_cases(build_cases_from_battle(battle.out_dir), Path(evals_dir) / "cases.jsonl")
+        console.print(f"[dim]戰例庫：本場新增 {len(overrides.records)} 筆，現有 {n} 筆（下次採納時用）[/]")
     return result
 
 
@@ -257,18 +258,29 @@ def regression_check(console, gateway, store, evals_dir: Path, lang: str, on_usa
     from .evals import compare, load_cases, load_result, run_evals, save_result
     cases = load_cases(evals_dir / "cases.jsonl")
     if not cases:
-        console.print(Text("戰例庫還是空的，略過回歸測試。", style="dim"))
+        console.print(Text("戰例庫還是空的，略過回歸測試（這場的推翻會進戰例庫，下次採納就有得比）。", style="dim"))
         return False
-    console.print(Text(f"戰例庫回歸：重跑 {len(cases)} 個戰例…", style="dim"))
-    res = run_evals(gateway, cases, store.load(), store.path.parent.name, lang, on_usage=on_usage)
     prev = load_result(evals_dir / "last.json")
+    if not prev or prev.get("model") != gateway.model:
+        # 沒有同模型的基準：先用「採納前」的準則跑一次當基準（多 ≤10 次呼叫，只在第一次）
+        console.print(Text(f"沒有 {gateway.model} 的基準成績，先用上一版準則建立基準（{len(cases)} 個戰例）…", style="dim"))
+        base_text = store.prev.read_text(encoding="utf-8") if store.prev.exists() else store.load()
+        base = run_evals(gateway, cases, base_text, store.path.parent.name, lang, on_usage=on_usage)
+        if base.cases:
+            save_result(base, evals_dir / "last.json")
+            prev = load_result(evals_dir / "last.json")
+    console.print(Text(f"戰例庫回歸：用新準則重跑 {len(cases)} 個戰例…", style="dim"))
+    res = run_evals(gateway, cases, store.load(), store.path.parent.name, lang, on_usage=on_usage)
     regressed, msg = compare(prev, res)
     console.print(Text(f"回歸結果：{msg}；退回率 {res.rejected_pct}%", style="red" if regressed else "green"))
     if regressed:
-        store.undo()
-        console.print(Text("準則退步，已自動回滾到上一版（這次採納作廢）。", style="yellow"))
+        if store.undo():
+            console.print(Text("準則退步，已自動回滾到上一版（這次採納作廢）。", style="yellow"))
+        else:
+            console.print(Text("準則退步，但找不到上一版可回滾，請手動檢查準則。", style="red"))
         return True
-    save_result(res, evals_dir / "last.json")
+    if "無法判定" not in msg:
+        save_result(res, evals_dir / "last.json")
     return False
 
 

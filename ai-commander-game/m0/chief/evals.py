@@ -71,7 +71,7 @@ def build_cases_from_battle(battle_dir: str | Path) -> list[EvalCase]:
             continue
         board = json.loads(snap.read_text(encoding="utf-8-sig"))
         ai = r.get("ai_order") or {}
-        cases.append(EvalCase(id=f"{board.get('battle_id', d.name)}-t{r['turn']}-{r['unit_id']}", battle_id=board.get("battle_id", d.name),
+        cases.append(EvalCase(id=f"{d.name}-t{r['turn']}-{r['unit_id']}", battle_id=board.get("battle_id", d.name),
                               turn=r["turn"], unit_id=r["unit_id"], player_task=r["player_order"]["task"], player_target=r["player_order"]["target"],
                               ai_task=ai.get("task") or ai.get("type"), ai_target=ai.get("target"), outcome=r.get("outcome"), board=board))
     return cases
@@ -145,13 +145,19 @@ def run_evals(gateway, cases: list[EvalCase], doctrine: str, harness_name: str, 
 
 
 def compare(previous: dict | None, current: EvalResult) -> tuple[bool, str]:
-    """回傳（是否退步, 說明）。退步＝對齊率比上次低超過 5 個百分點。"""
+    """回傳（是否退步, 說明）。退步＝對齊率比上一版低超過 5 個百分點。
+    無法判定（本次 0 個戰例、或過半戰例參謀長無回應、或基準是別的模型）一律不算退步。"""
+    errors = sum(1 for d in current.details if d.get("error"))
+    if current.cases == 0 or (current.details and errors * 2 > len(current.details)):
+        return False, f"無法判定：本次 {current.cases} 個戰例、{errors} 個無回應（不算退步，不更新基準）"
     if not previous or not previous.get("cases"):
-        return False, f"對齊率 {current.aligned_pct}%（{current.aligned}/{current.cases}），無上一版可比"
+        return False, f"對齊率 {current.aligned_pct}%（{current.aligned}/{current.cases}），無上一版可比，記為基準"
+    if previous.get("model") and previous.get("model") != current.model:
+        return False, f"對齊率 {current.aligned_pct}%；基準是 {previous.get('model')}，本次是 {current.model}，不同模型不判退步"
     prev_pct = round(100.0 * previous["aligned"] / previous["cases"], 1)
     delta = round(current.aligned_pct - prev_pct, 1)
     regressed = delta < -REGRESSION_POINTS
-    return regressed, f"對齊率 {current.aligned_pct}%（上一版 {prev_pct}%，{'+' if delta >= 0 else ''}{delta} 點）{'→ 退步' if regressed else ''}"
+    return regressed, f"對齊率 {current.aligned_pct}%（基準 {previous.get('model', '?')} {prev_pct}%，{'+' if delta >= 0 else ''}{delta} 點）{'→ 退步' if regressed else ''}"
 
 
 def save_result(res: EvalResult, path: str | Path, keep_prev: bool = True) -> None:

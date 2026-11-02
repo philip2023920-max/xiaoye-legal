@@ -23,7 +23,7 @@ def battle_stats(battles_root: str | Path = "battles") -> list[dict]:
             continue
         rows.append({"dir": d.name, "winner": card.get("winner"), "score": card.get("score"), "turns": card.get("turns"),
                      "override_rate": card.get("override_rate"), "cost": card.get("cost_usd", 0.0), "model": card.get("model"),
-                     "at": aar.stat().st_mtime})
+                     "at": card.get("at") or aar.stat().st_mtime})
     rows.sort(key=lambda r: r["at"])
     return rows
 

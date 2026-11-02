@@ -45,6 +45,25 @@ def test_cases_built_from_overrides_and_capped_at_ten(tmp_path):
     assert len(load_cases(p)) == 10
 
 
+def test_two_battles_on_same_board_give_two_cases(tmp_path):
+    play_with_override(tmp_path, "b1"); play_with_override(tmp_path, "b2")
+    p = tmp_path / "cases.jsonl"
+    for d in ("b1", "b2"):
+        save_cases(build_cases_from_battle(tmp_path / d), p)
+    assert len(load_cases(p)) == 2
+
+
+def test_compare_refuses_to_judge_without_cases_or_with_other_model():
+    empty = EvalResult(harness="t", provider="fake", model="m", cases=0, aligned=0, rejected_orders=0, total_orders=0)
+    assert compare({"cases": 4, "aligned": 4, "model": "m"}, empty)[0] is False
+    other = EvalResult(harness="t", provider="fake", model="m2", cases=2, aligned=0, rejected_orders=0, total_orders=2)
+    regressed, msg = compare({"cases": 4, "aligned": 4, "model": "m"}, other)
+    assert regressed is False and "不同模型" in msg
+    noisy = EvalResult(harness="t", provider="fake", model="m", cases=2, aligned=0, rejected_orders=0, total_orders=0,
+                       details=[{"error": "x"}, {"error": "y"}])
+    assert compare({"cases": 4, "aligned": 4, "model": "m"}, noisy)[0] is False
+
+
 def test_run_evals_alignment_and_regression_compare(tmp_path):
     play_with_override(tmp_path)
     cases = build_cases_from_battle(tmp_path / "b")
@@ -81,6 +100,24 @@ def test_adoption_regression_rolls_back_bad_doctrine(tmp_path):
     assert doc.read_text(encoding="utf-8") == before
 
 
+def test_cmd_acceptance_runs_two_fake_battles(tmp_path, monkeypatch, capsys):
+    import shutil
+    from chief.cli import main
+    harness_root = tmp_path / "harness"; (harness_root / "default").mkdir(parents=True)
+    src = Path(__file__).resolve().parent.parent / "harness" / "default"
+    for f in ("manifest.json", "doctrine.md"):
+        shutil.copy(src / f, harness_root / "default" / f)
+    (tmp_path / "samples").mkdir()
+    for f in ("board_start.json", "enemy_script.json"):
+        shutil.copy(SAMPLES / f, tmp_path / "samples" / f)
+    monkeypatch.chdir(tmp_path)
+    answers = iter(["q", "s", "q", "s"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers, ""))
+    assert main(["acceptance", "--provider", "fake", "--battles", "2", "--quiet"]) == 0
+    out = capsys.readouterr().out
+    assert "M0 驗收：推翻率曲線" in out and len(list((tmp_path / "battles").glob("acceptance-*"))) == 2
+
+
 def test_stats_curve_from_aar_files(tmp_path):
     for i, rate in enumerate(["2/4", "1/4", "0/4"], 1):
         d = tmp_path / f"b{i}"; d.mkdir()
@@ -105,8 +142,13 @@ def test_cli_evals_build_run_and_stats(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["evals", "build", "--battles", str(tmp_path)]) == 0
     assert "戰例庫現有 1 筆" in capsys.readouterr().out
-    assert main(["evals", "run", "--provider", "fake"]) in (0, 2)
+    assert main(["evals", "run", "--provider", "fake"]) == 0                     # 無基準：記為基準，不退步
     out = capsys.readouterr().out
     assert "對齊率" in out and (harness_root / "default" / "evals" / "last.json").exists()
+    # 試水溫：壞準則 + --rollback 不得動真準則
+    bad = tmp_path / "bad.md"; bad.write_text("# bad\n", encoding="utf-8")
+    doc = harness_root / "default" / "doctrine.md"; before = doc.read_text(encoding="utf-8")
+    main(["evals", "run", "--provider", "fake", "--doctrine", str(bad), "--rollback"])
+    assert doc.read_text(encoding="utf-8") == before and not doc.with_suffix(".prev.md").exists()
     assert main(["stats", "--battles", str(tmp_path)]) == 0
     assert "推翻率" in capsys.readouterr().out
