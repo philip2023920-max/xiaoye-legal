@@ -1,6 +1,6 @@
 # 19 推翻與接管 UI
 
-> 狀態：🟡 程式完成（2026-11-04）；三審第一輪 10 項（2 必修＋8 建議）已修，`tests/test_override.gd` 45 檢查全過（含真的啟動 chief serve 驗 /override 與 /release），待重審。ADR-0015（D29）；規則 docs/10 §9、§10 V2、§16。
+> 狀態：✅ 2026-11-04 結案：三審兩輪（10＋2 項）全部修正，`tests/test_override.gd` 46 檢查（含真的啟動 chief serve 驗 /override 與 /release）；m0 207 過。ADR-0015（D29）；規則 docs/10 §9、§10 V2、§16。
 
 **重用**：骨架 `RTSCameraRig.ground_at`／`screen_position`／`is_on_screen`（點地圖選分區、投影挑排——骨架 `RTSSelection` 的挑法，但不掛它：它的右鍵下令／框選／控制組與任務式命令衝突）；M1 `Orbat.apply_orders(issuer="player")`、`order_problem`、`controlled_by`、`children_of`；16 的 `/override` 與後果判定、新加的 `/release`。自製：`scripts/ui/override_flow.gd`（`OverrideFlow` 狀態機）、`scripts/ui/override_panel.gd`（`OverridePanel`）、`Platoon` 的環（`TorusMesh`：直轄金、選取白、兩者亮金；參謀長指揮且沒選＝隱藏）、`battle.gd` 的點選與下令流程。
 
@@ -27,3 +27,7 @@ cd godot; & "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --pa
 ## 三審第一輪（2026-11-04，code-reviewer 軸）→ 2 必修＋8 建議全部修正
 - 必修：服務的計數只看單位本身 → `override()` 把整棵子樹記進直轄清單、上級連直轄則改排不算、`release()` 每個 id 都處理（Godot 放手連會把子排一起送）並記「明確放手」，m0 補三個情境測試（接管連→放手連→接管子排算第 2 次；接管排→放手→接管連→改排不算；接管連→放手一排→再接管那排算）；Godot 沒有 V6（潰散只能撤退）→ `Orbat.order_problem` 加 V6、面板潰散排只開「撤退」、服務回 4xx 時客戶端收回直轄並寫「推翻沒記錄到，已收回直轄（原因）」。
 - 建議：挑排半徑＝max(28 px, 4.5 公尺投影)（放大後點到士兵也選得到）；放手連底下一個排 → 連不再整個直轄（連 player ⇔ 全部子排 player）；面板每 0.5 秒刷新（選中的排殲滅／任務被改會更新）；會戰結束後不再接管；事件文字用 `tr("UI_TASK_*")`（en 介面不再中英夾雜）、推翻後果事件 kind 改 `override`（與 M0 同）；連不能支援自己的子排；殲滅且無分區的排接管回 false；docs/12 端點樹補 `/release`。
+
+## 三審第二輪（驗證）→ 修 2 項後結案
+- 服務重複計數：接管連 → 放手一排 → 再接管那排 → 再對連下令又算一次 → 連底下每個排都已直轄時再下連令不算（`all_leaves_player`；m0 測試補一條）。
+- 面板放不了手：連本身是參謀長指揮但底下有直轄排時「放手」鈕灰 → `unit_info` 給連加 `any_player`，面板依它開放手鈕（Godot 測試補一條）。

@@ -1,6 +1,6 @@
 # 18 戰情板側欄 UI
 
-> 狀態：🟡 程式完成（2026-11-04）；三審兩輪（第一輪 14 項：12 修＋2 延到 21；第二輪 4 補強＋5 小項）已修，`tests/test_sidebar.gd` 44 檢查全過，待確認。決策 D26（內建 Control）、D27（三語字串表）見 docs/12 §1（ADR-0015 採納）。
+> 狀態：✅ 2026-11-04 結案：三審三輪（14＋9＋3 項）全部修正，`tests/test_sidebar.gd` 44 檢查；真機請看一眼 █／★／👍 字形。決策 D26（內建 Control）、D27（三語字串表）見 docs/12 §1（ADR-0015 採納）。
 
 **重用**：Godot `Tree`、`RichTextLabel`、`PanelContainer`、`TranslationServer`；M1 的 `BoardWriter.to_dict()`（側欄讀同一份字典，不另造資料）；骨架 `RTSCameraRig.look_at_ground`。自製：`scripts/ui/sidebar.gd`（`Sidebar`）、`scripts/ui/i18n.gd`（`UiText`：執行期把 `i18n/ui.csv` 載進 TranslationServer，不用 Godot 的 CSV 匯入器、不產二進位 .translation）、`i18n/ui.csv`（三語一次齊；19 之後 60 鍵）。
 
@@ -25,3 +25,6 @@ cd godot; & "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --pa
 ## 三審第二輪 → 4 補強＋5 小項全部修正
 - 補強：釋放守門是死碼（標型別的賦值遇到已釋放的項直接拋錯）→ 不標型別＋`is_instance_valid`，補「連＋子排同時消失」測試；收合後側欄仍是 73×720 整條（右邊點不到、邊緣捲動永遠失效）→ 收合時 `anchor_bottom=0` 只剩按鈕；HUD 寬只在建立時算一次（縮到 1024 又蓋住側欄）→ `size_changed` 重算；樹只有 140 px → 樹 `EXPAND_FILL` 比例 2、最小 200，參謀長區最多 5 行、最近命令同一行、據點同一行、天氣與費用合併一行，M2 常態（研判兩行＋三條命令）內容裝進捲動區（測試實量）。
 - 小項：第二行 y 依狀態行實際高度推；邊緣捲動加玩家層級開關（21 用）；測試改在 1280×720 量（HUD 寬 816、縮到 1024 → 560、側欄 (840,0,440,720)、收合矩形）；`_status_text` 用 `battle_seconds()`；文件措辭。真機請看一眼 █／★／👍 字形是否顯示（無頭容器沒有系統字型）。
+
+## 三審第三輪（驗證）→ 可結案；順手修 3 小項
+- 參謀長區 5 行在 M2 常態（研判兩行）會截掉最近命令 → 6 行（實量仍裝得下）；殘留的空操作行刪掉；en 標點純外觀留 21。

@@ -2,7 +2,8 @@ class_name Battle
 extends Node3D
 ## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14；
 ## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）；右側戰情板側欄在 18；
-## 推翻與接管（點排／點側欄 → 面板 → 點地圖選目標 → 直轄、/override）在 19；戰後 AAR 畫面（卡 → 討論 → 提案 → 採納）在 20。
+## 推翻與接管（點排／點側欄 → 面板 → 點地圖選目標 → 直轄、/override）在 19；戰後 AAR 畫面（卡 → 討論 → 提案 → 採納）在 20；
+## 設定頁（Esc）、費用 HUD、三語 HUD 在 21（設定存 user://settings.json，供應商／模型／語言／預算即時送服務）。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
 @export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
@@ -27,6 +28,9 @@ extends Node3D
 @export var chief_autostart: bool = true      # _ready 時自動啟動；測試關掉自己 await start_chief()
 @export_group("側欄（施工單 18）")
 @export var sidebar_enabled: bool = true
+@export_group("設定（施工單 21）")
+@export var settings_path: String = "user://settings.json"   # 玩家設定；F5（use_cmdline_args）時覆寫上面的 chief_* 預設，命令列再覆寫
+const STATUS_INTERVAL := 30.0
 const WRITE_INTERVAL := 0.1
 const SIDEBAR_INTERVAL := 0.5
 const CHIEF_BOOT_TIMEOUT_S := 10.0
@@ -65,6 +69,20 @@ var override_rate := ""               # 服務回的「推翻數／參謀長放�
 var last_override := {}               # 最近一次 /override 的回應（測試看）
 var overrides_sent := 0
 var edge_scroll_setting := true       # 玩家層級的邊緣捲動開關（設定頁 21 可關）；滑鼠在 UI 上時另外暫停
+var settings := {}                    # 施工單 21：GameSettings（正規化過）
+var settings_page: SettingsPage = null
+var cost_hud: CostHud = null
+var chief_effort := ""                # 由設定來（命令列沒有）
+var chief_aar_provider := ""
+var chief_aar_model := ""
+var key_flags := {}                   # /health 的 keys（只有已設定／未設定）
+var status_today := 0.0               # GET /status 每 30 秒
+var status_month := 0.0
+var status_budget_hit := false
+var last_tokens := 0                  # 最近一拍 prompt+completion（本地模型 HUD 用）
+var last_latency := 0.0
+var _status_acc := 0.0
+var _hud: CanvasLayer = null
 var aar: AarScreen = null             # 施工單 20：戰後畫面
 var aar_model := {}                   # AarScreen.render 的資料（服務回的東西 + 流程狀態）
 var _aar_started_msec := 0
@@ -78,7 +96,9 @@ func _ready() -> void:
 	rules = Rules.load_era(str(board.get("era", era)))
 	if rules == null:
 		return
-	if use_cmdline_args:
+	settings = GameSettings.load(settings_path)
+	if use_cmdline_args:                       # 真遊戲：設定檔覆寫場景預設，命令列再覆寫設定檔；工具與測試自己設屬性
+		_apply_settings_to_exports(settings)
 		for a in OS.get_cmdline_user_args():
 			if a.begins_with("difficulty="):
 				difficulty = a.trim_prefix("difficulty=")
@@ -238,6 +258,7 @@ func _add_hud() -> void:
 	var hud := CanvasLayer.new()
 	hud.name = "HUD"
 	add_child(hud)
+	_hud = hud
 	hud_label = Label.new()
 	hud_label.name = "Status"
 	hud_label.position = Vector2(12, 10)
@@ -261,6 +282,18 @@ func _add_hud() -> void:
 	chief_label.text = chief_hud_text()
 	hud.add_child(chief_label)
 	get_viewport().size_changed.connect(_relayout_hud)              # 視窗縮放：兩行寬度重算，不然又蓋到側欄
+	cost_hud = CostHud.new()
+	cost_hud.position = Vector2(12, 82)
+	cost_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cost_hud.custom_minimum_size = Vector2(hud_text_width(), 0.0)
+	cost_hud.size = Vector2(hud_text_width(), 0.0)
+	hud.add_child(cost_hud)
+	update_cost_hud()
+	_build_ui()
+
+## 側欄、面板、戰後畫面、設定頁：語言切換時整組重建（_init 時翻好的字串不會自己換）。
+func _build_ui() -> void:
+	var hud := _hud
 	if sidebar_enabled:
 		sidebar = Sidebar.new()
 		sidebar.unit_selected.connect(_on_sidebar_unit_selected)
@@ -282,17 +315,41 @@ func _add_hud() -> void:
 	aar.undo_pressed.connect(aar_undo)
 	aar.again_pressed.connect(restart)
 	hud.add_child(aar)
+	settings_page = SettingsPage.new()
+	settings_page.saved.connect(apply_settings)
+	settings_page.set_key_flags(key_flags)
+	hud.add_child(settings_page)
+
+## 語言改了：把舊的 UI 收掉、重建、把目前狀態畫回去。
+func rebuild_ui() -> void:
+	for n in [sidebar, panel, aar, settings_page]:
+		if n != null:
+			n.name = n.name + "_old"
+			n.queue_free()
+	_build_ui()
+	refresh_panel()
+	if not aar_model.is_empty() and aar != null:
+		aar.render(aar_model)
+	refresh_hud_texts()
+
+## HUD 兩行與費用：無頭時 _process 不跑，這裡手動刷新（語言切換、測試）。
+func refresh_hud_texts() -> void:
+	if hud_label != null:
+		hud_label.text = _status_text("")
+	if chief_label != null:
+		chief_label.text = chief_hud_text()
+	update_cost_hud()
 
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
 	var en := orbat.total_strength("enemy") if orbat else 0.0
-	var wx: String = str({"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(orbat.weather, orbat.weather)) if orbat else ""
-	var tod: String = str({"day": "日", "night": "夜"}.get(orbat.time_of_day, orbat.time_of_day)) if orbat else ""
+	var wx := tr("UI_WEATHER_" + orbat.weather) if orbat else ""
+	var tod := tr("UI_TOD_" + orbat.time_of_day) if orbat else ""
 	var left: int = maxi(0, battle_seconds() - (orbat.second() if orbat else 0))
-	var left_text := "已結束" if (director != null and director.finished) else "剩 %d 秒" % left
+	var left_text := tr("UI_ENDED") if (director != null and director.finished) else tr("UI_TIME_LEFT_SHORT") % left
 	var fps := Engine.get_frames_per_second()
 	var frame_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0 + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
-	return "%d FPS（%.1f ms）｜%d 個方塊人｜%s｜%s｜t=%ds（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜空白鍵＝A 連奪取 C3｜R 重開" % [fps, frame_ms, soldier_count(), board.get("battle_id", ""), difficulty, orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc]
+	return tr("UI_HUD_STATUS") % [fps, frame_ms, soldier_count(), board.get("battle_id", ""), tr("UI_DIFF_" + difficulty), orbat.second() if orbat else 0, left_text, wx, tod, us, en, _score_text(), mouse_desc, tr("UI_HUD_HELP")]
 
 func _score_text() -> String:
 	var su := 0
@@ -317,16 +374,23 @@ func _process(_delta: float) -> void:
 	if chief_label != null:
 		chief_label.text = chief_hud_text()
 	_sidebar_acc += _delta
-	if sidebar != null and _sidebar_acc >= SIDEBAR_INTERVAL:
+	if _sidebar_acc >= SIDEBAR_INTERVAL:                                # 每 0.5 秒：側欄、面板、戰後計時器（側欄關掉也要走）
 		_sidebar_acc = 0.0
-		sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
+		if sidebar != null:
+			sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
 		refresh_panel()                                                 # 選中的排被殲滅／任務被參謀長改了，面板跟著變
-	if aar != null and aar.visible and _sidebar_acc == 0.0:
-		aar.set_duration(aar_duration(), float(aar_model.get("service_duration_s", -1.0)))
-	camera_rig.edge_scroll_enabled = edge_scroll_setting and not mouse_over_ui()
+		if aar != null and aar.visible:
+			aar.set_duration(aar_duration(), float(aar_model.get("service_duration_s", -1.0)))
+	camera_rig.edge_scroll_enabled = edge_scroll_setting and not mouse_over_ui()   # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
 	if chief_label != null and hud_label != null:
 		chief_label.position.y = hud_label.position.y + maxf(hud_label.size.y, 20.0) + 4.0   # 狀態行幾行就往下推幾行
-	camera_rig.edge_scroll_enabled = camera_rig.edge_scroll_enabled                # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
+		if cost_hud != null:
+			cost_hud.position.y = chief_label.position.y + maxf(chief_label.size.y, 20.0) + 4.0
+	_status_acc += _delta
+	if _status_acc >= STATUS_INTERVAL:                                              # 每 30 秒問一次今天／本月
+		_status_acc = 0.0
+		if chief_state == "online":
+			poll_status()
 
 ## 滑鼠：左鍵點排＝選取（開面板）；選目標中左鍵＝點分區／點友軍；右鍵＝取消選目標。鍵盤：空白鍵＝「A 連 奪取 C3」（施工單 11）；R 重開。
 func _unhandled_input(event: InputEvent) -> void:
@@ -349,7 +413,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if flow.is_picking():
 				flow.cancel()
 			else:
-				select_unit("")
+				toggle_settings()
 
 func _left_click(screen: Vector2) -> void:
 	if flow.state == "picking_unit":
@@ -422,7 +486,8 @@ func unit_info(unit_id: String) -> Dictionary:
 		return {"id": p.id, "name": p.display_name, "echelon": "platoon", "task": p.task, "controlled_by": p.controlled_by, "state": p.state}
 	if orbat.companies.has(unit_id):
 		var c: Dictionary = orbat.companies[unit_id]
-		return {"id": c["id"], "name": c["name"], "echelon": "company", "task": c["task"], "controlled_by": c["controlled_by"], "state": c["state"]}
+		var any_player := orbat.children_of(unit_id).any(func(p: Platoon) -> bool: return p.controlled_by == "player")
+		return {"id": c["id"], "name": c["name"], "echelon": "company", "task": c["task"], "controlled_by": c["controlled_by"], "state": c["state"], "any_player": any_player}
 	return {}
 
 func refresh_panel() -> void:
@@ -554,15 +619,11 @@ func start_chief() -> bool:
 	add_child(chief)
 	scheduler = TickScheduler.new()
 	chief_state = "starting"
-	chief_line = "參謀長服務啟動中…"
+	chief_line = tr("UI_CHIEF_STARTING")
 	if chief_url != "":
 		chief.connect_to(chief_url, chief_token)
 	else:
-		var extra := PackedStringArray(["--harness", chief_harness, "--lang", chief_lang])   # --parent-pid／--idle-exit 由 ChiefClient.launch 加
-		if chief_model != "":
-			extra.append_array(PackedStringArray(["--model", chief_model]))
-		if chief_budget >= 0.0:
-			extra.append_array(PackedStringArray(["--budget", str(chief_budget)]))
+		var extra := GameSettings.launch_args(current_chief_settings())             # --parent-pid／--idle-exit 由 ChiefClient.launch 加
 		extra.append_array(chief_extra)
 		if chief.launch(chief_provider, extra, chief_uv) <= 0:
 			return _chief_offline(chief.last_error)
@@ -570,19 +631,41 @@ func start_chief() -> bool:
 		return _chief_offline(chief.last_error)
 	if orbat == null:
 		return false
+	var hr: Dictionary = await chief.call_api("GET", "/health", {}, 3.0)             # 金鑰狀態（只有布林）給設定頁
+	if hr["code"] == 200:
+		key_flags = hr["body"].get("keys", {})
+		if settings_page != null:
+			settings_page.set_key_flags(key_flags)
 	var r: Dictionary = await chief.start_session(writer.to_dict(), {"lang": chief_lang})
 	if r["code"] != 200:
 		return _chief_offline("開局失敗：" + str(r["error"]))
 	chief_session = r["body"]
 	chief_state = "online"
 	var line := str(chief_session.get("opening_line", ""))
-	chief_line = ("參謀長：" + line) if line != "" else "參謀長就位（%s／%s）" % [chief_session.get("provider", "?"), chief_session.get("model", "?")]
+	chief_line = (tr("UI_CHIEF_PREFIX") % line) if line != "" else tr("UI_CHIEF_READY") % [chief_session.get("provider", "?"), chief_session.get("model", "?")]
 	orbat.log_event(orbat.second(), "info", chief_line)
+	update_cost_hud()
 	return true
+
+## 目前的參謀長設定（場景匯出值＋設定頁改過的），給啟動引數與 /settings 用。
+func current_chief_settings() -> Dictionary:
+	return GameSettings.normalize({"provider": chief_provider, "model": chief_model, "harness": chief_harness, "lang": chief_lang,
+		"budget_usd": chief_budget, "effort": chief_effort, "aar_provider": chief_aar_provider, "aar_model": chief_aar_model})
+
+func _apply_settings_to_exports(s: Dictionary) -> void:
+	var n := GameSettings.normalize(s)
+	chief_provider = n["provider"]
+	chief_model = n["model"]
+	chief_harness = n["harness"]
+	chief_lang = n["lang"]
+	chief_budget = n["budget_usd"]
+	chief_effort = n["effort"]
+	chief_aar_provider = n["aar_provider"]
+	chief_aar_model = n["aar_model"]
 
 func _chief_offline(why: String) -> bool:
 	chief_state = "offline"
-	chief_line = "參謀長服務沒起來：%s → 離線模式（劇本／空白鍵）" % why
+	chief_line = tr("UI_CHIEF_OFFLINE_WHY") % why
 	push_warning(chief_line)
 	if orbat != null:
 		orbat.log_event(orbat.second(), "info", chief_line)
@@ -608,13 +691,19 @@ func _chief_tick() -> void:
 	if chief_state != "online" or orbat == null:
 		return
 	if r["code"] != 200:
-		orbat.log_event(orbat.second(), "info", "參謀長無回應（%s）" % r["error"])
+		orbat.log_event(orbat.second(), "info", tr("UI_CHIEF_NO_REPLY") % r["error"])
 		if r["code"] == 409:
 			chief_state = "ended"
 		return
 	var body: Dictionary = r["body"]
 	chief_ticks += 1
 	chief_cost = float(body.get("cost_total_usd", chief_cost))
+	status_budget_hit = bool(body.get("budget_hit", false))
+	var usage: Variant = body.get("usage")
+	if usage is Dictionary:
+		last_tokens = int(usage.get("prompt_tokens", 0)) + int(usage.get("completion_tokens", 0))
+	last_latency = float(body.get("latency_s", 0.0))
+	update_cost_hud()
 	for oc in body.get("outcomes", []):
 		orbat.log_event(orbat.second(), "override", str(oc.get("text", "")), str(oc.get("unit_id", "")))   # 與 M0 的推翻事件同 kind
 	var orders: Array = []
@@ -629,15 +718,15 @@ func _chief_tick() -> void:
 	var service_rejected: Array = body.get("rejected", [])
 	chief_last_orders.clear()
 	for o in orders:
-		chief_last_orders.append("%s %s %s" % [o.unit_id, Order.TASK_ZH.get(o.task, o.task), o.target])
+		chief_last_orders.append("%s %s %s" % [o.unit_id, tr("UI_TASK_" + o.task), o.target])
 	var latency: float = r["latency_s"]
-	orbat.log_event(orbat.second(), "info", "參謀長回覆：%d 條命令、%d 條退回（延遲 %.1f 秒）" % [orders.size() - engine_rejected.size(), service_rejected.size() + engine_rejected.size() + skipped, latency])
+	orbat.log_event(orbat.second(), "info", tr("UI_CHIEF_REPLY_EVT") % [orders.size() - engine_rejected.size(), service_rejected.size() + engine_rejected.size() + skipped, latency])
 	var assessment := str(body.get("assessment", "")) if body.get("assessment") != null else ""
 	if assessment != "":
-		chief_line = "參謀長：" + assessment
+		chief_line = tr("UI_CHIEF_PREFIX") % assessment
 	if body.get("error") != null and str(body["error"]) != "":
-		orbat.log_event(orbat.second(), "info", "參謀長：" + str(body["error"]))
-		chief_line = "參謀長：" + str(body["error"])
+		orbat.log_event(orbat.second(), "info", tr("UI_CHIEF_PREFIX") % str(body["error"]))
+		chief_line = tr("UI_CHIEF_PREFIX") % str(body["error"])
 	for m in body.get("messages", []):          # 預算 80%／100%
 		orbat.log_event(orbat.second(), "info", str(m))
 
@@ -657,7 +746,7 @@ func _chief_end() -> void:
 		var body: Dictionary = r["body"]
 		var card: Dictionary = body.get("card", {})
 		orbat.log_event(orbat.second(), "info", "戰報卡已產生（推翻 %d、未判定 %d）" % [int(card.get("overrides", 0)), int(body.get("unjudged", 0))])
-		chief_line = "參謀長：" + str(body.get("summary", "")).split("\n")[0]
+		chief_line = tr("UI_CHIEF_PREFIX") % str(body.get("summary", "")).split("\n")[0]
 		chief_state = "ended"
 		_show_aar(body)
 	else:
@@ -666,7 +755,7 @@ func _chief_end() -> void:
 
 ## 視窗大小變了：HUD 兩行的可用寬度重算（側欄固定 440 px 靠右）。
 func _relayout_hud() -> void:
-	for l in [hud_label, chief_label]:
+	for l in [hud_label, chief_label, cost_hud]:
 		if l != null:
 			l.custom_minimum_size = Vector2(hud_text_width(), 0.0)
 			l.size = Vector2(hud_text_width(), l.size.y)
@@ -754,7 +843,7 @@ func _aar_call(path: String, body: Dictionary = {}, timeout_s: float = 60.0) -> 
 	var r: Dictionary = await chief.call_api("POST", path, body, timeout_s)
 	aar_model["busy"] = false
 	if r["code"] != 200:
-		_aar_render("%s：%s" % [path, r["error"]])
+		_aar_render(tr("UI_AAR_CALL_FAILED") % r["error"])
 	return r
 
 func aar_line() -> void:
@@ -840,13 +929,72 @@ func aar_undo() -> void:
 ## HUD 第二行。
 func chief_hud_text() -> String:
 	if not chief_enabled():
-		return "參謀長：離線（劇本／空白鍵）"
+		return tr("UI_CHIEF_OFFLINE")
 	var parts: Array[String] = [chief_line]
 	if chief != null and chief.busy and chief_state == "online":
-		parts.append("參謀長思考中 %d 秒" % int(chief.busy_seconds()))
+		parts.append(tr("UI_CHIEF_THINKING") % int(chief.busy_seconds()))
 	if chief_state in ["online", "ended"]:
-		parts.append("第 %d 拍｜費用 $%.4f" % [chief_ticks, chief_cost])
+		parts.append(tr("UI_HUD_TICK") % chief_ticks)
 	return "｜".join(parts)
+
+# ---- 設定與費用（施工單 21）----
+func cost_info() -> Dictionary:
+	return {"cost": chief_cost, "today": status_today, "month": status_month, "budget": chief_budget, "budget_hit": status_budget_hit,
+		"local": GameSettings.is_local_provider(chief_provider), "tokens": last_tokens, "latency_s": last_latency, "ticks": chief_ticks}
+
+func update_cost_hud() -> void:
+	if cost_hud != null:
+		cost_hud.update(cost_info())
+
+## GET /status：今天／本月／預算狀態（每 30 秒；測試直接呼叫）。
+func poll_status() -> Dictionary:
+	if chief == null or not (chief_state in ["online", "ended"]):
+		return {"code": 0, "body": {}, "error": tr("UI_AAR_SERVICE_OFFLINE")}
+	var r: Dictionary = await chief.status()
+	if r["code"] == 200:
+		var b: Dictionary = r["body"]
+		status_today = float(b.get("today_usd", status_today))
+		status_month = float(b.get("month_usd", status_month))
+		status_budget_hit = bool(b.get("budget_hit", status_budget_hit))
+		chief_cost = float(b.get("cost_usd", chief_cost))
+		update_cost_hud()
+	return r
+
+## Esc：開／關設定頁（開的時候取消選取）。
+func toggle_settings() -> void:
+	if settings_page == null:
+		return
+	if settings_page.visible:
+		settings_page.visible = false
+		return
+	select_unit("")
+	settings_page.open(current_chief_settings() if settings.is_empty() else settings, key_flags)
+
+## 設定頁「儲存並套用」：存檔 → 套到這場（服務在線就 POST /settings，下一拍生效）→ 語言變了就整組 UI 重建。
+func apply_settings(s: Dictionary) -> void:
+	var n := GameSettings.normalize(s)
+	settings = n
+	GameSettings.save(n, settings_path)
+	var lang_changed: bool = n["lang"] != chief_lang
+	_apply_settings_to_exports(n)
+	if settings_page != null:
+		settings_page.visible = false
+	if lang_changed:
+		UiText.set_lang(chief_lang)
+		rebuild_ui()
+	update_cost_hud()
+	if chief != null and chief_state == "online":
+		var r: Dictionary = await chief.call_api("POST", "/settings", GameSettings.service_body(n), 30.0)
+		if orbat == null:
+			return
+		var err_v: Variant = r["body"].get("error")                      # 服務成功時 error 是 null（str(null) 會變 "<null>"，別用 str 比）
+		if r["code"] == 200 and (err_v == null or str(err_v) == ""):
+			orbat.log_event(orbat.second(), "info", tr("UI_EVT_SETTINGS_APPLIED") % [str(r["body"].get("provider", "")), str(r["body"].get("model", "")), str(r["body"].get("lang", ""))])
+		else:
+			var why := str(r["body"].get("error", r["error"])) if r["code"] == 200 else str(r["error"])
+			orbat.log_event(orbat.second(), "info", tr("UI_EVT_SETTINGS_FAILED") % why)
+			chief_line = tr("UI_CHIEF_PREFIX") % why
+	refresh_hud_texts()
 
 ## 結果畫面：一塊面板寫勝負、據點、戰力、用時（M0 BattleResult 同欄位，另存 result.json）。
 func show_result() -> void:

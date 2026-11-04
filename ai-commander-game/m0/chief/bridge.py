@@ -285,8 +285,10 @@ class ChiefSession:
             prev_ctrl = None
         ancestors = self._ancestors(unit_id)
         under_player = any(a in self.player_units for a in ancestors)     # 連已直轄 → 改它的排不算（§9 接管連＝連同下級）
-        counted = unit_id in self.released_units or (prev_ctrl != "player" and unit_id not in self.player_units and not under_player)
         subtree = set(subtree_ids(self.board, unit_id))                  # 接管連＝整棵子樹直轄
+        leaves = [u for u in subtree if u != unit_id and not any(x.parent == u for x in self.board.orbat)]
+        all_leaves_player = bool(leaves) and all(l in self.player_units for l in leaves)   # 連底下每個排都已直轄 → 再下連令不算
+        counted = (unit_id in self.released_units or (prev_ctrl != "player" and unit_id not in self.player_units and not under_player)) and not all_leaves_player
         self.released_units -= subtree
         self.player_units |= subtree
         ai = self._ai_order_for(unit_id, ai_order)

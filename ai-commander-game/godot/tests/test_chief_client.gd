@@ -111,7 +111,7 @@ func _run() -> void:
 	h.check(order_events.size() >= 3 and order_events[0]["t"] == 0, "事件流有「參謀長令 …」（%d 條，第一條在第 0 秒）" % order_events.size())
 	var reply_events := battle.orbat.events.filter(func(ev: Dictionary) -> bool: return ev["kind"] == "info" and ev["text"].begins_with("參謀長回覆："))
 	h.check(reply_events.size() == battle.chief_ticks and reply_events[0]["text"].contains("延遲"), "每拍一條「參謀長回覆：n 條命令（延遲 n 秒）」")
-	h.check(battle.chief_line.begins_with("參謀長：") and hud_before != battle.chief_hud_text() and battle.chief_hud_text().contains("費用 $0.0000"), "HUD 第二行有研判／摘要與費用 0")
+	h.check(battle.chief_line.begins_with("參謀長：") and hud_before != battle.chief_hud_text() and battle.cost_hud.text.begins_with("本場 $0.0000"), "HUD 第二行有研判／摘要；費用 HUD 顯示 0")
 	h.check(battle.chief_cost == 0.0, "fake 供應商費用 0")
 	var er: Dictionary = battle.chief_end_response
 	h.check(er["code"] == 200 and er["body"].has("card") and er["body"]["card"]["winner"] == r["winner"] and er["body"].has("unjudged"), "/battle/end 回戰報卡，勝負與導演一致")

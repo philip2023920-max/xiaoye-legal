@@ -155,8 +155,12 @@ markmap:
   - 選型決策 D23～D29 已拍板（ADR-0015：本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管） ✅ → docs/adr/0015-m2-chief-service.md
   - 沙盒探針：Godot 無頭 HTTPRequest ↔ Python 服務往返、子程序啟動都通 ✅
   - 施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點；三審兩輪 28 項已修；25 測試；真機驗收併入 M2 驗收） ✅ → docs/issues/16-chief-service.md
-  - 施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、/health、排隊、逾時、關機；HUD 第二行；32 檢查跨程序整合；審查中） 🟡 → docs/issues/17-godot-chief-client.md
-  - 施工單 18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語 ⬜ → docs/issues/README.md
+  - 施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、--parent-pid 不留孤兒、排隊、逾時、關機；三審兩輪 12 項已修；35 檢查） ✅ → docs/issues/17-godot-chief-client.md
+  - 施工單 18 戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣費用；可收合；三語字串表；三審三輪 26 項已修；44 檢查） ✅ → docs/issues/18-godot-sidebar.md
+  - 施工單 19 推翻與接管 UI（點排／側欄 → 面板 → 點地圖；直轄環；/override、/release；服務子樹計數；三審兩輪 12 項已修；46 檢查） ✅ → docs/issues/19-godot-override.md
+  - 施工單 20 戰後 AAR 畫面（卡、徽章、三幕、一句話、討論、提案、採納／撤銷、再打一場；三審兩輪 13 項已修；37 檢查） ✅ → docs/issues/20-godot-aar.md
+  - 施工單 21 設定頁（Esc）、費用 HUD、三語 HUD（settings.json、/settings 即時、語言即時切換；33 檢查；審查中） 🟡 → docs/issues/21-godot-settings.md
+  - M2 驗收：老闆本機 Haiku 打完一場（含至少一次推翻與戰後採納） ⬜ → docs/12-m2-architecture.md
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
 

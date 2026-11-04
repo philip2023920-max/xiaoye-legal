@@ -6,7 +6,7 @@ Godot **4.7.2 標準版**、Compatibility 渲染器、Jolt 物理。骨架 `addo
 1. Godot 專案管理員 → 匯入 → 選這個資料夾的 `project.godot`。
 2. F5 跑 `scenes/Battle.tscn`：看到 M0 的 5×5 地圖變 3D（讀的是隔壁 `m0/samples/board_start.json`，所以 repo 結構要保持 `godot/` 與 `m0/` 並列）。
 3. 左鍵點排＝選取（左下面板：六種任務、接管、放手；選任務後點地圖選目標，右鍵取消），排腳下的環：白＝選取、金＝直轄；WASD 或滑鼠到邊緣平移、滾輪縮放；HUD 左上角顯示 FPS 與幀時間（ms）、方塊人數、難度、時間、雙方戰力、據點分、滑鼠下的分區；**空白鍵**＝「A 連 奪取 C3」；**R**＝重開。5 分鐘或一方戰力低於 30% 結束，畫面出結果。
-4. 參謀長（施工單 17）：預設 F5 就會從 `godot/` 旁的 `m0/` 啟動 `uv run chief serve --provider fake`（不花錢；第一次請先在 `m0/` 跑過 `uv sync`，否則 uv 建環境可能超過上線等待），HUD 第二行顯示參謀長的話、思考中秒數、費用；要真模型填引數 `-- chief=anthropic`（或 `chief=ollama chief_model=qwen2.5:3b`），金鑰在 `m0/.env`；`chief=off` 關掉。服務沒起來（沒裝 uv）會顯示原因並退回離線模式。
+4. 參謀長（施工單 17／21）：預設 F5 就會從 `godot/` 旁的 `m0/` 啟動 `uv run chief serve`（供應商、模型、語言、預算來自 **Esc 設定頁**，存 `user://settings.json`；預設 fake 不花錢；第一次請先在 `m0/` 跑過 `uv sync`），HUD 第二行顯示參謀長的話與思考中秒數，第三行是費用（本場／今天／本月，80% 黃、達預算紅）；要真模型：Esc → 供應商 anthropic → 儲存（金鑰在 `m0/.env`，設定頁只顯示已設定／未設定），或命令列 `-- chief=anthropic`；`chief=off` 關掉。服務沒起來（沒裝 uv）會顯示原因並退回離線模式。
 5. 難度、我方劇本、壓力模式用命令列引數：專案設定 → 執行 → 主要執行引數填 `-- difficulty=hard friendly=m0://samples/orders_v1_assault.json stress=10`（stress＝額外 N×126 個不動的方塊人，只量畫面，會自動關 V-Sync；無頭同樣寫法）。快照與結果在 `user://battles/<戰鬥id>-<難度>/`，M0 的 `chief replay` 可回放。
 
 ## 怎麼測（無頭，不需要顯示卡）
@@ -25,6 +25,7 @@ godot --headless --path . -s tests/test_chief_client.gd   # 施工單 17：真�
 godot --headless --path . -s tests/test_sidebar.gd         # 施工單 18：側欄建樹、事件上色、三語字串表
 godot --headless --path . -s tests/test_override.gd        # 施工單 19：推翻／接管（含真的啟動 chief serve 驗 /override、/release）
 godot --headless --path . -s tests/test_aar.gd             # 施工單 20：戰後畫面（含真的啟動 chief serve 走完討論、提案、採納、撤銷）
+godot --headless --path . -s tests/test_settings.gd        # 施工單 21：設定頁、費用 HUD、字串表無缺鍵（含真的啟動 chief serve 驗 /settings）
 ```
 Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerShell）：
 ```powershell
@@ -42,5 +43,5 @@ Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerSh
 - `scripts/core/board_writer.gd` 歸屬、視距敵情、Board v0.2 JSON、原子寫入 `user://board.json`（M0 的 `chief show` 直接讀）
 - `scripts/battle/` 場景組裝與導演（劇本排程、結束判定、快照、結果）；參謀長的啟動、節拍、套用命令、HUD 第二行也在 `battle.gd`
 - `scripts/chief/` 參謀長客戶端（啟動／連線 `chief serve`、請求排隊、逾時、關機）與節拍排程器（20 秒＋事件、至少隔 8 秒）
-- `scripts/ui/` 右側戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣、費用；可收合；點排移攝影機）、推翻／接管的狀態機與面板、戰後 AAR 畫面（卡、討論、提案、採納、撤銷、再打一場）、UI 字串表載入器；字串在 `i18n/ui.csv`（zh_TW／zh_CN／en），命令列 `-- lang=en` 切換
+- `scripts/ui/` 右側戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣、費用；可收合；點排移攝影機）、推翻／接管的狀態機與面板、戰後 AAR 畫面（卡、討論、提案、採納、撤銷、再打一場）、設定（`GameSettings`／`SettingsPage`）、費用 HUD、UI 字串表載入器；字串在 `i18n/ui.csv`（zh_TW／zh_CN／en），命令列 `-- lang=en` 切換
 - `tests/` 無頭測試；`tools/` 產生場景等小工具

@@ -1139,18 +1139,50 @@
             },
             {
               "id": "n_bc689576",
-              "text": "施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、/health、排隊、逾時、關機；HUD 第二行；32 檢查跨程序整合；審查中）",
-              "status": "doing",
+              "text": "施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、--parent-pid 不留孤兒、排隊、逾時、關機；三審兩輪 12 項已修；35 檢查）",
+              "status": "done",
               "link": "docs/issues/17-godot-chief-client.md",
               "note": "2026-11-04 程式完成：沙盒真的起服務打完 300 秒，21 拍、12 條參謀長令、費用 0。",
               "children": []
             },
             {
-              "id": "n_4803f8b5",
-              "text": "施工單 18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
+              "id": "n_2ebabd9f",
+              "text": "施工單 18 戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣費用；可收合；三語字串表 UiText；三審三輪 26 項已修；44 檢查）",
+              "status": "done",
+              "link": "docs/issues/18-godot-sidebar.md",
+              "note": "2026-11-04",
+              "children": []
+            },
+            {
+              "id": "n_890a4ccf",
+              "text": "施工單 19 推翻與接管 UI（點排／側欄 → 面板 → 點地圖；直轄環；/override 帶 t、/release；服務子樹計數；三審兩輪 12 項已修；46 檢查）",
+              "status": "done",
+              "link": "docs/issues/19-godot-override.md",
+              "note": "2026-11-04",
+              "children": []
+            },
+            {
+              "id": "n_29dc3815",
+              "text": "施工單 20 戰後 AAR 畫面（卡、徽章、三幕、一句話、討論三回合、提案綠紅、採納／跳過／撤銷、再打一場；三審兩輪 13 項已修；37 檢查）",
+              "status": "done",
+              "link": "docs/issues/20-godot-aar.md",
+              "note": "2026-11-04",
+              "children": []
+            },
+            {
+              "id": "n_78335b53",
+              "text": "施工單 21 設定頁（Esc）、費用 HUD、三語 HUD（settings.json、/settings 即時、語言即時切換、金鑰只顯示已設定／未設定；33 檢查；審查中）",
+              "status": "doing",
+              "link": "docs/issues/21-godot-settings-cost-i18n.md",
+              "note": "2026-11-04",
+              "children": []
+            },
+            {
+              "id": "n_ea93c398",
+              "text": "M2 驗收：老闆本機 Haiku 打完一場（含至少一次推翻與戰後採納），chief stats 看到那場",
               "status": "todo",
-              "link": "docs/issues/README.md",
-              "note": "",
+              "link": "docs/12-m2-architecture.md",
+              "note": "21 審完就可以做",
               "children": []
             }
           ]
@@ -1613,8 +1645,8 @@
       ]
     }
   ],
-  "version": 51,
-  "updatedAt": "2026-11-04T04:59:00Z",
+  "version": 52,
+  "updatedAt": "2026-11-04T07:00:54Z",
   "updatedBy": "claude",
   "instructions": ""
 }

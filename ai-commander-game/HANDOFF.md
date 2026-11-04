@@ -3,7 +3,7 @@
 > 更新：2026-11-02（08 完成後）。本專案的工作規則在 `README.md`，心智圖是真相來源（Artifact 資料庫 `mindmap/main`），施工單在 `docs/issues/`，三審報告在 `docs/qa/m0-review.md`。
 
 ## 現況一句話
-M0 完成：施工單 01～09 全部實作、審查、175 個測試全綠（09＝驗收後的平衡與截斷修正）；三項真機驗收 2026-11-02 在老闆本機以 v1 戰鬥模型跑完（推翻率 8.8% → 4.0%、壞準則 0% 退步、Haiku 與 Ollama 都打完），數據在 `docs/qa/m0-review.md`。M1（Godot 戰鬥沙盤）2026-11-04 完成：施工單 10～15 全部 ✅（ADR-0014），老闆本機打完一場 5 分鐘會戰並用 `chief replay` 回放；唯一未驗項是 2018 內顯筆電的畫面效能（有低階機時 F5 看 HUD 幀時間 < 16.7 ms）。沙盒可下載 Godot 4.7.2 Linux 無頭版（GitHub release）跑 `godot/tests/*.gd`。M2 進行中（ADR-0015）：施工單 16 參謀長服務 `chief serve` ✅（三審兩輪 28 項已修、25 測試；合約 docs/10 §16）；施工單 17 Godot 節拍與參謀長客戶端程式完成、審查中（`godot/tests/test_chief_client.gd` 在沙盒真的啟動 `uv run chief serve --provider fake` 打完 300 秒）；接著 18 側欄 → 19 推翻與接管 → 20 AAR 畫面 ∥ 21 設定與費用；M2 驗收＝老闆本機 Haiku 打完一場（含推翻與採納）。
+M0 完成：施工單 01～09 全部實作、審查、175 個測試全綠（09＝驗收後的平衡與截斷修正）；三項真機驗收 2026-11-02 在老闆本機以 v1 戰鬥模型跑完（推翻率 8.8% → 4.0%、壞準則 0% 退步、Haiku 與 Ollama 都打完），數據在 `docs/qa/m0-review.md`。M1（Godot 戰鬥沙盤）2026-11-04 完成：施工單 10～15 全部 ✅（ADR-0014），老闆本機打完一場 5 分鐘會戰並用 `chief replay` 回放；唯一未驗項是 2018 內顯筆電的畫面效能（有低階機時 F5 看 HUD 幀時間 < 16.7 ms）。沙盒可下載 Godot 4.7.2 Linux 無頭版（GitHub release）跑 `godot/tests/*.gd`。M2 進行中（ADR-0015）：施工單 16 參謀長服務 ✅、17 Godot 節拍與客戶端 ✅、18 側欄 ✅、19 推翻與接管 ✅、20 戰後 AAR 畫面 ✅（每張都經三審兩～三輪、沙盒跨程序整合測試真的啟動 `uv run chief serve --provider fake`）；21 設定頁／費用 HUD／三語 HUD 程式完成、審查中。接著 M2 驗收＝老闆本機 Haiku 打完一場（含至少一次推翻與戰後採納，`chief stats` 看到那場）。Godot 測試：`godot/tests/{test_chief_client,test_sidebar,test_override,test_aar,test_settings}.gd`。
 
 ## 雲端金鑰：行不通
 雲端環境變數 `ANTHROPIC_API_KEY` 不會送進 session（本 session 與新開子 session 都看不到，`CHIEF_ANTHROPIC_KEY` 未試）。需要跑模型的事一律在老闆本機 PowerShell 做（下面指令在本機同樣適用，`.env` 會自動讀）。

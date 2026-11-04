@@ -143,6 +143,8 @@ def test_company_takeover_counts_as_subtree(workdir):
     # 接管連後只放手一個排 → 再接管那個排算
     s2.release(["plt-A5"])
     assert s2.override("plt-A5", {"task": "hold", "target": "B2"}, board=at(124, **all_player), t=124)["counted"] and len(s2.overrides.records) == 3
+    # 三審：此時八個排全直轄 → 再對連下令不算（連還留在 released_units 也不算）
+    assert not s2.override("co-A", {"task": "hold", "target": "C3"}, board=at(125, **all_player), t=125)["counted"] and len(s2.overrides.records) == 3
 
 
 def test_judge_timing_seconds_and_turns(workdir):

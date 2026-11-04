@@ -100,7 +100,7 @@ func _init() -> void:
 	body.add_child(events_label)
 	_section(tr("UI_SECTION_CHIEF"))
 	chief_label = _label("Chief")
-	chief_label.max_lines_visible = 5                                   # 研判／思考中／推翻率／最近命令（一行）：最多 5 行，別把下面擠出去
+	chief_label.max_lines_visible = 6                                   # 研判（可能兩行）／思考中／推翻率／最近命令（一行）：最多 6 行，別把下面擠出去
 	_section(tr("UI_SECTION_OBJECTIVES"))
 	objectives_label = _label("Objectives")
 	conditions_label = _label("Conditions")                             # 天氣／時段／時間｜費用（同一行，不另開區段）

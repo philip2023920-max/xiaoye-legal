@@ -6,7 +6,7 @@ extends SceneTree
 var h: TestHarness
 
 func _initialize() -> void:
-	h = TestHarness.new(self, 45, 300.0)
+	h = TestHarness.new(self, 46, 300.0)
 	_run.call_deferred()
 
 func make_battle(scene: PackedScene) -> Battle:
@@ -83,6 +83,9 @@ func _run() -> void:
 	h.check(b.commander_release("plt-A5") and b.orbat.platoons["plt-A5"].controlled_by == "ai" and not b.orbat.platoons["plt-A5"].ring.visible and b.orbat.events.back()["text"] == "總司令放手 A5 迫砲排，交回參謀長", "放手一個排：交回參謀長、環消失、事件")
 	h.check(b.commander_release("co-A") and b.orbat.companies["co-A"]["controlled_by"] == "ai" and b.orbat.leaves("us").all(func(pl: Platoon) -> bool: return pl.controlled_by == "ai") and not b.commander_release("co-A"), "放手連 → 全部交回；再放手一次回 false")
 	h.check(b.commander_override("co-A", "seize", "C3") and b.commander_release("plt-A4") and b.orbat.companies["co-A"]["controlled_by"] == "ai" and b.orbat.platoons["plt-A3"].controlled_by == "player" and b.orbat.platoons["plt-A4"].controlled_by == "ai", "放手連底下一個排 → 連不再整個直轄，其他排仍直轄（§9）")
+	b.select_unit("co-A")
+	h.check(b.unit_info("co-A")["any_player"] and not b.panel.release_btn.disabled and not b.panel.takeover_btn.disabled, "連本身是參謀長指揮但底下還有直轄排：面板仍可「放手」整個連")
+	b.select_unit("")
 	b.commander_release("co-A")
 	for pl in b.orbat.leaves("us"):
 		b.commander_release(pl.id)

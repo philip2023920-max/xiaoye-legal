@@ -109,3 +109,46 @@ UI_AAR_SERVICE_OFFLINE,參謀長服務不在線上,参谋长服务不在线上,C
 UI_AAR_PROPOSE_FAILED,準則提案失敗,准则提案失败,Doctrine proposal failed
 UI_EVT_DOCTRINE_ADOPTED,準則已更新（戰後 %d 秒）,准则已更新（战后 %d 秒）,Doctrine updated (after-action %d s)
 UI_EVT_DOCTRINE_UNCHANGED,準則沒有變更（戰後 %d 秒）,准则没有变更（战后 %d 秒）,Doctrine unchanged (after-action %d s)
+UI_HUD_STATUS,%d FPS（%.1f ms）｜%d 個方塊人｜%s｜%s｜t=%d 秒（%s）%s/%s｜我方戰力 %.2f：敵 %.2f｜據點 %s｜滑鼠：%s｜%s,%d FPS（%.1f ms）｜%d 个方块人｜%s｜%s｜t=%d 秒（%s）%s/%s｜我方战力 %.2f：敌 %.2f｜据点 %s｜鼠标：%s｜%s,%d FPS (%.1f ms) | %d soldiers | %s | %s | t=%d s (%s) %s/%s | strength us %.2f : enemy %.2f | objectives %s | mouse: %s | %s
+UI_HUD_HELP,空白鍵＝A 連奪取 C3｜R 重開｜Esc 設定,空格键＝A 连夺取 C3｜R 重开｜Esc 设置,Space = A Co. seize C3 | R restart | Esc settings
+UI_TIME_LEFT_SHORT,剩 %d 秒,剩 %d 秒,%d s left
+UI_DIFF_easy,簡單,简单,easy
+UI_DIFF_normal,普通,普通,normal
+UI_DIFF_hard,困難,困难,hard
+UI_CHIEF_PREFIX,參謀長：%s,参谋长：%s,Chief: %s
+UI_CHIEF_READY,參謀長就位（%s／%s）,参谋长就位（%s／%s）,Chief ready (%s / %s)
+UI_CHIEF_OFFLINE_WHY,參謀長服務沒起來：%s → 離線模式（劇本／空白鍵）,参谋长服务没起来：%s → 离线模式（剧本／空格键）,Chief service did not start: %s → offline mode (script / Space)
+UI_CHIEF_NO_REPLY,參謀長無回應（%s）,参谋长无回应（%s）,Chief did not reply (%s)
+UI_CHIEF_REPLY_EVT,參謀長回覆：%d 條命令、%d 條退回（延遲 %.1f 秒）,参谋长回复：%d 条命令、%d 条退回（延迟 %.1f 秒）,Chief replied: %d orders / %d rejected (latency %.1f s)
+UI_HUD_TICK,第 %d 拍,第 %d 拍,tick %d
+UI_COST_MAIN,本場 $%.4f｜今天 $%.2f｜本月 $%.2f,本场 $%.4f｜今天 $%.2f｜本月 $%.2f,This battle $%.4f | today $%.2f | this month $%.2f
+UI_COST_BUDGET,預算 $%.2f,预算 $%.2f,budget $%.2f
+UI_COST_LOCAL,本地 %d token／%.1f 秒,本地 %d token／%.1f 秒,local %d tokens / %.1f s
+UI_COST_PAUSED,已達預算，參謀長暫停,已达预算，参谋长暂停,Budget reached: chief paused
+UI_COST_WARN,預算已用 80%,预算已用 80%,80% of budget used
+UI_SETTINGS_TITLE,設定（Esc 關閉）,设置（Esc 关闭）,Settings (Esc closes)
+UI_SET_PROVIDER,供應商,供应商,Provider
+UI_SET_MODEL,模型,模型,Model
+UI_SET_MODEL_HINT,空＝供應商預設（Anthropic＝Haiku）,空＝供应商默认（Anthropic＝Haiku）,empty = provider default (Anthropic = Haiku)
+UI_SET_AAR_PROVIDER,戰後檢討供應商,战后检讨供应商,AAR provider
+UI_SET_AAR_MODEL,戰後檢討模型,战后检讨模型,AAR model
+UI_SET_AAR_MODEL_HINT,空＝依供應商（Anthropic＝Sonnet）,空＝依供应商（Anthropic＝Sonnet）,empty = per provider (Anthropic = Sonnet)
+UI_SET_LANG,語言,语言,Language
+UI_SET_BUDGET,本場預算（美元）,本场预算（美元）,Budget per battle (USD)
+UI_SET_BUDGET_HINT,-1＝不設,-1＝不设,-1 = none
+UI_SET_EFFORT,思考深度,思考深度,Thinking effort
+UI_SET_HARNESS,參謀長包,参谋长包,Chief harness
+UI_SET_DEFAULT_OPTION,（預設）,（默认）,(default)
+UI_SET_KEY,金鑰：%s,密钥：%s,API key: %s
+UI_KEY_SET,已設定（在 m0/.env）,已设置（在 m0/.env）,set (in m0/.env)
+UI_KEY_UNSET,未設定（請填 m0/.env）,未设置（请填 m0/.env）,not set (fill in m0/.env)
+UI_KEY_NOT_NEEDED,不需要金鑰,不需要密钥,no key needed
+UI_KEY_UNCHECKED,由 LiteLLM 讀 OPENROUTER_API_KEY（未檢查）,由 LiteLLM 读 OPENROUTER_API_KEY（未检查）,read by LiteLLM from OPENROUTER_API_KEY (unchecked)
+UI_KEY_OLLAMA_SET,OLLAMA_HOST 已設定,OLLAMA_HOST 已设置,OLLAMA_HOST set
+UI_KEY_OLLAMA_UNSET,OLLAMA_HOST 未設定（預設 localhost:11434）,OLLAMA_HOST 未设置（默认 localhost:11434）,OLLAMA_HOST not set (default localhost:11434)
+UI_SET_NOTE,存在 user://settings.json；供應商／模型／語言／預算立刻送給參謀長服務，下一拍生效；金鑰只在服務端 .env。,存在 user://settings.json；供应商／模型／语言／预算立刻送给参谋长服务，下一拍生效；密钥只在服务端 .env。,Saved to user://settings.json; provider/model/language/budget are sent to the chief service and apply next tick; keys live only in the service's .env.
+UI_SET_SAVE,儲存並套用,保存并应用,Save & apply
+UI_SET_CLOSE,關閉,关闭,Close
+UI_EVT_SETTINGS_APPLIED,設定已套用：%s／%s、%s,设置已应用：%s／%s、%s,Settings applied: %s / %s / %s
+UI_EVT_SETTINGS_FAILED,設定沒套用：%s,设置没应用：%s,Settings not applied: %s
+UI_AAR_CALL_FAILED,參謀長服務回錯：%s,参谋长服务回错：%s,Chief service error: %s

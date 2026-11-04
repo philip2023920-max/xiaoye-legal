@@ -93,8 +93,9 @@ func show_unit(info: Dictionary, flow_state: String, picking_task: String = "") 
 			hint_label.text = tr("UI_PANEL_PICK_UNIT")
 		_:
 			hint_label.text = tr("UI_PANEL_HINT")
+	var any_player: bool = player or bool(info.get("any_player", false))   # 連：底下還有直轄的排就能「放手」整個連
 	takeover_btn.disabled = player
-	release_btn.disabled = not player
+	release_btn.disabled = not any_player
 	cancel_btn.visible = flow_state == "picking_sector" or flow_state == "picking_unit"
 	var state := str(info.get("state", ""))
 	for t in task_buttons.keys():
