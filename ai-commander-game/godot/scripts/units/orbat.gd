@@ -256,6 +256,8 @@ func order_problem(side: String, o: Order) -> String:
 		return "單位 %s 不存在或已殲滅" % o.unit_id
 	if is_platoon and platoons[o.unit_id].state == "destroyed":
 		return "單位 %s 不存在或已殲滅" % o.unit_id
+	if is_platoon and platoons[o.unit_id].state == "routed" and o.task != "withdraw":
+		return "單位 %s 潰散中，只能撤退" % o.unit_id     # V6（與 M0 player_order_problem／驗證器一致）
 	if is_company and companies[o.unit_id]["state"] == "destroyed":
 		return "單位 %s 不存在或已殲滅" % o.unit_id
 	if o.task == "support":

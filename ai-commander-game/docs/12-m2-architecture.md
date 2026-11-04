@@ -26,7 +26,8 @@ Godot（畫面、節拍、推翻 UI、側欄、AAR 畫面、設定）
 Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server，不加依賴）
    ├─ /session/start   board、參謀長包／準則、供應商、模型、語言、預算 → 開局引用句
    ├─ /tick            {t, board} → {turn, t, assessment, orders(驗證放行), rejected, usage, cost_usd, cost_total_usd, latency_s, error, outcomes, budget_hit, messages}（退回回饋由服務自己帶到下一拍）
-   ├─ /override        {unit_id, player_order, t, ai_order?, board?} → 先驗命令再記錄；推翻後 ≥20 秒的第一個 tick 判後果（§9）；已直轄單位再改令不算
+   ├─ /override        {unit_id, player_order, t, ai_order?, board?} → 先驗命令再記錄；推翻後 ≥20 秒的第一個 tick 判後果（§9）；已直轄（含上級連）再改令不算
+   ├─ /release         {unit_ids} → 放手（整棵子樹一起送）；之後再接管算新的一次
    ├─ /battle/end      {board, result} → 戰報卡（card）、徽章、未判定數
    ├─ /aar/line  /aar/discuss  /aar/propose  /aar/adopt  /aar/skip  /aar/undo   重用 report／discussion／doctrine／evals
    ├─ /status          供應商、模型、本場費用、今天／本月（ledger）、預算狀態
@@ -35,7 +36,7 @@ Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server�
 
 - **重用**：`play.py` 的每回合流程拆成 `chief/bridge.py`（純函式、無終端機）；`chief play` 與服務共用它。FakeGateway 讓 Godot 的無頭整合測試不花錢、可在沙盒跑。
 - **Godot 端**：`scripts/chief/chief_client.gd`（啟動子程序、健康檢查、請求佇列、逾時）、`scripts/chief/tick_scheduler.gd`、`scripts/ui/{sidebar,override_panel,aar_screen,settings,cost_hud}.gd`。
-- **推翻流程**：玩家點排（地圖）或排／連（側欄樹）→ 面板：六種任務＋「點地圖選目標」→ 送 `Orbat.apply_orders(side="us", issuer="player")` 並標 `controlled_by=player`（直轄：參謀長不得下令，驗證器 V2 在服務端擋）→ POST /override；「放手」把 `controlled_by` 改回 ai。推翻後果由服務在推翻後 ≥20 秒的第一個 tick 判（§9），回傳到側欄事件流顯示 👍👎➖；/override 要在接管當下、下一拍之前送，板上要標好 `controlled_by`，服務才分得出「接管」與「已直轄再改令」。
+- **推翻流程**：玩家點排（地圖）或排／連（側欄樹）→ 面板：六種任務＋「點地圖選目標」→ 送 `Orbat.apply_orders(side="us", issuer="player")` 並標 `controlled_by=player`（直轄：參謀長不得下令，驗證器 V2 在服務端擋）→ POST /override；「放手」把 `controlled_by` 改回 ai 並 POST /release（子樹一起）。推翻後果由服務在推翻後 ≥20 秒的第一個 tick 判（§9），回傳到側欄事件流顯示 👍👎➖；/override 要在接管當下、下一拍之前送，板上要標好 `controlled_by`，服務才分得出「接管」與「已直轄再改令」。
 - **戰後**：導演結束 → POST /battle/end → AAR 畫面：戰報卡（三幕、徽章、一句話）→ 討論（三個快速回覆按鈕＋輸入框，最多三回合）→ 準則 diff（採納／不採納／撤銷）→ 回歸結果（退步自動回滾的訊息）。自動模式（沒有推翻）只出卡。
 - **費用 HUD**：每個 tick 回來更新本場費用；每 30 秒 GET /status 更新今天／本月；80% 提醒、100% 參謀長暫停（服務端已有）。
 - **開發期啟動**：Godot 執行 `uv run --directory <m0> chief serve --port <自動找空埠> --token <亂數> --parent-pid <Godot pid> --idle-exit 90`（`--directory` 讓服務的工作目錄是 m0，讀 `.env`）；找不到 uv、服務一啟動就結束、或 10 秒（子程序還活著放寬到 45 秒，第一次 uv 建環境）內 `/health` 不通 → HUD 顯示原因並退回「離線模式」（M1 的劇本／空白鍵）。孤兒防護：`OS.kill` 只殺得到 uv 外殼，所以服務自己看 `--parent-pid`（Godot 消失 2 秒內退出）＋ `--idle-exit 90` 保險；關窗與 R 先取消在飛的請求再 `/shutdown`。M3 打包時再決定凍結 Python 的方式。

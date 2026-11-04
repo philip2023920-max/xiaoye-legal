@@ -6,7 +6,7 @@ extends SceneTree
 var h: TestHarness
 
 func _initialize() -> void:
-	h = TestHarness.new(self, 39, 120.0)
+	h = TestHarness.new(self, 44, 120.0)
 	_run.call_deferred()
 
 func sample_board() -> Dictionary:
@@ -14,6 +14,7 @@ func sample_board() -> Dictionary:
 	return b
 
 func _run() -> void:
+	get_root().size = Vector2i(1280, 720)        # 無頭預設 64×64；版面要用真的視窗大小量
 	# ---- 字串表 ----
 	var n := UiText.load_csv()
 	h.check(n >= 40 and UiText.keys.has("UI_SECTION_UNITS") and UiText.load_csv() == n, "ui.csv 載入 %d 個鍵，重複載入不重複加" % n)
@@ -52,12 +53,12 @@ func _run() -> void:
 	h.check(bb.split("\n").size() == 12 and bb.contains("19s e［19］") and not bb.contains("]7s e") and bb.begins_with("[color=#"), "事件流最近 12 筆、舊→新、方括號跳脫")
 	h.check(Sidebar.events_bbcode([]) == "（還沒有事件）", "沒有事件的文字")
 	var ot := Sidebar.objectives_text(board)
-	h.check(ot.begins_with("我 8：敵 3") and ot.contains("O1（3 分，B2）✔") and ot.contains("O2（5 分，C3）✔") and ot.contains("O3（3 分，D4）✘"), "據點與分數：%s" % ot.split("\n")[0])
+	h.check(ot.begins_with("我 8：敵 3") and ot.contains("O1（3 分，B2）✔") and ot.contains("O2（5 分，C3）✔") and ot.contains("O3（3 分，D4）✘") and ot.split("\n").size() == 2, "據點與分數（兩行）：%s" % ot.split("\n")[0])
 	var ct := Sidebar.conditions_text(board)
 	h.check(ct == "晴｜日間｜t=120 秒｜剩 180 秒" and Sidebar.conditions_text(board, 600).ends_with("剩 480 秒"), "天氣／時段／時間：%s（會戰長度可傳入）" % ct)
 	h.check(Sidebar.chief_text({"state": "off"}) == "參謀長離線（劇本／空白鍵）" and Sidebar.chief_text({"state": "starting"}) == "參謀長服務啟動中…", "參謀長區：離線／啟動中")
 	var ctext := Sidebar.chief_text({"state": "online", "line": "參謀長：先搶城鎮", "busy_s": 3.2, "orders": ["plt-A1 奪取 C3"]})
-	h.check(Array(ctext.split("\n")) == ["參謀長：先搶城鎮", "參謀長思考中 3 秒…", "最近命令：", "  plt-A1 奪取 C3"], "參謀長區：研判／思考中／最近命令")
+	h.check(Array(ctext.split("\n")) == ["參謀長：先搶城鎮", "參謀長思考中 3 秒…", "最近命令：plt-A1 奪取 C3"], "參謀長區：研判／思考中／最近命令（同一行）")
 	h.check(Sidebar.chief_text({"state": "online", "line": "x", "orders": []}).ends_with("（還沒有命令）"), "參謀長區：還沒有命令")
 
 	# ---- 節點：建樹、更新、直轄、殲滅移除、收合、選取 ----
@@ -67,7 +68,7 @@ func _run() -> void:
 	h.check(sb.unit_count() == board["orbat"].size() and sb.tree.get_root().get_child_count() == 1 and sb.tree.get_root().get_child(0).get_child_count() == board["orbat"].size() - 1, "樹：1 個連、%d 個排掛在底下" % (board["orbat"].size() - 1))
 	var a1: TreeItem = sb._items["plt-A1"]
 	h.check(a1.get_text(0) == "A1 步兵排" and a1.get_text(1) == Sidebar.strength_bar(0.93) and a1.get_text(3) == "奪取 C3", "排的欄位：%s｜%s｜%s" % [a1.get_text(0), a1.get_text(1), a1.get_text(3)])
-	h.check(sb.cost_label.text == "$0.0123｜第 4 拍" and sb.chief_label.text.begins_with("參謀長：就位") and sb.events_label.text != "", "費用／參謀長／事件區有字")
+	h.check(sb.cost_label.text == "$0.0123｜第 4 拍" and sb.conditions_label.text.ends_with("｜$0.0123｜第 4 拍") and sb.chief_label.text.begins_with("參謀長：就位") and sb.events_label.text != "", "費用併在天氣行／參謀長／事件區有字")
 	var b2 := sample_board()
 	for u in b2["orbat"]:
 		if u["id"] == "plt-A1":
@@ -79,12 +80,19 @@ func _run() -> void:
 	b2["events"].append({"t": 125, "kind": "info", "text": "推翻後果：t1 plt-A1 hold B2 → 👍"})
 	sb.refresh(b2, {"state": "online", "line": "參謀長：守住", "busy_s": 2.0, "orders": ["co-A 固守 C3"], "cost": 0.02, "ticks": 5, "ended": false})
 	h.check(sb.unit_count() == b2["orbat"].size() and not sb._items.has("plt-A5") and sb._items["plt-A1"] == a1, "更新：板上消失的單位移除、既有 item 不重建")
-	# 版面：1280×720 裝得下（內容比視窗高就由 ScrollContainer 捲）、名稱欄夠寬、不搶焦點
-	sb.size = Vector2(Sidebar.WIDTH, 720.0)
+	# 版面：1280×720、參謀長上線＋兩行研判＋三條命令（M2 常態）→ 內容裝進捲動區、樹至少 5 列高
 	await process_frame
 	await process_frame
-	h.check(sb.get_combined_minimum_size().y <= 720.0 and sb.scroll.size_flags_vertical == Control.SIZE_EXPAND_FILL and sb.scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED, "側欄最小高 %d ≤ 720（多的部分捲動）" % int(sb.get_combined_minimum_size().y))
+	var body_h := sb.body.get_combined_minimum_size().y
+	h.check(sb.get_global_rect() == Rect2(840.0, 0.0, 440.0, 720.0) and body_h <= sb.scroll.size.y and sb.scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED, "側欄 (840,0,440,720)；內容最小高 %d ≤ 捲動區 %d" % [int(body_h), int(sb.scroll.size.y)])
+	h.check(sb.tree.size.y >= 200.0 and sb.tree.size.y > sb.events_label.size.y, "樹 %d px（≥ 5 列、比事件流高）" % int(sb.tree.size.y))
 	h.check(sb.tree.get_column_width(0) >= 130 and sb.tree.get_column_width(1) >= 98, "名稱欄 %d px（放得下「A1 步兵排 ★直轄」）、戰力欄 %d px" % [sb.tree.get_column_width(0), sb.tree.get_column_width(1)])
+	sb.toggle()
+	await process_frame
+	h.check(sb.collapsed and sb.get_global_rect().size.y < 100.0 and sb.get_global_rect().position.x > 1100.0, "收合後只剩按鈕那塊（%s），不佔整條右邊" % str(sb.get_global_rect()))
+	sb.toggle()
+	await process_frame
+	h.check(not sb.collapsed and sb.get_global_rect() == Rect2(840.0, 0.0, 440.0, 720.0), "展開回整條")
 	h.check(sb.toggle_btn.focus_mode == Control.FOCUS_NONE and sb.tree.focus_mode == Control.FOCUS_NONE and sb.events_label.focus_mode == Control.FOCUS_NONE, "按鈕、樹、事件流都不搶鍵盤焦點（空白鍵留給遊戲）")
 	# 使用者收合連 → 下次 refresh 不會被展開
 	var co_item: TreeItem = sb._items["co-A"]
@@ -104,6 +112,12 @@ func _run() -> void:
 	b4["orbat"] = b4["orbat"].filter(func(u: Dictionary) -> bool: return u["id"] != "co-A")
 	sb2.refresh(b4)
 	h.check(sb2.unit_count() == b4["orbat"].size() and not sb2._items.has("co-A") and is_instance_valid(sb2._items["plt-A1"]) and sb2._items["plt-A1"].get_parent() == sb2.tree.get_root(), "連從板上消失：子排不懸空、重掛到根")
+	sb2.refresh(sample_board())                      # 連回來了
+	var b5 := sample_board()
+	b5["orbat"] = b5["orbat"].filter(func(u: Dictionary) -> bool: return not (u["id"] in ["co-A", "plt-A1", "plt-A2"]))   # 連＋兩個排同時消失
+	sb2.refresh(b5)
+	sb2.refresh(b5)
+	h.check(sb2.unit_count() == b5["orbat"].size() and sb2._items.values().all(func(it) -> bool: return is_instance_valid(it)) and sb2.tree.get_root().get_child_count() == b5["orbat"].size(), "連與子排同時消失：不炸、表裡沒有已釋放的項、剩下的排掛到根")
 	sb2.queue_free()
 	h.check(a1.get_text(0) == "A1 步兵排 ★直轄" and a1.get_custom_color(0) == Sidebar.COLOR_PLAYER and sb._items["plt-A2"].get_text(2) == "潰散" and sb._items["plt-A2"].get_custom_color(0) == Sidebar.COLOR_BAD, "直轄標記與潰散上色")
 	h.check(sb.events_label.text.contains(Sidebar.COLOR_GOOD.to_html(false)) and sb.chief_label.text.contains("思考中 2 秒"), "事件流有綠色的 👍、參謀長區有思考中")
@@ -130,9 +144,13 @@ func _run() -> void:
 	await physics_frame
 	await physics_frame
 	h.check(battle.sidebar != null and battle.sidebar.unit_count() == battle.writer.to_dict()["orbat"].size() and battle.sidebar.refreshes == 1, "Battle 的 HUD 有側欄，開局就建好樹")
-	h.check(battle.hud_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART and battle.hud_label.custom_minimum_size.x <= 1280.0 - Sidebar.WIDTH - 24.0 and battle.chief_label.position.y > battle.hud_label.position.y, "HUD 兩行在側欄左邊換行、不被蓋住")
-	var over := battle.sidebar.get_global_rect().has_point(battle.get_viewport().get_mouse_position())   # 無頭視窗 64×64、滑鼠 (0,0) 會落在側欄上
-	h.check(battle.battle_seconds() == 300 and battle.sidebar.battle_seconds == 300 and battle.mouse_over_ui() == over, "會戰長度來自導演常數；mouse_over_ui 以側欄矩形判斷（面板隱藏時不算）")
+	h.check(battle.hud_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART and battle.hud_text_width() == 816.0 and battle.hud_label.custom_minimum_size.x == 816.0 and battle.chief_label.position.y > battle.hud_label.position.y, "HUD 兩行寬 816（1280 − 440 − 24）在側欄左邊換行")
+	get_root().size = Vector2i(1024, 768)
+	await process_frame
+	h.check(battle.hud_text_width() == 560.0 and battle.hud_label.custom_minimum_size.x == 560.0, "視窗縮到 1024 → HUD 寬重算 560（不再蓋到側欄）")
+	get_root().size = Vector2i(1280, 720)
+	await process_frame
+	h.check(battle.battle_seconds() == 300 and battle.sidebar.battle_seconds == 300 and not battle.mouse_over_ui(), "會戰長度來自導演常數；滑鼠 (0,0) 不在側欄上 → 邊緣捲動照常")
 	for i in 60 * 40:
 		battle.director.tick(1.0 / 60.0)
 	battle.sidebar.refresh(battle.writer.to_dict(), battle.chief_sidebar_info())

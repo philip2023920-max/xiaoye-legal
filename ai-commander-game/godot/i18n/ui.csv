@@ -103,3 +103,9 @@ UI_AAR_SKIPPED,這場不改準則,这场不改准则,Doctrine unchanged this bat
 UI_AAR_UNDONE,已還原上一版準則,已还原上一版准则,Previous doctrine restored
 UI_AAR_WAITING,參謀長思考中…,参谋长思考中…,Chief is thinking…
 UI_AAR_TIMER,戰後 %d 秒（目標 < %d）,战后 %d 秒（目标 < %d）,After-action %d s (target < %d)
+UI_EVT_OVERRIDE_FAILED,推翻沒記錄到，已收回直轄（%s）,推翻没记录到，已收回直辖（%s）,Override not recorded; control handed back (%s)
+UI_AAR_NO_LINE,（參謀長沒有回話）,（参谋长没有回话）,(the chief had nothing to say)
+UI_AAR_SERVICE_OFFLINE,參謀長服務不在線上,参谋长服务不在线上,Chief service is offline
+UI_AAR_PROPOSE_FAILED,準則提案失敗,准则提案失败,Doctrine proposal failed
+UI_EVT_DOCTRINE_ADOPTED,準則已更新（戰後 %d 秒）,准则已更新（战后 %d 秒）,Doctrine updated (after-action %d s)
+UI_EVT_DOCTRINE_UNCHANGED,準則沒有變更（戰後 %d 秒）,准则没有变更（战后 %d 秒）,Doctrine unchanged (after-action %d s)

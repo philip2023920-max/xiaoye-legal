@@ -96,8 +96,9 @@ func show_unit(info: Dictionary, flow_state: String, picking_task: String = "") 
 	takeover_btn.disabled = player
 	release_btn.disabled = not player
 	cancel_btn.visible = flow_state == "picking_sector" or flow_state == "picking_unit"
+	var state := str(info.get("state", ""))
 	for t in task_buttons.keys():
-		task_buttons[t].disabled = str(info.get("state", "")) == "destroyed"
+		task_buttons[t].disabled = state == "destroyed" or (state == "routed" and t != "withdraw")   # V6：潰散只能撤退
 
 func hide_panel() -> void:
 	shown_unit = ""

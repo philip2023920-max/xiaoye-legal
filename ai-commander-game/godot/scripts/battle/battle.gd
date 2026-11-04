@@ -64,6 +64,7 @@ var panel: OverridePanel = null
 var override_rate := ""               # 服務回的「推翻數／參謀長放行命令數」
 var last_override := {}               # 最近一次 /override 的回應（測試看）
 var overrides_sent := 0
+var edge_scroll_setting := true       # 玩家層級的邊緣捲動開關（設定頁 21 可關）；滑鼠在 UI 上時另外暫停
 var aar: AarScreen = null             # 施工單 20：戰後畫面
 var aar_model := {}                   # AarScreen.render 的資料（服務回的東西 + 流程狀態）
 var _aar_started_msec := 0
@@ -256,9 +257,10 @@ func _add_hud() -> void:
 	chief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	chief_label.custom_minimum_size = Vector2(hud_text_width(), 0.0)
 	chief_label.size = Vector2(hud_text_width(), 0.0)
-	chief_label.position = Vector2(12, 58)                           # 狀態行可能兩行，第二行往下讓位
+	chief_label.position = Vector2(12, 58)                           # 狀態行可能兩行，第二行往下讓位（_process 再依實際高度調）
 	chief_label.text = chief_hud_text()
 	hud.add_child(chief_label)
+	get_viewport().size_changed.connect(_relayout_hud)              # 視窗縮放：兩行寬度重算，不然又蓋到側欄
 	if sidebar_enabled:
 		sidebar = Sidebar.new()
 		sidebar.unit_selected.connect(_on_sidebar_unit_selected)
@@ -286,7 +288,7 @@ func _status_text(mouse_desc: String) -> String:
 	var en := orbat.total_strength("enemy") if orbat else 0.0
 	var wx: String = str({"clear": "晴", "rain": "雨", "snow": "雪", "fog": "霧"}.get(orbat.weather, orbat.weather)) if orbat else ""
 	var tod: String = str({"day": "日", "night": "夜"}.get(orbat.time_of_day, orbat.time_of_day)) if orbat else ""
-	var left: int = maxi(0, int(Director.TURN_SECONDS) * Director.MAX_TURNS - (orbat.second() if orbat else 0))
+	var left: int = maxi(0, battle_seconds() - (orbat.second() if orbat else 0))
 	var left_text := "已結束" if (director != null and director.finished) else "剩 %d 秒" % left
 	var fps := Engine.get_frames_per_second()
 	var frame_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0 + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
@@ -318,9 +320,13 @@ func _process(_delta: float) -> void:
 	if sidebar != null and _sidebar_acc >= SIDEBAR_INTERVAL:
 		_sidebar_acc = 0.0
 		sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
-		if aar != null and aar.visible:
-			aar.set_duration(aar_duration())
-	camera_rig.edge_scroll_enabled = not mouse_over_ui()                # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
+		refresh_panel()                                                 # 選中的排被殲滅／任務被參謀長改了，面板跟著變
+	if aar != null and aar.visible and _sidebar_acc == 0.0:
+		aar.set_duration(aar_duration(), float(aar_model.get("service_duration_s", -1.0)))
+	camera_rig.edge_scroll_enabled = edge_scroll_setting and not mouse_over_ui()
+	if chief_label != null and hud_label != null:
+		chief_label.position.y = hud_label.position.y + maxf(hud_label.size.y, 20.0) + 4.0   # 狀態行幾行就往下推幾行
+	camera_rig.edge_scroll_enabled = camera_rig.edge_scroll_enabled                # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
 
 ## 滑鼠：左鍵點排＝選取（開面板）；選目標中左鍵＝點分區／點友軍；右鍵＝取消選目標。鍵盤：空白鍵＝「A 連 奪取 C3」（施工單 11）；R 重開。
 func _unhandled_input(event: InputEvent) -> void:
@@ -348,7 +354,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _left_click(screen: Vector2) -> void:
 	if flow.state == "picking_unit":
 		var friend := platoon_at_screen(screen)
-		if friend != "":
+		if friend != "" and not (friend in _subtree(flow.unit_id)):   # 連不能支援自己的子排
 			flow.pick_unit(friend)
 			_execute_flow()
 		return
@@ -362,22 +368,32 @@ func _left_click(screen: Vector2) -> void:
 	if hit != "":
 		select_unit(hit)
 
-## 螢幕上最近的我方排（錨點投影距離 < PICK_RADIUS_PX）；沒有＝""。
+## 挑排半徑（像素）：至少 PICK_RADIUS_PX，放大時放寬到排的實際範圍（4.5 公尺）的投影，點到士兵也選得到。
+func pick_radius_px(anchor: Vector3) -> float:
+	var a := camera_rig.screen_position(anchor)
+	var b := camera_rig.screen_position(anchor + Vector3(4.5, 0.0, 0.0))
+	return maxf(PICK_RADIUS_PX, a.distance_to(b))
+
+## 螢幕上最近的我方排（錨點投影距離 < 挑排半徑）；沒有＝""。
 func platoon_at_screen(screen: Vector2) -> String:
 	var best := ""
-	var best_d := PICK_RADIUS_PX
+	var best_d := INF
 	for p in orbat.leaves("us"):
 		if p.state == "destroyed" or not camera_rig.is_on_screen(p.anchor):
 			continue
 		var d := camera_rig.screen_position(p.anchor).distance_to(screen)
+		if d >= pick_radius_px(p.anchor):
+			continue
 		if d < best_d:
 			best_d = d
 			best = p.id
 	return best
 
 # ---- 推翻與接管（施工單 19）----
-## 選取排或連（""＝取消選取）：環變白、面板出現；側欄點樹也走這裡。
+## 選取排或連（""＝取消選取）：環變白、面板出現；側欄點樹也走這裡。戰後畫面開著時不選（面板會被蓋住）。
 func select_unit(unit_id: String) -> void:
+	if unit_id != "" and aar != null and aar.visible:
+		return
 	if flow.unit_id != "" and orbat.platoons.has(flow.unit_id):
 		orbat.platoons[flow.unit_id].rts_set_selected(false)
 	for cid in _subtree(flow.unit_id):
@@ -436,8 +452,10 @@ func _set_controlled(unit_id: String, who: String) -> void:
 		elif orbat.companies.has(uid):
 			orbat.companies[uid]["controlled_by"] = who
 
-## 總司令下令（含接管）：先過引擎檢查，再直轄整棵子樹、套用命令、記事件、通知服務（/override）。
+## 總司令下令（含接管）：先過引擎檢查（含 V6 潰散只能撤退），再直轄整棵子樹、套用命令、記事件、通知服務（/override）。
 func commander_override(unit_id: String, task: String, target: String) -> bool:
+	if director != null and director.finished:
+		return false                                                     # 戰後不再接管（/battle/end 已送或在飛）
 	var o := Order.make(unit_id, task, target, "player", "總司令")
 	var problem := orbat.order_problem("us", o)
 	if problem != "":
@@ -447,7 +465,7 @@ func commander_override(unit_id: String, task: String, target: String) -> bool:
 	_set_controlled(unit_id, "player")
 	orbat.apply_orders("us", [o])
 	var who := str(unit_info(unit_id).get("name", unit_id))
-	orbat.log_event(orbat.second(), "override", tr("UI_EVT_TAKEOVER") % [who, Order.TASK_ZH.get(task, task), target], unit_id, target if sector_map.sectors.has(target) else "")
+	orbat.log_event(orbat.second(), "override", tr("UI_EVT_TAKEOVER") % [who, tr("UI_TASK_" + task), target], unit_id, target if sector_map.sectors.has(target) else "")
 	refresh_panel()
 	if chief_state == "online":
 		_send_override(unit_id, {"task": task, "target": target})
@@ -461,15 +479,22 @@ func commander_takeover(unit_id: String) -> bool:
 	var task: Dictionary = info["task"] if info["task"] is Dictionary else {}
 	if task.is_empty():
 		var sec := orbat.unit_sector("us", unit_id)
-		task = {"type": "hold", "target": sec if sec != "" else "A1"}
+		if sec == "":
+			return false                                                 # 沒任務也不在任何分區（已殲滅）：不捏造目標
+		task = {"type": "hold", "target": sec}
 	return commander_override(unit_id, str(task.get("type", "hold")), str(task.get("target", "")))
 
 ## 「放手」：整棵子樹交回參謀長；通知服務（/release），下一拍參謀長就會重新下令。
 func commander_release(unit_id: String) -> bool:
-	if unit_info(unit_id).is_empty() or not _is_player_controlled(unit_id):
+	if unit_info(unit_id).is_empty() or not _subtree(unit_id).any(func(uid: String) -> bool: return _is_player_controlled(uid)):
 		return false
 	var ids := _subtree(unit_id)
 	_set_controlled(unit_id, "ai")
+	if orbat.platoons.has(unit_id):                                      # 放手一個排：上級連不再「整個直轄」（連 player ⇔ 全部子排 player，§9）
+		var parent: String = orbat.platoons[unit_id].parent_id
+		if parent != "" and orbat.companies.has(parent) and str(orbat.companies[parent].get("controlled_by", "ai")) == "player":
+			orbat.companies[parent]["controlled_by"] = "ai"
+			ids.append(parent)
 	orbat.log_event(orbat.second(), "info", tr("UI_EVT_RELEASE") % str(unit_info(unit_id).get("name", unit_id)), unit_id)
 	refresh_panel()
 	if chief_state == "online":
@@ -483,7 +508,10 @@ func _send_override(unit_id: String, player_order: Dictionary) -> void:
 	if orbat == null:
 		return
 	if r["code"] != 200:
-		orbat.log_event(orbat.second(), "info", "推翻沒記錄到（%s）" % r["error"])
+		if r["code"] >= 400 and r["code"] < 500 and r["code"] != 409:    # 服務說這道命令不合法：直轄名單兩邊要一致，收回
+			_set_controlled(unit_id, "ai")
+			refresh_panel()
+		orbat.log_event(orbat.second(), "info", tr("UI_EVT_OVERRIDE_FAILED") % r["error"], unit_id)
 		return
 	var body: Dictionary = r["body"]
 	override_rate = str(body.get("override_rate", override_rate))
@@ -588,7 +616,7 @@ func _chief_tick() -> void:
 	chief_ticks += 1
 	chief_cost = float(body.get("cost_total_usd", chief_cost))
 	for oc in body.get("outcomes", []):
-		orbat.log_event(orbat.second(), "info", str(oc.get("text", "")), str(oc.get("unit_id", "")))
+		orbat.log_event(orbat.second(), "override", str(oc.get("text", "")), str(oc.get("unit_id", "")))   # 與 M0 的推翻事件同 kind
 	var orders: Array = []
 	var skipped := 0
 	for d in body.get("orders", []):
@@ -635,6 +663,13 @@ func _chief_end() -> void:
 	else:
 		orbat.log_event(orbat.second(), "info", "戰報卡沒拿到（%s）" % r["error"])
 		chief_state = "ended"
+
+## 視窗大小變了：HUD 兩行的可用寬度重算（側欄固定 440 px 靠右）。
+func _relayout_hud() -> void:
+	for l in [hud_label, chief_label]:
+		if l != null:
+			l.custom_minimum_size = Vector2(hud_text_width(), 0.0)
+			l.size = Vector2(hud_text_width(), l.size.y)
 
 ## 會戰長度（秒）：導演的常數，HUD、側欄都用這一份。
 func battle_seconds() -> int:
@@ -688,14 +723,15 @@ func unit_world_position(unit_id: String) -> Vector3:
 # ---- 戰後 AAR（施工單 20）：畫面在 AarScreen，服務呼叫在這裡 ----
 func _show_aar(end_body: Dictionary) -> void:
 	_aar_started_msec = Time.get_ticks_msec()
+	if result_label != null:
+		result_label.visible = false                                     # M1 的結果字（「按 R 重開」）別疊在卡上；服務失敗時它還在當保底
+	select_unit("")
 	aar_model = {"card": end_body.get("card", {}), "seconds": director.result.get("seconds", -1) if director != null else -1,
 		"unjudged": int(end_body.get("unjudged", 0)), "chief_line": "", "transcript": [], "round": 1,
 		"next_quick": end_body.get("quick_replies", []), "diff": null, "phase": "card", "messages": [], "rolled_back": false,
-		"adopted": false, "busy": false, "duration_s": 0.0, "error": ""}
+		"adopted": false, "busy": false, "duration_s": 0.0, "service_duration_s": -1.0, "error": ""}
 	if aar != null:
 		aar.render(aar_model)
-	if flow != null:
-		select_unit("")
 	aar_line()
 
 func aar_duration() -> float:
@@ -710,7 +746,9 @@ func _aar_render(error: String = "") -> void:
 ## 一次服務呼叫：進行中畫面鎖按鈕；失敗把人話放到畫面上、不改階段。
 func _aar_call(path: String, body: Dictionary = {}, timeout_s: float = 60.0) -> Dictionary:
 	if chief == null or chief_state != "ended":
-		return {"code": 0, "body": {}, "error": "參謀長服務不在線上"}
+		return {"code": 0, "body": {}, "error": tr("UI_AAR_SERVICE_OFFLINE")}
+	if bool(aar_model.get("busy", false)):                               # 上一個還沒回來：不排隊（不然 Enter 兩下吃掉兩回合）
+		return {"code": 0, "body": {}, "error": tr("UI_AAR_WAITING")}
 	aar_model["busy"] = true
 	_aar_render()
 	var r: Dictionary = await chief.call_api("POST", path, body, timeout_s)
@@ -724,8 +762,11 @@ func aar_line() -> void:
 	if r["code"] == 200:
 		aar_model["chief_line"] = str(r["body"].get("chief_line", "")) if r["body"].get("chief_line") != null else ""
 		if aar_model["chief_line"] == "":
-			aar_model["chief_line"] = "（參謀長沒有回話）"
+			aar_model["chief_line"] = tr("UI_AAR_NO_LINE")
 		_aar_render()
+	else:
+		aar_model["chief_line"] = tr("UI_AAR_NO_LINE")
+		_aar_render(r["error"])
 
 ## 討論一回合：text 或快速回覆編號（1～3）。
 func aar_discuss(text: String, index: int) -> void:
@@ -737,6 +778,11 @@ func aar_discuss(text: String, index: int) -> void:
 	if r["code"] != 200:
 		return
 	var b: Dictionary = r["body"]
+	if b.get("reply") == null:                                           # 第 4 回合起服務只回 done：不追加對話
+		aar_model["round"] = 4
+		aar_model["next_quick"] = []
+		_aar_render()
+		return
 	aar_model["transcript"].append({"role": "user", "content": said})
 	aar_model["transcript"].append({"role": "assistant", "content": str(b.get("reply", ""))})
 	aar_model["round"] = int(b.get("round", aar_model["round"])) + 1
@@ -751,7 +797,7 @@ func aar_propose() -> void:
 		return
 	var b: Dictionary = r["body"]
 	if b.get("diff") == null:
-		_aar_render(str(b.get("error", "準則提案失敗")))
+		_aar_render(str(b.get("error", tr("UI_AAR_PROPOSE_FAILED"))))
 		return
 	aar_model["diff"] = b["diff"]
 	aar_model["phase"] = "proposed"
@@ -768,9 +814,10 @@ func aar_adopt() -> void:
 	aar_model["adopted"] = bool(b.get("adopted", false))
 	aar_model["rolled_back"] = bool(b.get("rolled_back", false))
 	aar_model["messages"] = b.get("messages", [])
+	aar_model["service_duration_s"] = float(b.get("duration_s", -1.0))   # 服務記的（aar.json、chief stats 用的那個）
 	_aar_render()
 	if orbat != null:
-		orbat.log_event(orbat.second(), "info", "準則%s（戰後 %d 秒）" % ["已更新" if aar_model["adopted"] else "沒有變更", int(aar_duration())])
+		orbat.log_event(orbat.second(), "info", tr("UI_EVT_DOCTRINE_ADOPTED" if aar_model["adopted"] else "UI_EVT_DOCTRINE_UNCHANGED") % int(aar_model["service_duration_s"] if aar_model["service_duration_s"] >= 0.0 else aar_duration()))
 
 func aar_skip() -> void:
 	if not (aar_model.get("phase", "") in ["card", "proposed"]):
@@ -787,7 +834,7 @@ func aar_undo() -> void:
 	var r: Dictionary = await _aar_call("/aar/undo", {}, 30.0)
 	if r["code"] == 200:
 		aar_model["phase"] = "undone" if bool(r["body"].get("undone", false)) else "adopted"
-		aar_model["messages"] = [str(r["body"].get("message", ""))]
+		aar_model["messages"].append(str(r["body"].get("message", "")))   # 保留回歸報告，撤銷訊息追加
 		_aar_render()
 
 ## HUD 第二行。

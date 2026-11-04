@@ -6,7 +6,7 @@ extends SceneTree
 var h: TestHarness
 
 func _initialize() -> void:
-	h = TestHarness.new(self, 37, 300.0)
+	h = TestHarness.new(self, 45, 300.0)
 	_run.call_deferred()
 
 func make_battle(scene: PackedScene) -> Battle:
@@ -82,6 +82,30 @@ func _run() -> void:
 	h.check(b._is_player_controlled("co-A") and b._is_player_controlled("plt-A5") and b._subtree("co-A").size() == 1 + b.orbat.children_of("co-A").size(), "子樹＝連＋子排")
 	h.check(b.commander_release("plt-A5") and b.orbat.platoons["plt-A5"].controlled_by == "ai" and not b.orbat.platoons["plt-A5"].ring.visible and b.orbat.events.back()["text"] == "總司令放手 A5 迫砲排，交回參謀長", "放手一個排：交回參謀長、環消失、事件")
 	h.check(b.commander_release("co-A") and b.orbat.companies["co-A"]["controlled_by"] == "ai" and b.orbat.leaves("us").all(func(pl: Platoon) -> bool: return pl.controlled_by == "ai") and not b.commander_release("co-A"), "放手連 → 全部交回；再放手一次回 false")
+	h.check(b.commander_override("co-A", "seize", "C3") and b.commander_release("plt-A4") and b.orbat.companies["co-A"]["controlled_by"] == "ai" and b.orbat.platoons["plt-A3"].controlled_by == "player" and b.orbat.platoons["plt-A4"].controlled_by == "ai", "放手連底下一個排 → 連不再整個直轄，其他排仍直轄（§9）")
+	b.commander_release("co-A")
+	for pl in b.orbat.leaves("us"):
+		b.commander_release(pl.id)
+	# V6：潰散只能撤退（引擎與面板）
+	b.orbat.platoons["plt-A6"].state = "routed"
+	h.check(not b.commander_override("plt-A6", "hold", "B2") and b.orbat.platoons["plt-A6"].controlled_by == "ai" and b.orbat.events.back()["text"].contains("潰散中") and b.commander_override("plt-A6", "withdraw", "A1"), "潰散排：固守被退回、撤退可以")
+	b.select_unit("plt-A6")
+	h.check(b.panel.task_buttons["hold"].disabled and not b.panel.task_buttons["withdraw"].disabled, "面板：潰散排只開「撤退」")
+	b.commander_release("plt-A6")
+	b.orbat.platoons["plt-A6"].state = "idle"
+	b.select_unit("")
+	# 連不能支援自己的子排；殲滅的排接管回 false
+	b.select_unit("co-A"); b._on_panel_task("support")
+	b.flow.pick_unit("plt-A1") if not ("plt-A1" in b._subtree("co-A")) else null
+	h.check(b.flow.state == "picking_unit" and "plt-A1" in b._subtree("co-A"), "連選支援時子排不是合法目標（_left_click 會擋）")
+	b.flow.cancel(); b.select_unit("")
+	b.orbat.platoons["plt-A7"].state = "destroyed"; b.orbat.platoons["plt-A7"].task = {}; b.orbat.platoons["plt-A7"].sector = ""
+	h.check(not b.commander_takeover("plt-A7"), "殲滅且無分區的排：接管回 false、不捏造目標")
+	b.orbat.platoons["plt-A7"].state = "idle"
+	h.check(b.pick_radius_px(b.orbat.platoons["plt-A1"].anchor) >= Battle.PICK_RADIUS_PX, "挑排半徑至少 28 px、放大時放寬")
+	b.director.finished = true
+	h.check(not b.commander_override("plt-A2", "hold", "B2"), "會戰結束後不再接管")
+	b.director.finished = false
 	h.check(b.commander_takeover("plt-A2") and b.orbat.platoons["plt-A2"].controlled_by == "player" and b.orbat.platoons["plt-A2"].task == {"type": "seize", "target": "C3"}, "「接管」照目前任務直轄（A2 原本 seize C3）")
 	b.orbat.platoons["plt-A1"].task = {}
 	h.check(b.commander_takeover("plt-A1") and b.orbat.platoons["plt-A1"].task["type"] == "hold" and b.orbat.platoons["plt-A1"].task["target"] == b.orbat.platoons["plt-A1"].sector, "沒任務的單位接管＝固守所在分區")
@@ -124,6 +148,11 @@ func _run() -> void:
 	while b2.chief.busy:
 		await process_frame
 	h.check(b2.last_override["body"]["counted"] == true and b2.last_override["body"]["recorded"] == 2 and b2.orbat.overrides_this_battle == 2, "放手後再接管：又算一次（/release 生效）")
+	b2._set_controlled("plt-A3", "player")
+	b2._send_override("plt-A3", {"task": "charge", "target": "B2"})     # 服務退回（400）→ 收回直轄
+	while b2.chief.busy:
+		await process_frame
+	h.check(b2.last_override["code"] == 400 and b2.orbat.platoons["plt-A3"].controlled_by == "ai" and b2.orbat.events.back()["text"].begins_with("推翻沒記錄到，已收回直轄"), "服務退回的命令：收回直轄並寫明原因")
 	b2.sidebar.refresh(b2.writer.to_dict(), b2.chief_sidebar_info())
 	h.check(b2.sidebar.chief_label.text.contains("推翻率 2/3"), "側欄參謀長區顯示推翻率")
 	# 參謀長下一拍的連令不碰直轄排（服務端 V2 擋 + 客戶端保險）

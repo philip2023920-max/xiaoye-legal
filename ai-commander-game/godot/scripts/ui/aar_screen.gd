@@ -18,6 +18,10 @@ const COLOR_ADD := Color(0.55, 0.95, 0.55)
 const COLOR_REMOVE := Color(1.0, 0.45, 0.45)
 const TARGET_S := 120.0
 
+## 文字進 bbcode 前把方括號換成全形：LLM 回覆、diff、玩家輸入裡的 [b]／[url] 不能改版面。
+static func esc(t: String) -> String:
+	return t.replace("[", "［").replace("]", "］")
+
 var model := {}
 var title_label: Label
 var header_label: Label
@@ -53,7 +57,12 @@ func _init() -> void:
 	offset_top = 0.0
 	offset_bottom = 0.0
 	visible = false
+	var bg := StyleBoxFlat.new()                                        # 不透明底：地圖與 HUD 不透出來
+	bg.bg_color = Color(0.08, 0.09, 0.11, 0.97)
+	bg.set_content_margin_all(12.0)
+	add_theme_stylebox_override("panel", bg)
 	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 	var root := VBoxContainer.new()
@@ -72,7 +81,7 @@ func _init() -> void:
 	round_label = _label(root, "Round")
 	round_label.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
 	discussion_label = _rich(root, "Discussion", 110.0)
-	var quick_row := HBoxContainer.new()
+	var quick_row := HFlowContainer.new()                               # en 的三顆按鈕 814 px 會撐破面板：換行排
 	quick_row.name = "Quick"
 	root.add_child(quick_row)
 	for i in 3:
@@ -90,7 +99,9 @@ func _init() -> void:
 	input_row.add_child(input)
 	send_btn = _button(input_row, "Send", tr("UI_AAR_SEND"))
 	send_btn.pressed.connect(_send)
-	var action_row := HBoxContainer.new()
+	_section(root, "UI_AAR_DIFF")
+	diff_label = _rich(root, "Diff", 90.0)
+	var action_row := HFlowContainer.new()                              # 按鈕列放在提案「下面」：看完整提案才按採納
 	action_row.name = "Actions"
 	root.add_child(action_row)
 	propose_btn = _button(action_row, "Propose", tr("UI_AAR_PROPOSE"))
@@ -103,8 +114,6 @@ func _init() -> void:
 	undo_btn.pressed.connect(func() -> void: undo_pressed.emit())
 	again_btn = _button(action_row, "Again", tr("UI_AAR_AGAIN"))
 	again_btn.pressed.connect(func() -> void: again_pressed.emit())
-	_section(root, "UI_AAR_DIFF")
-	diff_label = _rich(root, "Diff", 90.0)
 	result_label = _label(root, "Result")
 	result_label.add_theme_color_override("font_color", Color(0.55, 0.95, 0.55))
 	waiting_label = _label(root, "Waiting")
@@ -145,6 +154,8 @@ func _button(parent: Control, n: String, text: String) -> Button:
 	return b
 
 func _send() -> void:
+	if send_btn.disabled or not input.editable:                         # 等回覆時 Enter 也不送（不然一次吃掉兩回合）
+		return
 	var t := input.text.strip_edges()
 	if t == "":
 		return
@@ -189,9 +200,9 @@ static func moments_bbcode(moments: Array) -> String:
 		if str(m.get("kind", "")) == "override":
 			var outcome := str(m.get("outcome", ""))
 			var col := "#8cf28c" if outcome == "👍" else ("#ff7373" if outcome == "👎" else "#d9d9d9")
-			lines.append("[color=%s]%s[/color]" % [col, TranslationServer.translate("UI_AAR_MOMENT_OVERRIDE") % [idx, t, str(m.get("note", "")), str(m.get("ai_text", "")), str(m.get("player_text", "")), outcome if outcome != "" else "…"]])
+			lines.append("[color=%s]%s[/color]" % [col, esc(TranslationServer.translate("UI_AAR_MOMENT_OVERRIDE") % [idx, t, str(m.get("note", "")), str(m.get("ai_text", "")), str(m.get("player_text", "")), outcome if outcome != "" else "…"])])
 		else:
-			lines.append(TranslationServer.translate("UI_AAR_MOMENT_TURNING") % [idx, t, str(m.get("note", ""))])
+			lines.append(esc(TranslationServer.translate("UI_AAR_MOMENT_TURNING") % [idx, t, str(m.get("note", ""))]))
 	return "\n".join(lines)
 
 static func diff_bbcode(diff: Variant) -> String:
@@ -200,11 +211,11 @@ static func diff_bbcode(diff: Variant) -> String:
 	var d: Dictionary = diff
 	var lines: Array[String] = []
 	if str(d.get("summary", "")) != "":
-		lines.append(TranslationServer.translate("UI_AAR_DIFF_SUMMARY") % str(d["summary"]))
+		lines.append(esc(TranslationServer.translate("UI_AAR_DIFF_SUMMARY") % str(d["summary"])))
 	for a in d.get("add", []):
-		lines.append("[color=#%s]%s[/color]" % [COLOR_ADD.to_html(false), TranslationServer.translate("UI_AAR_ADD") % [str(a.get("text", "")), str(a.get("section", ""))]])
+		lines.append("[color=#%s]%s[/color]" % [COLOR_ADD.to_html(false), esc(TranslationServer.translate("UI_AAR_ADD") % [str(a.get("text", "")), str(a.get("section", ""))])])
 	for r in d.get("remove", []):
-		lines.append("[color=#%s]%s[/color]" % [COLOR_REMOVE.to_html(false), TranslationServer.translate("UI_AAR_REMOVE") % str(r)])
+		lines.append("[color=#%s]%s[/color]" % [COLOR_REMOVE.to_html(false), esc(TranslationServer.translate("UI_AAR_REMOVE") % str(r))])
 	if d.get("add", []).is_empty() and d.get("remove", []).is_empty():
 		lines.append(TranslationServer.translate("UI_AAR_EMPTY_DIFF"))
 	return "\n".join(lines)
@@ -213,7 +224,7 @@ static func transcript_bbcode(transcript: Array) -> String:
 	var lines: Array[String] = []
 	for m in transcript:
 		var who := TranslationServer.translate("UI_AAR_YOU") if str(m.get("role", "")) == "user" else TranslationServer.translate("UI_SECTION_CHIEF")
-		lines.append("[b]%s[/b]：%s" % [who, str(m.get("content", ""))])
+		lines.append("[b]%s[/b]：%s" % [who, esc(str(m.get("content", "")))])
 	return "\n".join(lines)
 
 ## model：card{}, seconds, unjudged, chief_line, transcript[], round（下一回合編號，4＝討論結束）, next_quick[], diff（null 或 {}）,
@@ -246,6 +257,7 @@ func render(m: Dictionary) -> void:
 		b.text = str(quick[i]) if i < quick.size() else ""
 		b.disabled = busy
 	input.visible = discussing
+	input.editable = not busy
 	send_btn.visible = discussing
 	send_btn.disabled = busy
 	propose_btn.visible = phase == "card"
@@ -254,7 +266,7 @@ func render(m: Dictionary) -> void:
 	adopt_btn.disabled = busy
 	skip_btn.visible = phase in ["card", "proposed"]
 	skip_btn.disabled = busy
-	undo_btn.visible = phase == "adopted" and bool(m.get("adopted", true))
+	undo_btn.visible = phase == "adopted" and bool(m.get("adopted", true)) and not bool(m.get("rolled_back", false))   # 回滾過＝沒有上一版可撤
 	undo_btn.disabled = busy
 	again_btn.visible = phase in ["adopted", "skipped", "undone"]
 	again_btn.disabled = busy
@@ -276,8 +288,10 @@ func render(m: Dictionary) -> void:
 	result_label.visible = result_label.text != ""
 	waiting_label.text = tr("UI_AAR_WAITING") if busy else ""
 	waiting_label.visible = busy
-	set_duration(float(m.get("duration_s", 0.0)))
+	set_duration(float(m.get("duration_s", 0.0)), float(m.get("service_duration_s", -1.0)))
 
-func set_duration(s: float) -> void:
-	timer_label.text = tr("UI_AAR_TIMER") % [int(s), int(TARGET_S)]
-	timer_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85) if s < TARGET_S else Color(1.0, 0.6, 0.6))
+## service_s ≥ 0 時以服務記的為準（aar.json 的 duration_s，從第一次互動起算；與 chief stats 一致）。
+func set_duration(s: float, service_s: float = -1.0) -> void:
+	var shown := service_s if service_s >= 0.0 else s
+	timer_label.text = tr("UI_AAR_TIMER") % [int(shown), int(TARGET_S)]
+	timer_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85) if shown < TARGET_S else Color(1.0, 0.6, 0.6))

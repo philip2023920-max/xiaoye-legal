@@ -121,6 +121,30 @@ def test_release_makes_next_takeover_count(workdir):
     assert svc.handle("POST", "/release", {"unit_ids": ["plt-A1"]})[1]["released"] == []
 
 
+def test_company_takeover_counts_as_subtree(workdir):
+    """19 審查 1：接管連＝整棵子樹直轄；放手連把子排一起放掉；之後再接管子排算新的一次。"""
+    s = ChiefSession(cfg(workdir), BOARD)
+    s.tick(BOARD, t=120)
+    all_player = {u["id"]: "player" for u in BOARD["orbat"]}
+    assert s.override("co-A", {"task": "seize", "target": "C3"}, board=at(121, **all_player), t=121)["counted"]
+    assert "plt-A1" in s.player_units and "co-A" in s.player_units
+    assert not s.override("plt-A1", {"task": "hold", "target": "B2"}, board=at(122, **all_player), t=122)["counted"]        # 連已直轄 → 改排不算
+    rel = s.release(["co-A"] + [u["id"] for u in BOARD["orbat"] if u["id"] != "co-A"])
+    assert "co-A" in rel["released"] and "plt-A1" in rel["released"] and rel["player_units"] == []
+    assert s.override("plt-A1", {"task": "hold", "target": "B2"}, board=at(123, **{"plt-A1": "player"}), t=123)["counted"]   # 放手連後再接管子排：第 2 次
+    assert len(s.overrides.records) == 2
+    # 反向：接管排 → 放手排 → 接管連（算）→ 再改那個排（不算：released_units 已被連的子樹清掉）
+    s2 = ChiefSession(cfg(workdir), BOARD)
+    s2.tick(BOARD, t=120)
+    assert s2.override("plt-A2", {"task": "hold", "target": "B2"}, board=at(121, **{"plt-A2": "player"}), t=121)["counted"]
+    s2.release(["plt-A2"])
+    assert s2.override("co-A", {"task": "seize", "target": "C3"}, board=at(122, **all_player), t=122)["counted"]
+    assert not s2.override("plt-A2", {"task": "hold", "target": "B2"}, board=at(123, **all_player), t=123)["counted"] and len(s2.overrides.records) == 2
+    # 接管連後只放手一個排 → 再接管那個排算
+    s2.release(["plt-A5"])
+    assert s2.override("plt-A5", {"task": "hold", "target": "B2"}, board=at(124, **all_player), t=124)["counted"] and len(s2.overrides.records) == 3
+
+
 def test_judge_timing_seconds_and_turns(workdir):
     """審查 5：秒制板的後果至少隔 20 秒才判；回合制板維持下一拍。"""
     s = ChiefSession(cfg(workdir), BOARD)
@@ -363,6 +387,14 @@ def test_session_switch_writes_cases(workdir):
     assert cases.exists() and len(cases.read_text(encoding="utf-8").splitlines()) == 1 and s.aar_closed
     svc.close()
     assert len(cases.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_health_reports_key_flags_only(workdir, monkeypatch):
+    """施工單 21（D25）：設定頁只看得到已設定／未設定，金鑰值絕不經過 HTTP。"""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret-value"); monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    svc = ChiefService(cfg(workdir))
+    code, body = svc.handle("GET", "/health", {})
+    assert code == 200 and body["keys"]["anthropic"] is True and body["keys"]["openai"] is False and "secret" not in json.dumps(body)
 
 
 def test_service_token(workdir):

@@ -102,6 +102,12 @@ def pid_alive(pid: int) -> bool:
         return True
 
 
+def key_flags() -> dict:
+    """設定頁只能看到「已設定／未設定」（D25）：回布林，絕不回值。"""
+    return {"anthropic": bool(os.getenv("ANTHROPIC_API_KEY")), "openai": bool(os.getenv("OPENAI_API_KEY")),
+            "deepseek": bool(os.getenv("DEEPSEEK_API_KEY")), "ollama": bool(os.getenv("OLLAMA_HOST"))}
+
+
 def _looks_like_board(body: dict) -> bool:
     return "board" not in body and isinstance(body.get("orbat"), list) and "schema_version" in body
 
@@ -168,7 +174,8 @@ class ChiefService:
 
     def handle(self, method: str, path: str, body: dict, token: Optional[str] = None) -> tuple[int, dict]:
         if method == "GET" and path == "/health":
-            return 200, {"ok": True, "version": __version__, "session": self.session is not None, "requests": self.requests, "auth": bool(self.token)}
+            return 200, {"ok": True, "version": __version__, "session": self.session is not None, "requests": self.requests, "auth": bool(self.token),
+                         "keys": key_flags()}
         if self.token and token != self.token:
             return 401, {"error": "缺少或錯誤的 X-Chief-Token"}
         if method == "GET":

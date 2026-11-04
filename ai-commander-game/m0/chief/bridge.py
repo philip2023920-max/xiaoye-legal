@@ -22,7 +22,7 @@ from .discussion import quick_replies, system_prompt as discussion_system_prompt
 from .doctrine import DoctrineStore, apply_diff, propose_diff, save_aar
 from .gateway import make_gateway
 from .meter import Ledger, PriceTable, UsageMeter
-from .override import OverrideLog, OverrideRecord, TASK_CHOICES, judge_outcome, player_order_problem, target_sector
+from .override import OverrideLog, OverrideRecord, TASK_CHOICES, judge_outcome, player_order_problem, subtree_ids, target_sector
 from .prompts import build_messages, load_doctrine, use_template
 from .report import build_card_from, card_dict, card_summary_text, chief_line, first_sentences, objective_hint
 from .sim import BattleResult, Order
@@ -283,9 +283,12 @@ class ChiefSession:
             prev_ctrl = prev_board.unit(unit_id).controlled_by
         except KeyError:
             prev_ctrl = None
-        counted = unit_id in self.released_units or (prev_ctrl != "player" and unit_id not in self.player_units)
-        self.released_units.discard(unit_id)
-        self.player_units.add(unit_id)
+        ancestors = self._ancestors(unit_id)
+        under_player = any(a in self.player_units for a in ancestors)     # 連已直轄 → 改它的排不算（§9 接管連＝連同下級）
+        counted = unit_id in self.released_units or (prev_ctrl != "player" and unit_id not in self.player_units and not under_player)
+        subtree = set(subtree_ids(self.board, unit_id))                  # 接管連＝整棵子樹直轄
+        self.released_units -= subtree
+        self.player_units |= subtree
         ai = self._ai_order_for(unit_id, ai_order)
         turn = max(self.turn, 1)
         base = {"turn": turn, "unit_id": unit_id, "ai_order": ai, "player_order": clean}
@@ -309,10 +312,19 @@ class ChiefSession:
         if self.ended:
             raise ConflictError("這場已經結束")
         released = [u for u in unit_ids if u in self.player_units]
-        for u in released:
+        for u in unit_ids:                       # 每個 id 都處理（Godot 放手連會把子排一起送來；沒在清單裡的也記「明確放手」）
             self.player_units.discard(u)
             self.released_units.add(u)
         return {"released": released, "player_units": sorted(self.player_units), "override_rate": self.override_rate()}
+
+    def _ancestors(self, unit_id: str) -> list[str]:
+        by_id = {u.id: u for u in self.board.orbat}
+        out, cur, seen = [], by_id.get(unit_id), set()
+        while cur is not None and cur.parent and cur.parent not in seen:
+            seen.add(cur.parent)
+            out.append(cur.parent)
+            cur = by_id.get(cur.parent)
+        return out
 
     # ---- 戰後 ----
     def _end_payload(self) -> dict:

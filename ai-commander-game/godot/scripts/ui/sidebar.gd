@@ -30,7 +30,7 @@ var events_label: RichTextLabel
 var chief_label: Label
 var objectives_label: Label
 var conditions_label: Label
-var cost_label: Label
+var cost_label: Label           # 與天氣／時段同一行（省高度）；保留欄位給測試與 21 的費用 HUD 對照
 var _items := {}          # unit_id -> TreeItem
 var refreshes := 0
 
@@ -82,7 +82,9 @@ func _init() -> void:
 	tree.set_column_custom_minimum_width(3, 104)
 	tree.hide_root = true
 	tree.focus_mode = Control.FOCUS_NONE              # 點樹不吃空白鍵（仍會發 item_selected）
-	tree.custom_minimum_size = Vector2(WIDTH - 24.0, 140.0)
+	tree.custom_minimum_size = Vector2(WIDTH - 24.0, 200.0)          # 至少 5 列；多的高度優先給樹
+	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tree.size_flags_stretch_ratio = 2.0
 	tree.item_selected.connect(_on_item_selected)
 	body.add_child(tree)
 	_section(tr("UI_SECTION_EVENTS"))
@@ -94,15 +96,18 @@ func _init() -> void:
 	events_label.custom_minimum_size = Vector2(WIDTH - 24.0, 120.0)
 	events_label.focus_mode = Control.FOCUS_NONE
 	events_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	events_label.size_flags_stretch_ratio = 1.0
 	body.add_child(events_label)
 	_section(tr("UI_SECTION_CHIEF"))
 	chief_label = _label("Chief")
+	chief_label.max_lines_visible = 5                                   # 研判／思考中／推翻率／最近命令（一行）：最多 5 行，別把下面擠出去
 	_section(tr("UI_SECTION_OBJECTIVES"))
 	objectives_label = _label("Objectives")
-	_section(tr("UI_SECTION_CONDITIONS"))
-	conditions_label = _label("Conditions")
-	_section(tr("UI_SECTION_COST"))
-	cost_label = _label("Cost")
+	conditions_label = _label("Conditions")                             # 天氣／時段／時間｜費用（同一行，不另開區段）
+	cost_label = Label.new()
+	cost_label.name = "Cost"
+	cost_label.visible = false
+	body.add_child(cost_label)
 
 func _section(title: String) -> void:
 	var l := Label.new()
@@ -124,6 +129,8 @@ func toggle() -> void:
 	body.visible = not collapsed
 	toggle_btn.text = tr("UI_SIDEBAR_EXPAND") if collapsed else tr("UI_SIDEBAR_COLLAPSE")
 	offset_left = -toggle_btn.get_combined_minimum_size().x - 16.0 if collapsed else -WIDTH
+	anchor_bottom = 0.0 if collapsed else 1.0                           # 收合＝只剩按鈕那一小塊，不再佔整條右邊（地圖點得到、邊緣捲動照常）
+	offset_bottom = 0.0
 
 # ---- 純函式（測試直接驗）----
 
@@ -196,7 +203,7 @@ static func objectives_text(board: Dictionary) -> String:
 			se += v
 		var mark := "✔" if owner == "us" else ("✘" if owner == "enemy" else "")
 		lines.append(TranslationServer.translate("UI_OBJECTIVE_LINE") % [str(o.get("id", "")), v, str(o.get("sector", "")), mark])
-	return (TranslationServer.translate("UI_SCORE") % [su, se]) + "\n" + "\n".join(lines)
+	return (TranslationServer.translate("UI_SCORE") % [su, se]) + "\n" + "、".join(lines)     # 據點同一行（會自動換行），省高度
 
 static func conditions_text(board: Dictionary, battle_seconds: int = 300) -> String:
 	var wx := TranslationServer.translate("UI_WEATHER_" + str(board.get("weather", "clear")))
@@ -219,11 +226,10 @@ static func chief_text(chief: Dictionary) -> String:
 		if str(chief.get("override_rate", "")) != "":
 			lines.append(TranslationServer.translate("UI_OVERRIDE_RATE") % str(chief["override_rate"]))
 		var orders: Array = chief.get("orders", [])
-		lines.append(TranslationServer.translate("UI_CHIEF_LAST_ORDERS"))
-		if orders.is_empty():
-			lines.append(TranslationServer.translate("UI_CHIEF_NO_ORDERS"))
+		var joined: Array[String] = []
 		for o in orders:
-			lines.append("  %s" % str(o))
+			joined.append(str(o))
+		lines.append(TranslationServer.translate("UI_CHIEF_LAST_ORDERS") + (TranslationServer.translate("UI_CHIEF_NO_ORDERS") if orders.is_empty() else "；".join(joined)))
 	return "\n".join(lines)
 
 # ---- 更新 ----
@@ -237,8 +243,8 @@ func refresh(board: Dictionary, chief: Dictionary = {}, battle_seconds_: int = -
 	events_label.text = events_bbcode(board.get("events", []))
 	chief_label.text = chief_text(chief)
 	objectives_label.text = objectives_text(board)
-	conditions_label.text = conditions_text(board, battle_seconds)
 	cost_label.text = TranslationServer.translate("UI_COST_LINE") % [float(chief.get("cost", 0.0)), int(chief.get("ticks", 0))]
+	conditions_label.text = conditions_text(board, battle_seconds) + "｜" + cost_label.text
 	if bool(chief.get("ended", false)):
 		conditions_label.text += "｜" + TranslationServer.translate("UI_ENDED")
 
@@ -249,9 +255,9 @@ func _rebuild_tree(board: Dictionary) -> void:
 		ids[r["id"]] = true
 	for uid in _items.keys():          # 不在板上的移除；連被釋放時子項跟著沒了，一起從表裡拿掉
 		if not ids.has(uid):
-			var it: TreeItem = _items[uid]
+			var it = _items[uid]        # 故意不標型別：已被連一起釋放的項，標型別的賦值會直接拋錯
 			if is_instance_valid(it):
-				it.free()
+				(it as TreeItem).free()
 			_items.erase(uid)
 	for uid in _items.keys():
 		if not is_instance_valid(_items[uid]):
