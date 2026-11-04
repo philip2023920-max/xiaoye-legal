@@ -2,6 +2,10 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十九次）— 施工單 20 戰後 AAR 畫面（程式完成）
+- `godot/scripts/ui/aar_screen.gd`（`AarScreen`：卡／徽章／三幕／提示／一句話／討論（快速回覆 ×3＋輸入）／提案（綠紅）／採納／跳過／撤銷／再打一場／計時；`render(model)`）、`battle.gd` 的 `_show_aar` 與 `aar_*` 服務呼叫（`/aar/line` 自動、錯誤人話、busy 鎖）；字串表 +44 鍵（105 行）
+- `tests/test_aar.gd` 31 檢查（含真的啟動 chief serve 用自訂準則檔走完採納與撤銷）
+
 ## 2026-11-04（第三十八次）— 施工單 18 三審第一輪 14 項修正
 - 版面：`ScrollContainer`、寬 440、欄寬固定、HUD 兩行換行與下移、滑鼠在 UI 上停邊緣捲動、全部 `FOCUS_NONE`；樹：`is_instance_valid` 守門、先連再排、收合保留；會戰長度由 Battle 傳導演常數；`task_text` 保底；匯入器產物改 `importer="keep"`、刪 3 個 .translation、`.gitignore`
 - 測試：`test_sidebar.gd` 31 → 39（版面、焦點、收合、排先於連、連消失、HUD 換行）

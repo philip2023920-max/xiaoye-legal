@@ -59,3 +59,47 @@ UI_EVT_RELEASE,總司令放手 %s，交回參謀長,总司令放手 %s，交回�
 UI_EVT_OVERRIDE_RECORDED,推翻已記錄（第 %d 次，推翻率 %s）,推翻已记录（第 %d 次，推翻率 %s）,Override recorded (#%d; rate %s)
 UI_EVT_OVERRIDE_NOT_COUNTED,已直轄單位改令，不算推翻,已直辖单位改令，不算推翻,Re-order of a unit already under your command: not counted
 UI_EVT_ORDER_REJECTED,總司令的命令被引擎退回：%s,总司令的命令被引擎退回：%s,Commander's order rejected by the engine: %s
+UI_AAR_TITLE,戰後檢討,战后检讨,After-action review
+UI_AAR_RESULT_us,我方勝,我方胜,Victory
+UI_AAR_RESULT_enemy,敵方勝,敌方胜,Defeat
+UI_AAR_RESULT_draw,平手,平手,Draw
+UI_AAR_END_turns,5 分鐘打完,5 分钟打完,time ran out
+UI_AAR_END_strength,一方戰力低於 30%,一方战力低于 30%,a side fell below 30%
+UI_AAR_END_quit,中途結束,中途结束,quit early
+UI_AAR_HEADER,%s %s｜%d 秒（%s）｜據點 %d:%d｜推翻 %d 次（%s）｜費用 $%.4f｜%s/%s,%s %s｜%d 秒（%s）｜据点 %d:%d｜推翻 %d 次（%s）｜费用 $%.4f｜%s/%s,%s %s | %d s (%s) | objectives %d:%d | overrides %d (%s) | cost $%.4f | %s/%s
+UI_AAR_UNJUDGED,未判定 %d,未判定 %d,%d unjudged
+UI_AAR_BADGES,徽章：%s,徽章：%s,Badges: %s
+UI_AAR_NO_BADGES,（這場沒有徽章）,（这场没有徽章）,(no badges this battle)
+UI_BADGE_decisive,果斷總司令,果断总司令,Decisive commander
+UI_BADGE_hands_off,放手型,放手型,Hands-off
+UI_BADGE_thrifty_winner,省錢贏家,省钱赢家,Thrifty winner
+UI_BADGE_local_hero,本地派,本地派,Local hero
+UI_BADGE_ground_holder,守土有責,守土有责,Ground holder
+UI_AAR_HINT,提示：%s,提示：%s,Hint: %s
+UI_AAR_MOMENTS,關鍵三幕,关键三幕,Key moments
+UI_AAR_NO_MOMENTS,（沒有關鍵時刻）,（没有关键时刻）,(no key moments)
+UI_AAR_MOMENT_OVERRIDE,第%d幕 t%d 推翻 %s：參謀長 %s → 總司令 %s %s,第%d幕 t%d 推翻 %s：参谋长 %s → 总司令 %s %s,Moment %d t%d override %s: chief %s → commander %s %s
+UI_AAR_MOMENT_TURNING,第%d幕 t%d 轉折：%s,第%d幕 t%d 转折：%s,Moment %d t%d turning point: %s
+UI_AAR_CHIEF_LINE,參謀長的話,参谋长的话,Chief's word
+UI_AAR_WAITING_LINE,（等參謀長的一句話…）,（等参谋长的一句话…）,(waiting for the chief's line…)
+UI_AAR_DISCUSS,討論（第 %d／3 回合）,讨论（第 %d／3 回合）,Discussion (round %d of 3)
+UI_AAR_DISCUSS_DONE,討論結束,讨论结束,Discussion closed
+UI_AAR_YOU,您,您,You
+UI_AAR_INPUT_HINT,跟參謀長說一句（Enter 送出）,跟参谋长说一句（Enter 送出）,Say something to the chief (Enter sends)
+UI_AAR_SEND,送出,送出,Send
+UI_AAR_PROPOSE,提出準則修改,提出准则修改,Propose doctrine change
+UI_AAR_ADOPT,採納,采纳,Adopt
+UI_AAR_SKIP,跳過,跳过,Skip
+UI_AAR_UNDO,撤銷,撤销,Undo
+UI_AAR_AGAIN,再打一場,再打一场,Play again
+UI_AAR_DIFF,準則提案,准则提案,Doctrine proposal
+UI_AAR_DIFF_SUMMARY,摘要：%s,摘要：%s,Summary: %s
+UI_AAR_ADD,＋ %s（%s）,＋ %s（%s）,+ %s (%s)
+UI_AAR_REMOVE,－ %s,－ %s,− %s
+UI_AAR_EMPTY_DIFF,沒有變更,没有变更,No change
+UI_AAR_ADOPTED,準則已更新,准则已更新,Doctrine updated
+UI_AAR_ROLLED_BACK,回歸退步，已自動回滾,回归退步，已自动回滚,Regression got worse: rolled back automatically
+UI_AAR_SKIPPED,這場不改準則,这场不改准则,Doctrine unchanged this battle
+UI_AAR_UNDONE,已還原上一版準則,已还原上一版准则,Previous doctrine restored
+UI_AAR_WAITING,參謀長思考中…,参谋长思考中…,Chief is thinking…
+UI_AAR_TIMER,戰後 %d 秒（目標 < %d）,战后 %d 秒（目标 < %d）,After-action %d s (target < %d)

@@ -2,7 +2,7 @@ class_name Battle
 extends Node3D
 ## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14；
 ## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）；右側戰情板側欄在 18；
-## 推翻與接管（點排／點側欄 → 面板 → 點地圖選目標 → 直轄、/override）在 19。
+## 推翻與接管（點排／點側欄 → 面板 → 點地圖選目標 → 直轄、/override）在 19；戰後 AAR 畫面（卡 → 討論 → 提案 → 採納）在 20。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
 @export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
@@ -64,6 +64,9 @@ var panel: OverridePanel = null
 var override_rate := ""               # 服務回的「推翻數／參謀長放行命令數」
 var last_override := {}               # 最近一次 /override 的回應（測試看）
 var overrides_sent := 0
+var aar: AarScreen = null             # 施工單 20：戰後畫面
+var aar_model := {}                   # AarScreen.render 的資料（服務回的東西 + 流程狀態）
+var _aar_started_msec := 0
 const PICK_RADIUS_PX := 28.0
 
 func _ready() -> void:
@@ -268,6 +271,15 @@ func _add_hud() -> void:
 	panel.cancel_pressed.connect(func() -> void: flow.cancel())
 	flow.changed.connect(func(_st: String) -> void: refresh_panel())
 	hud.add_child(panel)
+	aar = AarScreen.new()
+	aar.quick_reply.connect(func(i: int) -> void: aar_discuss("", i))
+	aar.text_sent.connect(func(t: String) -> void: aar_discuss(t, -1))
+	aar.propose_pressed.connect(aar_propose)
+	aar.adopt_pressed.connect(aar_adopt)
+	aar.skip_pressed.connect(aar_skip)
+	aar.undo_pressed.connect(aar_undo)
+	aar.again_pressed.connect(restart)
+	hud.add_child(aar)
 
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
@@ -306,6 +318,8 @@ func _process(_delta: float) -> void:
 	if sidebar != null and _sidebar_acc >= SIDEBAR_INTERVAL:
 		_sidebar_acc = 0.0
 		sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
+		if aar != null and aar.visible:
+			aar.set_duration(aar_duration())
 	camera_rig.edge_scroll_enabled = not mouse_over_ui()                # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
 
 ## 滑鼠：左鍵點排＝選取（開面板）；選目標中左鍵＝點分區／點友軍；右鍵＝取消選目標。鍵盤：空白鍵＝「A 連 奪取 C3」（施工單 11）；R 重開。
@@ -616,9 +630,11 @@ func _chief_end() -> void:
 		var card: Dictionary = body.get("card", {})
 		orbat.log_event(orbat.second(), "info", "戰報卡已產生（推翻 %d、未判定 %d）" % [int(card.get("overrides", 0)), int(body.get("unjudged", 0))])
 		chief_line = "參謀長：" + str(body.get("summary", "")).split("\n")[0]
+		chief_state = "ended"
+		_show_aar(body)
 	else:
 		orbat.log_event(orbat.second(), "info", "戰報卡沒拿到（%s）" % r["error"])
-	chief_state = "ended"
+		chief_state = "ended"
 
 ## 會戰長度（秒）：導演的常數，HUD、側欄都用這一份。
 func battle_seconds() -> int:
@@ -668,6 +684,111 @@ func unit_world_position(unit_id: String) -> Vector3:
 		var sec := str(orbat.companies[unit_id].get("sector", ""))
 		return sector_map.center_of(sec) if sec != "" and sector_map.sectors.has(sec) else Vector3.INF
 	return Vector3.INF
+
+# ---- 戰後 AAR（施工單 20）：畫面在 AarScreen，服務呼叫在這裡 ----
+func _show_aar(end_body: Dictionary) -> void:
+	_aar_started_msec = Time.get_ticks_msec()
+	aar_model = {"card": end_body.get("card", {}), "seconds": director.result.get("seconds", -1) if director != null else -1,
+		"unjudged": int(end_body.get("unjudged", 0)), "chief_line": "", "transcript": [], "round": 1,
+		"next_quick": end_body.get("quick_replies", []), "diff": null, "phase": "card", "messages": [], "rolled_back": false,
+		"adopted": false, "busy": false, "duration_s": 0.0, "error": ""}
+	if aar != null:
+		aar.render(aar_model)
+	if flow != null:
+		select_unit("")
+	aar_line()
+
+func aar_duration() -> float:
+	return float(Time.get_ticks_msec() - _aar_started_msec) / 1000.0 if _aar_started_msec > 0 else 0.0
+
+func _aar_render(error: String = "") -> void:
+	aar_model["duration_s"] = aar_duration()
+	aar_model["error"] = error
+	if aar != null:
+		aar.render(aar_model)
+
+## 一次服務呼叫：進行中畫面鎖按鈕；失敗把人話放到畫面上、不改階段。
+func _aar_call(path: String, body: Dictionary = {}, timeout_s: float = 60.0) -> Dictionary:
+	if chief == null or chief_state != "ended":
+		return {"code": 0, "body": {}, "error": "參謀長服務不在線上"}
+	aar_model["busy"] = true
+	_aar_render()
+	var r: Dictionary = await chief.call_api("POST", path, body, timeout_s)
+	aar_model["busy"] = false
+	if r["code"] != 200:
+		_aar_render("%s：%s" % [path, r["error"]])
+	return r
+
+func aar_line() -> void:
+	var r: Dictionary = await _aar_call("/aar/line", {}, 60.0)
+	if r["code"] == 200:
+		aar_model["chief_line"] = str(r["body"].get("chief_line", "")) if r["body"].get("chief_line") != null else ""
+		if aar_model["chief_line"] == "":
+			aar_model["chief_line"] = "（參謀長沒有回話）"
+		_aar_render()
+
+## 討論一回合：text 或快速回覆編號（1～3）。
+func aar_discuss(text: String, index: int) -> void:
+	if aar_model.get("phase", "") != "card" or int(aar_model.get("round", 1)) > 3:
+		return
+	var body := {"index": index} if index > 0 else {"text": text}
+	var said := str(aar_model["next_quick"][index - 1]) if (index > 0 and index <= aar_model["next_quick"].size()) else text
+	var r: Dictionary = await _aar_call("/aar/discuss", body, 60.0)
+	if r["code"] != 200:
+		return
+	var b: Dictionary = r["body"]
+	aar_model["transcript"].append({"role": "user", "content": said})
+	aar_model["transcript"].append({"role": "assistant", "content": str(b.get("reply", ""))})
+	aar_model["round"] = int(b.get("round", aar_model["round"])) + 1
+	aar_model["next_quick"] = b.get("next_quick", [])
+	_aar_render()
+
+func aar_propose() -> void:
+	if aar_model.get("phase", "") != "card":
+		return
+	var r: Dictionary = await _aar_call("/aar/propose", {}, 90.0)
+	if r["code"] != 200:
+		return
+	var b: Dictionary = r["body"]
+	if b.get("diff") == null:
+		_aar_render(str(b.get("error", "準則提案失敗")))
+		return
+	aar_model["diff"] = b["diff"]
+	aar_model["phase"] = "proposed"
+	_aar_render()
+
+func aar_adopt() -> void:
+	if aar_model.get("phase", "") != "proposed":
+		return
+	var r: Dictionary = await _aar_call("/aar/adopt", {}, 180.0)   # 含回歸（可能跑好幾個戰例）
+	if r["code"] != 200:
+		return
+	var b: Dictionary = r["body"]
+	aar_model["phase"] = "adopted"
+	aar_model["adopted"] = bool(b.get("adopted", false))
+	aar_model["rolled_back"] = bool(b.get("rolled_back", false))
+	aar_model["messages"] = b.get("messages", [])
+	_aar_render()
+	if orbat != null:
+		orbat.log_event(orbat.second(), "info", "準則%s（戰後 %d 秒）" % ["已更新" if aar_model["adopted"] else "沒有變更", int(aar_duration())])
+
+func aar_skip() -> void:
+	if not (aar_model.get("phase", "") in ["card", "proposed"]):
+		return
+	var r: Dictionary = await _aar_call("/aar/skip", {}, 30.0)
+	if r["code"] == 200:
+		aar_model["phase"] = "skipped"
+		aar_model["messages"] = []
+		_aar_render()
+
+func aar_undo() -> void:
+	if aar_model.get("phase", "") != "adopted":
+		return
+	var r: Dictionary = await _aar_call("/aar/undo", {}, 30.0)
+	if r["code"] == 200:
+		aar_model["phase"] = "undone" if bool(r["body"].get("undone", false)) else "adopted"
+		aar_model["messages"] = [str(r["body"].get("message", ""))]
+		_aar_render()
 
 ## HUD 第二行。
 func chief_hud_text() -> String:

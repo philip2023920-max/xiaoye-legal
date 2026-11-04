@@ -24,6 +24,7 @@ godot --headless --path . -s tools/bench.gd -- scales=1,5,10 max_ms=8   # CPU �
 godot --headless --path . -s tests/test_chief_client.gd   # 施工單 17：真的啟動 m0 的 chief serve（fake）打完一場（需 uv 在 PATH，約 1 分鐘）
 godot --headless --path . -s tests/test_sidebar.gd         # 施工單 18：側欄建樹、事件上色、三語字串表
 godot --headless --path . -s tests/test_override.gd        # 施工單 19：推翻／接管（含真的啟動 chief serve 驗 /override、/release）
+godot --headless --path . -s tests/test_aar.gd             # 施工單 20：戰後畫面（含真的啟動 chief serve 走完討論、提案、採納、撤銷）
 ```
 Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerShell）：
 ```powershell
@@ -41,5 +42,5 @@ Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerSh
 - `scripts/core/board_writer.gd` 歸屬、視距敵情、Board v0.2 JSON、原子寫入 `user://board.json`（M0 的 `chief show` 直接讀）
 - `scripts/battle/` 場景組裝與導演（劇本排程、結束判定、快照、結果）；參謀長的啟動、節拍、套用命令、HUD 第二行也在 `battle.gd`
 - `scripts/chief/` 參謀長客戶端（啟動／連線 `chief serve`、請求排隊、逾時、關機）與節拍排程器（20 秒＋事件、至少隔 8 秒）
-- `scripts/ui/` 右側戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣、費用；可收合；點排移攝影機）、推翻／接管的狀態機與面板、UI 字串表載入器；字串在 `i18n/ui.csv`（zh_TW／zh_CN／en），命令列 `-- lang=en` 切換
+- `scripts/ui/` 右側戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣、費用；可收合；點排移攝影機）、推翻／接管的狀態機與面板、戰後 AAR 畫面（卡、討論、提案、採納、撤銷、再打一場）、UI 字串表載入器；字串在 `i18n/ui.csv`（zh_TW／zh_CN／en），命令列 `-- lang=en` 切換
 - `tests/` 無頭測試；`tools/` 產生場景等小工具
