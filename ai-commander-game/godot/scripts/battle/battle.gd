@@ -282,6 +282,7 @@ func _add_hud() -> void:
 	chief_label.text = chief_hud_text()
 	hud.add_child(chief_label)
 	get_viewport().size_changed.connect(_relayout_hud)              # 視窗縮放：兩行寬度重算，不然又蓋到側欄
+	flow.changed.connect(func(_st: String) -> void: refresh_panel())   # 只連一次（_build_ui 會因換語言重跑，不能放那裡）
 	cost_hud = CostHud.new()
 	cost_hud.position = Vector2(12, 82)
 	cost_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -304,7 +305,6 @@ func _build_ui() -> void:
 	panel.takeover_pressed.connect(func() -> void: commander_takeover(flow.unit_id))
 	panel.release_pressed.connect(func() -> void: commander_release(flow.unit_id))
 	panel.cancel_pressed.connect(func() -> void: flow.cancel())
-	flow.changed.connect(func(_st: String) -> void: refresh_panel())
 	hud.add_child(panel)
 	aar = AarScreen.new()
 	aar.quick_reply.connect(func(i: int) -> void: aar_discuss("", i))
