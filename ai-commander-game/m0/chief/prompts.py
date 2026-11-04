@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 LANG_NAME = {"zh-TW": "Traditional Chinese (繁體中文)", "zh-CN": "Simplified Chinese (简体中文)", "en": "English"}
 SYSTEM_TEMPLATE_PATH = Path(__file__).parent / "prompts" / "chief_system.md"
+BATTLE_SECONDS = 300      # docs/10 §15：Godot 一場 300 秒（M0 10 回合 × 30 秒）
+TICK_SECONDS = 20         # ADR-0015 D24：每 20 秒一拍
 
 
 def load_doctrine(path: str | Path) -> str:
@@ -51,22 +54,36 @@ def _sector_range(snapshot: dict) -> str:
     return f"{ids[0]}..{ids[-1]}" if ids else "(none)"
 
 
+def _seconds_mode(snapshot: dict) -> bool:
+    return snapshot.get("unit") == "second"
+
+
+def _time_left(snapshot: dict, turn: int) -> str:
+    """施工單 16：Godot 的板是秒制（t 秒／300 秒，每 ~20 秒一拍），不能拿 M0 的 10 回合去算剩幾回合。"""
+    from .sim import MAX_TURNS
+    if _seconds_mode(snapshot):
+        t = float(snapshot.get("t", 0) or 0)
+        left_s = max(0.0, BATTLE_SECONDS - t)
+        decisions = max(1, math.ceil(left_s / TICK_SECONDS)) if left_s > 0 else 0
+        return f"Time left: about {left_s:.0f} s of {BATTLE_SECONDS} (roughly {decisions} more decisions, one every ~{TICK_SECONDS} s)."
+    return f"Turns left including this one: {max(0, MAX_TURNS - turn + 1)}."
+
+
 def score_line(snapshot: dict, turn: int) -> str:
     """施工單 09：把「據點分定勝負」算給參謀長看，別讓它守一個 3 分據點守到輸。"""
-    from .sim import MAX_TURNS
     objs = snapshot.get("objectives", [])
     us = sum(o.get("value", 0) for o in objs if o.get("owner") == "us")
     en = sum(o.get("value", 0) for o in objs if o.get("owner") == "enemy")
     missing = [f"{o['id']} ({o.get('value', 0)} pts at {o.get('sector')}, {'unowned' if o.get('owner', 'none') == 'none' else o.get('owner')})" for o in objs if o.get("owner") != "us"]
-    left = max(0, MAX_TURNS - turn + 1)
-    line = f"Score now: us {us} : enemy {en}. Objectives not ours: {', '.join(missing) or 'none'}. Turns left including this one: {left}."
+    line = f"Score now: us {us} : enemy {en}. Objectives not ours: {', '.join(missing) or 'none'}. {_time_left(snapshot, turn)}"
     if objs and us <= en:
         line += " You do not win on points unless you seize at least one more objective."
     return line
 
 
 def user_prompt(snapshot: dict, turn: int, feedback: list[str] | None = None) -> str:
-    parts = [f"Turn {turn}. Situation board (JSON):", json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"))]
+    head = f"Decision {turn} (t={float(snapshot.get('t', 0) or 0):.0f} s)" if _seconds_mode(snapshot) else f"Turn {turn}"
+    parts = [f"{head}. Situation board (JSON):", json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"))]
     parts.append(score_line(snapshot, turn))
     parts.append(f"Units you may order this turn: {', '.join(_orderable(snapshot)) or '(none)'}. Sector ids: {_sector_range(snapshot)}.")
     if feedback:

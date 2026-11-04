@@ -2,6 +2,13 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十三次）— 施工單 16 三審第一輪 18 項全部修正
+- `chief/bridge.py`：`aar_closed`（adopt／skip 只做一次，之後 409）、`/override` 先驗命令、已直轄不算推翻（`counted`、`player_units`）、`ai_order` 沿上級鏈取最近一拍、§9 秒制板 ≥20 秒才判（`JUDGE_DELAY_S`）、`EndResult` 先驗、拍數不動、每拍同組鍵、`close()` 補寫戰例、`duration_s` 從第一次互動起算、settings 的 `aar_*` 獨立
+- `chief/serve.py`：`/session/start` 白名單＋準則路徑限工作目錄＋裸板自動包、`--token`／`X-Chief-Token`（401）、`in_flight` 閒置計時、409／404／405／411／413、斷線不噴 traceback；`chief serve --token`；`gateway.make_gateway("anthropic")` 缺金鑰直接 ValueError
+- `chief/prompts.py`：秒制板提示改「Decision n (t=… s)」＋「Time left … of 300」
+- 文件：規則 §9 補秒制判定時點、§16 合約全面改寫；docs/12 §2 端點欄位修正；施工單 16 驗收腳本第 1 行修正＋審查紀錄
+- 測試：`tests/test_service.py` 9 → 21；M0 測試 188 → 199（198 過＋1 skip）
+
 ## 2026-11-04（第三十二次）— M2 拍板（ADR-0015）、施工單 16～21 建檔、16 參謀長服務（程式完成）
 - 老闆「全照建議」→ `docs/adr/0015-m2-chief-service.md`；決策第六輪 ✅；施工單 16～21 建檔
 - `chief/bridge.py`：`ChiefSession`（start／tick／override／end／aar_line／discuss／propose／adopt／skip／undo／status／settings），把 play.py 的每回合與戰後流程拆成不靠終端機的方法；`discussion.system_prompt`、`play.regression_check_core` 抽出共用

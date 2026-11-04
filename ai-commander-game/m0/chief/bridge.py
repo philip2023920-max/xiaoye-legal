@@ -9,10 +9,12 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional
+from typing import Any, Literal, Optional
+
+from pydantic import BaseModel, ValidationError
 
 from .badges import award
 from .board import Board, BoardError, board_from_dict, save_board
@@ -20,13 +22,31 @@ from .discussion import quick_replies, system_prompt as discussion_system_prompt
 from .doctrine import DoctrineStore, apply_diff, propose_diff, save_aar
 from .gateway import make_gateway
 from .meter import Ledger, PriceTable, UsageMeter
-from .override import OverrideLog, OverrideRecord, judge_outcome, target_sector
+from .override import OverrideLog, OverrideRecord, TASK_CHOICES, judge_outcome, player_order_problem, target_sector
 from .prompts import build_messages, load_doctrine, use_template
 from .report import build_card_from, card_dict, card_summary_text, chief_line, first_sentences, objective_hint
-from .sim import BattleResult
+from .sim import BattleResult, Order
 from .validator import validate_orders
 
 MAX_DISCUSSION_ROUNDS = 3
+JUDGE_DELAY_S = 20          # §9：秒制板的推翻後果，至少過一個決策間隔（20 秒）才判，不然「下一拍」可能只隔 1 秒
+GATEWAY_ERRORS = (ValueError, NotImplementedError, ImportError)
+
+
+class ConflictError(BoardError):
+    """狀態不對的呼叫（戰後再 tick、adopt 兩次…）→ HTTP 409。"""
+
+
+class EndResult(BaseModel):
+    """`/battle/end` 的 result：先驗再改狀態，壞資料不會留下半套紀錄。"""
+    winner: Literal["us", "enemy", "draw"]
+    score_us: int
+    score_enemy: int
+    end_reason: Literal["turns", "strength", "quit"] = "turns"
+    battle_id: Optional[str] = None
+    turns_played: Optional[int] = None
+    strength_us: float = 0.0
+    strength_enemy: float = 0.0
 
 
 @dataclass
@@ -47,6 +67,10 @@ class SessionConfig:
 
 def _time_tag() -> str:
     return time.strftime("%m%d-%H%M%S")
+
+
+def _validation_text(err: ValidationError) -> str:
+    return "；".join(f"{'.'.join(str(x) for x in e['loc']) or '(root)'}：{e['msg']}" for e in err.errors())
 
 
 class ChiefSession:
@@ -70,11 +94,13 @@ class ChiefSession:
         self.ledger = Ledger(cfg.ledger) if cfg.ledger else None
         self.overrides = OverrideLog(self.out_dir / "overrides.jsonl")
         self.owner_before: dict[int, Optional[str]] = {}
+        self.override_t: dict[int, Optional[float]] = {}   # 推翻當下的遊戲秒（秒制板才有）→ 判定時點（§9）
+        self.player_units: set[str] = set()                 # 目前由總司令直轄的單位（再改令不算推翻，§9）
         self.turn = 0
         self.feedback: list[str] = []
         self.chief_orders_total = 0
         self.override_outcomes: list[str] = []
-        self.last_orders: dict[str, dict] = {}      # unit_id -> 參謀長最近一次對它的令（推翻記錄用）
+        self.last_orders: dict[str, tuple[int, dict]] = {}   # unit_id -> (拍, 參謀長最近一次對它的令)
         self.budget_hit = False
         self.warned_80 = False
         self.ended = False
@@ -85,6 +111,7 @@ class ChiefSession:
         self.discussion_round = 1
         self.diff = None
         self.aar_started: Optional[float] = None
+        self.aar_closed = False          # adopt／skip 做過一次就關門：undo 的「上一版」與 aar.json 不能被第二次呼叫改寫
         save_board(self.start_board, self.out_dir / "t0.json")
 
     # ---- 建立 ----
@@ -98,8 +125,10 @@ class ChiefSession:
 
     def _resolve_doctrine(self) -> tuple[str, Optional[Path], str]:
         if self.cfg.doctrine and self.cfg.harness in ("", "none", "-", "off", "default"):
+            use_template(None)       # 不用參謀長包就用內建系統提示（上一場的包不得殘留）
             return self.cfg.doctrine, None, "custom"
         if self.cfg.harness in ("", "none", "-", "off"):
+            use_template(None)
             return self.cfg.doctrine or "harness/default/doctrine.md", None, "custom"
         from .harness import load_harness
         h = load_harness(self.cfg.harness)
@@ -122,22 +151,47 @@ class ChiefSession:
                 self.ledger.add(self.start_board.battle_id, gw.provider, gw.model, e.cost_usd, usage)
         return _on
 
-    def tick(self, board: dict, t: Optional[float] = None) -> dict:
-        """一個決策節拍：回命令（已通過驗證器）與退回理由；順便判上一拍推翻的後果。"""
-        if self.ended:
-            return {"error": "這場已經結束"}
-        self.board = board_from_dict(board)
-        self.turn += 1
-        save_board(self.board, self.out_dir / f"t{self.turn - 1}.json")   # 這拍開始前的板（戰例庫 snapshot_ref 用）
+    def _judgeable(self) -> list[OverrideRecord]:
+        """§9 判定時點：秒制板＝第一個 t ≥ 推翻時 t + 20 的板；回合制板＝下一拍（含之後補判）。"""
+        out = []
+        for rec in self.overrides.records:
+            if rec.outcome is not None:
+                continue
+            t_over = self.override_t.get(id(rec))
+            if self.board.time_unit == "second" and t_over is not None:
+                if self.board.t >= t_over + JUDGE_DELAY_S:
+                    out.append(rec)
+            elif rec.turn + 1 <= self.turn:
+                out.append(rec)
+        return out
+
+    def _judge_pending(self) -> list[dict]:
         outcomes = []
-        for rec in self.overrides.pending(self.turn):   # 上一拍的推翻，這拍判後果（§9）
+        for rec in self._judgeable():
             outcome = judge_outcome(self.board, rec, self.owner_before.get(id(rec)))
             self.overrides.set_outcome(rec, outcome, self.turn)
             self.override_outcomes.append(outcome)
             outcomes.append({"unit_id": rec.unit_id, "turn": rec.turn, "outcome": outcome,
-                             "text": f"推翻後果：t{rec.turn} {rec.unit_id} {rec.player_order['task']} {rec.player_order['target']} → {outcome}"})
+                             "text": f"推翻後果：t{rec.turn} {rec.unit_id} {rec.player_order.get('task')} {rec.player_order.get('target')} → {outcome}"})
+        return outcomes
+
+    def _release_player_units(self) -> None:
+        """放手：板上不再標 player 的單位（或已不在板上）就不算直轄了，下次接管又算一次推翻。"""
+        by_id = {u.id: u for u in self.board.orbat}
+        self.player_units = {uid for uid in self.player_units if uid in by_id and by_id[uid].controlled_by == "player"}
+
+    def tick(self, board: dict, t: Optional[float] = None) -> dict:
+        """一個決策節拍：回命令（已通過驗證器）與退回理由；順便判到期的推翻後果。"""
+        if self.ended:
+            raise ConflictError("這場已經結束，不能再 tick（先 /session/start 下一場）")
+        self.board = board_from_dict(board)
+        self.turn += 1
+        save_board(self.board, self.out_dir / f"t{self.turn - 1}.json")   # 這拍開始前的板（戰例庫 snapshot_ref 用）
+        self._release_player_units()
+        outcomes = self._judge_pending()
         out: dict[str, Any] = {"turn": self.turn, "t": t, "outcomes": outcomes, "orders": [], "rejected": [], "assessment": None,
-                               "usage": None, "cost_usd": 0.0, "latency_s": 0.0, "error": None, "budget_hit": self.budget_hit, "messages": []}
+                               "usage": None, "cost_usd": 0.0, "cost_total_usd": round(self.meter.cost_usd, 6), "latency_s": 0.0,
+                               "error": None, "budget_hit": self.budget_hit, "messages": []}
         if self.budget_hit:
             out["error"] = "已達預算上限，參謀長暫停，本回合無新命令"
             return out
@@ -162,13 +216,13 @@ class ChiefSession:
             self.feedback.append("Your previous reply could not be parsed. Reply with ONLY the JSON object: no prose, no code fences.")
         self.chief_orders_total += len(accepted)
         for o in accepted:
-            self.last_orders[o.unit_id] = o.model_dump()
+            self.last_orders[o.unit_id] = (self.turn, o.model_dump())
         out["orders"] = [o.model_dump() for o in accepted]
         out["rejected"] = [r.line() for r in rejected]
         out["usage"] = resp.usage.__dict__
         out["cost_usd"] = entry.cost_usd
         out["latency_s"] = resp.latency_s
-        out["cost_total_usd"] = self.meter.cost_usd
+        out["cost_total_usd"] = round(self.meter.cost_usd, 6)
         if self.budget_usd is not None:
             if self.meter.cost_usd >= self.budget_usd:
                 self.budget_hit = True
@@ -179,37 +233,90 @@ class ChiefSession:
         out["budget_hit"] = self.budget_hit
         return out
 
+    def _ai_order_for(self, unit_id: str, ai_order: Optional[dict]) -> Optional[dict]:
+        """被推翻的參謀長命令：明示的 > 本單位或任一上級最近的令（連令拆到排，取最近一拍）> 板上的 task > None。同 play.py。"""
+        if ai_order is not None:
+            return dict(ai_order)
+        by_id = {u.id: u for u in self.board.orbat}
+        best: Optional[tuple[int, dict]] = None
+        uid, seen = unit_id, set()
+        while uid and uid not in seen:
+            seen.add(uid)
+            hit = self.last_orders.get(uid)
+            if hit and (best is None or hit[0] > best[0]):
+                best = hit
+            u = by_id.get(uid)
+            uid = u.parent if u else None
+        if best:
+            return best[1]
+        u = by_id.get(unit_id)
+        return {"task": u.task.type, "target": u.task.target} if u and u.task else None
+
     def override(self, unit_id: str, player_order: dict, board: Optional[dict] = None, ai_order: Optional[dict] = None) -> dict:
-        """總司令推翻／接管：記錄到 overrides.jsonl；下一拍判後果。ai_order 省略時用參謀長最近一次對它的令。"""
+        """總司令推翻／接管：先驗命令（同 play.py 的 player_order_problem），記到 overrides.jsonl；一個決策間隔後判後果。
+        已直轄單位再改令不算推翻（§9）：以上一次收到的板的 controlled_by 與本場直轄清單判斷。"""
+        if self.ended:
+            raise ConflictError("這場已經結束，不能再推翻")
+        task, target = player_order.get("task"), player_order.get("target")
+        if task not in TASK_CHOICES:
+            raise BoardError(f"任務 {task!r} 不合法（可用：{'、'.join(TASK_CHOICES)}）")
+        if not isinstance(target, str) or not target.strip():
+            raise BoardError("目標 target 不能是空的（分區 id 如 C3；support 給友軍單位 id）")
+        prev_board = self.board
         if board is not None:
             self.board = board_from_dict(board)
-        unit = self.board.unit(unit_id) if any(u.id == unit_id for u in self.board.orbat) else None
-        if unit is None:
-            raise BoardError(f"單位 {unit_id} 不在戰情板上")
-        ai = ai_order if ai_order is not None else self.last_orders.get(unit_id)
-        rec = OverrideRecord(turn=max(self.turn, 1), unit_id=unit_id, ai_order=ai, player_order=dict(player_order),
-                             snapshot_ref=str(self.out_dir / f"t{max(self.turn, 1) - 1}.json"), strength_at=round(unit.strength, 4))
+        try:
+            unit = self.board.unit(unit_id)
+        except KeyError:
+            raise BoardError(f"單位 {unit_id} 不在戰情板上") from None
+        problem = player_order_problem(self.board, Order(unit_id=unit_id, task=task, target=target.strip(), issuer="player"))
+        if problem:
+            raise BoardError(problem)
+        clean = {"task": task, "target": target.strip()}
+        try:
+            prev_ctrl = prev_board.unit(unit_id).controlled_by
+        except KeyError:
+            prev_ctrl = None
+        counted = prev_ctrl != "player" and unit_id not in self.player_units
+        self.player_units.add(unit_id)
+        ai = self._ai_order_for(unit_id, ai_order)
+        turn = max(self.turn, 1)
+        base = {"turn": turn, "unit_id": unit_id, "ai_order": ai, "player_order": clean}
+        if not counted:
+            return {**base, "recorded": len(self.overrides.records), "counted": False, "override_rate": self.override_rate(),
+                    "message": "已直轄單位改令，不算推翻（§9）"}
+        rec = OverrideRecord(turn=turn, unit_id=unit_id, ai_order=ai, player_order=clean,
+                             snapshot_ref=str(self.out_dir / f"t{turn - 1}.json"), strength_at=round(unit.strength, 4))
         self.overrides.add(rec)
-        sector = target_sector(self.board, player_order)
+        sector = target_sector(self.board, clean)
         self.owner_before[id(rec)] = self.board.map.sectors[sector].owner if sector and sector in self.board.map.sectors else None
-        return {"recorded": len(self.overrides.records), "turn": rec.turn, "unit_id": unit_id, "ai_order": ai, "player_order": rec.player_order,
-                "override_rate": self.override_rate()}
+        self.override_t[id(rec)] = float(self.board.t) if self.board.time_unit == "second" else None
+        return {**base, "recorded": len(self.overrides.records), "counted": True, "override_rate": self.override_rate()}
 
     def override_rate(self) -> str:
         return f"{len(self.overrides.records)}/{self.chief_orders_total}"
 
     # ---- 戰後 ----
+    def _end_payload(self) -> dict:
+        unjudged = sum(1 for r in self.overrides.records if r.outcome is None)
+        rnd = min(self.discussion_round, MAX_DISCUSSION_ROUNDS)
+        return {"card": card_dict(self.card), "summary": self.summary, "unjudged": unjudged, "quick_replies": quick_replies(self.card, self.lang, rnd)}
+
     def end(self, board: dict, result: dict) -> dict:
-        """會戰結束：戰報卡（離線）。之後可 aar_line → discuss → propose → adopt／skip。"""
+        """會戰結束：戰報卡（離線）。之後可 aar_line → discuss → propose → adopt／skip。重複呼叫回同一張卡。"""
         if self.ended:
-            return {"card": card_dict(self.card), "summary": self.summary}
-        self.board = board_from_dict(board)
-        self.turn += 1
-        save_board(self.board, self.out_dir / f"t{self.turn - 1}.json")
-        self.result = BattleResult(battle_id=str(result.get("battle_id", self.start_board.battle_id)), turns_played=int(result.get("turns_played", self.turn)),
-                                   end_reason=result.get("end_reason", "turns"), winner=result["winner"], score_us=int(result["score_us"]),
-                                   score_enemy=int(result["score_enemy"]), strength_us=float(result.get("strength_us", 0.0)),
-                                   strength_enemy=float(result.get("strength_enemy", 0.0)))
+            return self._end_payload()
+        try:
+            res = EndResult.model_validate(result)
+        except ValidationError as err:
+            raise BoardError(f"result 不合法：{_validation_text(err)}") from None
+        new_board = board_from_dict(board)          # 驗完才改狀態
+        self.board = new_board
+        save_board(self.board, self.out_dir / f"t{self.turn}.json")   # 最終板；拍數不動
+        self._judge_pending()                        # 到期的推翻用最終板判（最後一拍才推翻的留「未判定」，§9）
+        self.result = BattleResult(battle_id=res.battle_id or self.start_board.battle_id, turns_played=res.turns_played if res.turns_played is not None else self.turn,
+                                   end_reason=res.end_reason, winner=res.winner, score_us=res.score_us, score_enemy=res.score_enemy,
+                                   strength_us=res.strength_us, strength_enemy=res.strength_enemy)
         self.ended = True
         play_result = SimpleNamespace(battle=self.result, meter=self.meter, override_outcomes=self.override_outcomes,
                                       chief_orders_total=self.chief_orders_total, override_rate=self.override_rate())
@@ -221,27 +328,37 @@ class ChiefSession:
         self.card = build_card_from(play_result, battle_ns, self.overrides.records, badges, self.gateway)
         self.card.hint = objective_hint(self.start_board.objectives, self.board.objectives, self.result.winner, self.lang)
         self.summary = card_summary_text(self.card)
-        self.aar_started = time.perf_counter()
         save_aar(self.out_dir / "aar.json", self.summary, [], None, False, None, card=card_dict(self.card), duration_s=0.0, skipped=True)
-        unjudged = sum(1 for r in self.overrides.records if r.outcome is None)
-        return {"card": card_dict(self.card), "summary": self.summary, "unjudged": unjudged, "quick_replies": quick_replies(self.card, self.lang, 1)}
+        return self._end_payload()
 
     def _require_card(self) -> None:
         if self.card is None:
             raise BoardError("會戰還沒結束（先呼叫 end）")
+
+    def _require_open(self) -> None:
+        self._require_card()
+        if self.aar_closed:
+            raise ConflictError("戰後流程已結束（已採納或已跳過）")
+
+    def _start_clock(self) -> None:
+        """「戰後 < 2 分鐘」從玩家開始互動算（參謀長那句話的延遲不算進去），同 play.py。"""
+        if self.aar_started is None:
+            self.aar_started = time.perf_counter()
 
     def aar_line(self) -> dict:
         self._require_card()
         line = chief_line(self.gateway, self.card, self.doctrine, self.lang, on_usage=self._bill(self.gateway))
         if line:
             self.card.chief_line = line
+        self._start_clock()
         return {"chief_line": line, "cost_usd": self._aar_cost()}
 
     def discuss(self, text: Optional[str] = None, index: Optional[int] = None) -> dict:
         """一回合討論：text 或快速回覆編號（1～3）。最多三回合；回覆截到兩句。"""
-        self._require_card()
+        self._require_open()
+        self._start_clock()
         if self.discussion_round > MAX_DISCUSSION_ROUNDS:
-            return {"done": True, "round": self.discussion_round - 1, "reply": None, "next_quick": []}
+            return {"done": True, "round": self.discussion_round - 1, "reply": None, "next_quick": [], "cost_usd": self._aar_cost()}
         options = quick_replies(self.card, self.lang, self.discussion_round)
         if index is not None:
             if not (1 <= int(index) <= len(options)):
@@ -261,20 +378,22 @@ class ChiefSession:
                 "next_quick": [] if done else quick_replies(self.card, self.lang, self.discussion_round), "cost_usd": self._aar_cost()}
 
     def propose(self) -> dict:
-        self._require_card()
+        self._require_open()
+        self._start_clock()
         resp = propose_diff(self.aar_gateway, self.doctrine, self.summary, self.transcript, self.lang)
         self._bill(self.aar_gateway)(resp.usage, resp.latency_s)
         if resp.parsed is None:
             self.diff = None
-            return {"error": f"準則更新失敗：{resp.error}", "diff": None}
+            return {"error": f"準則更新失敗：{resp.error}", "diff": None, "provider": self.aar_gateway.provider, "model": self.aar_gateway.model,
+                    "cost_usd": self._aar_cost()}
         self.diff = resp.parsed
         d = self.diff.model_dump()
         d["empty"] = not self.diff.add and not self.diff.remove
-        return {"diff": d, "provider": self.aar_gateway.provider, "model": self.aar_gateway.model, "cost_usd": self._aar_cost()}
+        return {"diff": d, "error": None, "provider": self.aar_gateway.provider, "model": self.aar_gateway.model, "cost_usd": self._aar_cost()}
 
     def adopt(self) -> dict:
-        """套用 diff → 回歸（退步自動回滾）→ aar.json → 戰例進戰例庫。"""
-        self._require_card()
+        """套用 diff → 回歸（退步自動回滾）→ aar.json → 戰例進戰例庫。只能做一次。"""
+        self._require_open()
         if self.diff is None:
             raise BoardError("還沒有準則提案（先呼叫 propose）")
         messages: list[str] = []
@@ -300,7 +419,7 @@ class ChiefSession:
                 "duration_s": self._aar_duration(), "cost_usd": self._aar_cost(), "doctrine": self.store.load()}
 
     def skip(self) -> dict:
-        self._require_card()
+        self._require_open()
         self._finish_aar(False, None, skipped=True)
         return {"skipped": True, "duration_s": self._aar_duration()}
 
@@ -311,9 +430,19 @@ class ChiefSession:
     def _finish_aar(self, adopted: bool, report: Optional[dict], skipped: bool) -> None:
         save_aar(self.out_dir / "aar.json", self.summary, self.transcript, self.diff, adopted, report, card=card_dict(self.card),
                  duration_s=self._aar_duration(), skipped=skipped)
-        if self.evals_dir and self.overrides.records:   # 這場的推翻進戰例庫（§12）——回歸之後才寫
+        self._write_cases()     # 這場的推翻進戰例庫（§12）——回歸之後才寫
+        self.aar_closed = True
+
+    def _write_cases(self) -> None:
+        if self.evals_dir and self.overrides.records:
             from .evals import build_cases_from_battle, save_cases
             save_cases(build_cases_from_battle(self.out_dir), Path(self.evals_dir) / "cases.jsonl")
+
+    def close(self) -> None:
+        """會話被換掉／服務退出前：出了卡卻沒走到採納或跳過（玩家直接關遊戲、開下一場）→ 戰例仍進戰例庫，同 play.py 一定寫。"""
+        if self.ended and self.card is not None and not self.aar_closed:
+            self._write_cases()
+            self.aar_closed = True
 
     def _aar_duration(self) -> float:
         return round(time.perf_counter() - self.aar_started, 1) if self.aar_started else 0.0
@@ -329,25 +458,35 @@ class ChiefSession:
                 "completion_tokens": self.meter.completion_tokens, "estimated": self.meter.estimated, "today_usd": round(tot["today"], 6),
                 "month_usd": round(tot["month"], 6), "budget_usd": self.budget_usd, "budget_hit": self.budget_hit,
                 "overrides": len(self.overrides.records), "chief_orders_total": self.chief_orders_total, "override_rate": self.override_rate(),
-                "ended": self.ended, "out_dir": str(self.out_dir)}
+                "player_units": sorted(self.player_units), "ended": self.ended, "aar_closed": self.aar_closed, "out_dir": str(self.out_dir)}
+
+    def _settings_payload(self, error: Optional[str] = None) -> dict:
+        return {"error": error, "provider": self.gateway.provider, "model": self.gateway.model, "lang": self.lang, "budget_usd": self.budget_usd,
+                "effort": self.cfg.effort, "aar_provider": self.aar_gateway.provider, "aar_model": self.aar_gateway.model}
 
     def settings(self, provider: Optional[str] = None, model: Optional[str] = None, lang: Optional[str] = None,
                  budget_usd: Optional[float] = None, effort: Optional[str] = None, aar_provider: Optional[str] = None,
                  aar_model: Optional[str] = None) -> dict:
-        """換供應商／模型（重建閘道）、語言、預算、思考深度；失敗就保留原設定並回錯誤。"""
+        """換供應商／模型（重建閘道）、戰後閘道、語言、預算、思考深度；哪一段失敗就保留那段原設定並回 error。"""
         if provider or model or effort:
             try:
-                self.gateway = make_gateway(provider or self.cfg.provider, model or (self.cfg.model if not provider else None), effort=effort or self.cfg.effort)
-            except (ValueError, NotImplementedError, ImportError) as err:
-                return {"error": f"閘道設定失敗：{err}", "provider": self.gateway.provider, "model": self.gateway.model}
-            self.cfg.provider, self.cfg.model, self.cfg.effort = self.gateway.provider, self.gateway.model, effort or self.cfg.effort
+                gw = make_gateway(provider or self.cfg.provider, model or (self.cfg.model if not provider else None), effort=effort or self.cfg.effort)
+            except GATEWAY_ERRORS as err:
+                return self._settings_payload(f"閘道設定失敗：{err}")
+            self.gateway = gw
+            self.cfg.provider, self.cfg.model, self.cfg.effort = gw.provider, gw.model, effort or self.cfg.effort
+        if aar_provider or aar_model or provider or model or effort:
+            old = (self.cfg.aar_provider, self.cfg.aar_model)
             if aar_provider or aar_model:
-                self.cfg.aar_provider, self.cfg.aar_model = aar_provider, aar_model
-            self.aar_gateway = self._make_aar_gateway()
+                self.cfg.aar_provider, self.cfg.aar_model = aar_provider or self.cfg.aar_provider, aar_model
+            try:
+                self.aar_gateway = self._make_aar_gateway()
+            except GATEWAY_ERRORS as err:
+                self.cfg.aar_provider, self.cfg.aar_model = old
+                return self._settings_payload(f"戰後閘道設定失敗：{err}")
         if lang:
             self.lang = lang
         if budget_usd is not None:
             self.budget_usd = float(budget_usd) if budget_usd >= 0 else None
             self.budget_hit = self.budget_usd is not None and self.meter.cost_usd >= self.budget_usd
-        return {"provider": self.gateway.provider, "model": self.gateway.model, "lang": self.lang, "budget_usd": self.budget_usd,
-                "effort": self.cfg.effort, "aar_model": self.aar_gateway.model}
+        return self._settings_payload()

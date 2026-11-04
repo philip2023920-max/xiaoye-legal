@@ -118,6 +118,9 @@ def test_score_line_in_user_prompt():
     assert "Score now" in user_prompt(snap, 3)
     ahead = dict(snap); ahead["objectives"] = [{"id": "O1", "sector": "B2", "value": 5, "owner": "us"}, {"id": "O2", "sector": "C3", "value": 3, "owner": "enemy"}]
     assert "unless you seize" not in score_line(ahead, 10) and "Turns left including this one: 1" in score_line(ahead, 10)
+    secs = dict(snap); secs.update(t=120, unit="second")                                          # 施工單 16：Godot 秒制板
+    assert "Time left: about 180 s of 300 (roughly 9 more decisions" in score_line(secs, 11) and "Turns left" not in score_line(secs, 11)
+    assert user_prompt(secs, 11).startswith("Decision 11 (t=120 s).") and "Time left: about 0 s of 300 (roughly 0 more" in score_line({**secs, "t": 300}, 16)
 
 
 def test_system_prompt_asks_for_brevity_and_points():

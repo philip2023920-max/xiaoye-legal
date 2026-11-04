@@ -25,8 +25,8 @@ Godot（畫面、節拍、推翻 UI、側欄、AAR 畫面、設定）
    ▼                                            │ 節拍時把整份板放進 /tick 的請求裡（服務不用讀檔）
 Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server，不加依賴）
    ├─ /session/start   board、參謀長包／準則、供應商、模型、語言、預算 → 開局引用句
-   ├─ /tick            {t, board, feedback} → {assessment, orders(驗證放行), rejected, usage, cost, latency, error}
-   ├─ /override        {t, unit_id, ai_order, player_order, board} → 記錄；下一個 tick 自動判後果（§9）
+   ├─ /tick            {t, board} → {turn, assessment, orders(驗證放行), rejected, usage, cost, latency, error, outcomes}（退回回饋由服務自己帶到下一拍）
+   ├─ /override        {unit_id, player_order, ai_order?, board?} → 先驗命令再記錄；推翻後 ≥20 秒的第一個 tick 判後果（§9）；已直轄單位再改令不算
    ├─ /battle/end      {board, result} → 戰報卡（card）、徽章、未判定數
    ├─ /aar/line  /aar/discuss  /aar/propose  /aar/adopt  /aar/undo   重用 report／discussion／doctrine／evals
    ├─ /status          供應商、模型、本場費用、今天／本月（ledger）、預算狀態
@@ -35,7 +35,7 @@ Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server�
 
 - **重用**：`play.py` 的每回合流程拆成 `chief/bridge.py`（純函式、無終端機）；`chief play` 與服務共用它。FakeGateway 讓 Godot 的無頭整合測試不花錢、可在沙盒跑。
 - **Godot 端**：`scripts/chief/chief_client.gd`（啟動子程序、健康檢查、請求佇列、逾時）、`scripts/chief/tick_scheduler.gd`、`scripts/ui/{sidebar,override_panel,aar_screen,settings,cost_hud}.gd`。
-- **推翻流程**：玩家點排（地圖）或排／連（側欄樹）→ 面板：六種任務＋「點地圖選目標」→ 送 `Orbat.apply_orders(side="us", issuer="player")` 並標 `controlled_by=player`（直轄：參謀長不得下令，驗證器 V2 在服務端擋）→ POST /override；「放手」把 `controlled_by` 改回 ai。推翻後果由服務在下一 tick 判（§9），回傳到側欄事件流顯示 👍👎➖。
+- **推翻流程**：玩家點排（地圖）或排／連（側欄樹）→ 面板：六種任務＋「點地圖選目標」→ 送 `Orbat.apply_orders(side="us", issuer="player")` 並標 `controlled_by=player`（直轄：參謀長不得下令，驗證器 V2 在服務端擋）→ POST /override；「放手」把 `controlled_by` 改回 ai。推翻後果由服務在推翻後 ≥20 秒的第一個 tick 判（§9），回傳到側欄事件流顯示 👍👎➖；/override 要在接管當下、下一拍之前送，板上要標好 `controlled_by`，服務才分得出「接管」與「已直轄再改令」。
 - **戰後**：導演結束 → POST /battle/end → AAR 畫面：戰報卡（三幕、徽章、一句話）→ 討論（三個快速回覆按鈕＋輸入框，最多三回合）→ 準則 diff（採納／不採納／撤銷）→ 回歸結果（退步自動回滾的訊息）。自動模式（沒有推翻）只出卡。
 - **費用 HUD**：每個 tick 回來更新本場費用；每 30 秒 GET /status 更新今天／本月；80% 提醒、100% 參謀長暫停（服務端已有）。
 - **開發期啟動**：Godot 從 `godot/` 執行 `uv run chief serve --port 8765`（工作目錄 `../m0`，讀 `.env`）；找不到 uv 或 10 秒內服務沒起來 → HUD 顯示「參謀長服務沒起來」並提供「離線模式」（M1 的劇本／空白鍵）。M3 打包時再決定凍結 Python 的方式。
@@ -61,6 +61,6 @@ M2 驗收（PRD 成功定義）：老闆本機用 Haiku 打完一場（含至少
 
 ## 5. 風險
 
-- 服務與遊戲是兩個程序：遊戲當掉服務會留著（客戶端退出時 kill；服務自己 10 分鐘沒心跳就退出）。
+- 服務與遊戲是兩個程序：遊戲當掉服務會留著（客戶端退出時 POST /shutdown 或 kill；服務自己 10 分鐘沒請求就退出，處理中的請求不算閒置）。服務只綁本機、`--token` 由 Godot 產生亂數傳入並帶 `X-Chief-Token`；不帶 token 時同機任何程式都能叫它。
 - 參謀長 20 秒一次、每次約 1.5K token：Haiku 一場 5 分鐘約 15 次呼叫，費用與 M0 同量級（< US$0.05）。
-- 推翻的後果判定沿用 §9（30 秒後看單位與目標分區），M1 的分區看位置，判定會比 M0 更即時一點。
+- 推翻的後果判定沿用 §9：秒制板在推翻後至少 20 秒的第一拍判（事件拍離推翻太近不判，避免系統性偏 👍）；M1 的分區看位置。

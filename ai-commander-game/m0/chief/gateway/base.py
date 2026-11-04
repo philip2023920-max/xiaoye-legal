@@ -102,8 +102,11 @@ def make_gateway(provider: str, model: str | None = None, **kwargs) -> "Gateway"
         return FakeGateway(script, model=model or "fake/none", chats=["（示範）我學到您偏好穩紮穩打。"] * 4,
                            parsed=[{"summary": "（示範）您偏好穩紮穩打", "add": [{"section": "profile", "text": "Prefers steady, low-risk play (demo)"}], "remove": []}])
     if provider == "anthropic":
+        import os
+        if "client" not in kwargs and not os.getenv("ANTHROPIC_API_KEY"):
+            raise ValueError("缺 ANTHROPIC_API_KEY：放在 m0/.env（不要貼進聊天），或先用 --provider ollama／fake")   # 建閘道時就擋，別等第一拍才噴
         from .anthropic_adapter import AnthropicGateway
-        return AnthropicGateway(model=model, effort=kwargs.get("effort"))
+        return AnthropicGateway(model=model, effort=kwargs.get("effort"), client=kwargs.get("client"))
     from .litellm_adapter import LiteLLMGateway
     kwargs.pop("effort", None)
     return LiteLLMGateway(provider=provider, model=model, **kwargs)

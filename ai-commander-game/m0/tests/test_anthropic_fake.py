@@ -79,5 +79,9 @@ def test_make_gateway_builds_anthropic_without_network(monkeypatch):
     import anthropic
     monkeypatch.setattr(anthropic, "Anthropic", lambda *a, **k: fake_client(ok_response()))   # 不碰真 SDK client
     from chief.gateway import make_gateway
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False); monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):                       # 施工單 16 審查：沒金鑰建閘道就擋，別等第一拍
+        make_gateway("anthropic", None)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
     gw = make_gateway("anthropic", None)
     assert gw.model == "claude-haiku-5-5" and gw.issue_orders(build_messages("d", {}, 1)).orders is not None
