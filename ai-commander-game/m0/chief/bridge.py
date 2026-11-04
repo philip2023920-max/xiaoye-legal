@@ -96,6 +96,7 @@ class ChiefSession:
         self.owner_before: dict[int, Optional[str]] = {}
         self.override_t: dict[int, Optional[float]] = {}   # 推翻當下的遊戲秒（秒制板才有）→ 判定時點（§9）
         self.player_units: set[str] = set()                 # 目前由總司令直轄的單位（再改令不算推翻，§9）
+        self.released_units: set[str] = set()               # /release 明確放手、還沒等到下一拍的板：再接管算新的一次
         self.turn = 0
         self.feedback: list[str] = []
         self.chief_orders_total = 0
@@ -179,6 +180,7 @@ class ChiefSession:
         """放手：板上不再標 player 的單位（或已不在板上）就不算直轄了，下次接管又算一次推翻。"""
         by_id = {u.id: u for u in self.board.orbat}
         self.player_units = {uid for uid in self.player_units if uid in by_id and by_id[uid].controlled_by == "player"}
+        self.released_units.clear()                        # 新的板進來，之後以板上的 controlled_by 為準
 
     def tick(self, board: dict, t: Optional[float] = None) -> dict:
         """一個決策節拍：回命令（已通過驗證器）與退回理由；順便判到期的推翻後果。"""
@@ -281,7 +283,8 @@ class ChiefSession:
             prev_ctrl = prev_board.unit(unit_id).controlled_by
         except KeyError:
             prev_ctrl = None
-        counted = prev_ctrl != "player" and unit_id not in self.player_units
+        counted = unit_id in self.released_units or (prev_ctrl != "player" and unit_id not in self.player_units)
+        self.released_units.discard(unit_id)
         self.player_units.add(unit_id)
         ai = self._ai_order_for(unit_id, ai_order)
         turn = max(self.turn, 1)
@@ -300,6 +303,16 @@ class ChiefSession:
 
     def override_rate(self) -> str:
         return f"{len(self.overrides.records)}/{self.chief_orders_total}"
+
+    def release(self, unit_ids: list[str]) -> dict:
+        """放手：總司令把單位交回參謀長。立刻從直轄清單拿掉（不等下一拍的板），之後再接管才算新的一次推翻（§9）。"""
+        if self.ended:
+            raise ConflictError("這場已經結束")
+        released = [u for u in unit_ids if u in self.player_units]
+        for u in released:
+            self.player_units.discard(u)
+            self.released_units.add(u)
+        return {"released": released, "player_units": sorted(self.player_units), "override_rate": self.override_rate()}
 
     # ---- 戰後 ----
     def _end_payload(self) -> dict:

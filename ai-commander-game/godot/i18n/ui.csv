@@ -44,3 +44,18 @@ UI_TASK_withdraw,撤往,撤往,Withdraw
 UI_TASK_support,支援,支援,Support
 UI_TASK_reserve,預備於,预备于,Reserve
 UI_TASK_none,—,—,—
+UI_PANEL_PLAYER,直轄中,直辖中,under your command
+UI_PANEL_AI,參謀長指揮,参谋长指挥,chief's command
+UI_PANEL_CURRENT_TASK,目前任務：%s,目前任务：%s,Current task: %s
+UI_PANEL_PICK_SECTOR,「%s」→ 點地圖選目標分區（右鍵取消）,「%s」→ 点地图选目标分区（右键取消）,"%s" → click a sector on the map (right-click cancels)
+UI_PANEL_PICK_UNIT,支援 → 點地圖上的友軍排（右鍵取消）,支援 → 点地图上的友军排（右键取消）,Support → click a friendly platoon (right-click cancels)
+UI_PANEL_HINT,點任務改令（會接管）；「接管」照目前任務直轄；「放手」交回參謀長,点任务改令（会接管）；「接管」照目前任务直辖；「放手」交回参谋长,Pick a task to re-order (takes over); Take over keeps the current task; Release hands back
+UI_PANEL_TAKEOVER,接管,接管,Take over
+UI_PANEL_RELEASE,放手,放手,Release
+UI_PANEL_CANCEL,取消,取消,Cancel
+UI_OVERRIDE_RATE,推翻率 %s（推翻數／參謀長放行命令數）,推翻率 %s（推翻数／参谋长放行命令数）,Override rate %s (overrides / chief orders accepted)
+UI_EVT_TAKEOVER,總司令接管 %s，改為 %s %s,总司令接管 %s，改为 %s %s,Commander takes over %s: %s %s
+UI_EVT_RELEASE,總司令放手 %s，交回參謀長,总司令放手 %s，交回参谋长,Commander releases %s back to the chief
+UI_EVT_OVERRIDE_RECORDED,推翻已記錄（第 %d 次，推翻率 %s）,推翻已记录（第 %d 次，推翻率 %s）,Override recorded (#%d; rate %s)
+UI_EVT_OVERRIDE_NOT_COUNTED,已直轄單位改令，不算推翻,已直辖单位改令，不算推翻,Re-order of a unit already under your command: not counted
+UI_EVT_ORDER_REJECTED,總司令的命令被引擎退回：%s,总司令的命令被引擎退回：%s,Commander's order rejected by the engine: %s

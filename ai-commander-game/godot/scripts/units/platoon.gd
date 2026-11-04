@@ -28,6 +28,11 @@ var waypoints := PackedVector3Array()
 var pause_until := -1.0            # 進到有敵軍的格子後停一回合（秒）
 var fighting := false              # 這一秒有交戰（Resolver 設、Orbat 推狀態用）
 var soldiers: Array[Soldier] = []
+var selected := false              # 施工單 19：被總司令點選
+var ring: MeshInstance3D = null    # 排腳下的環：直轄金色、選取白色、兩者都是亮金；參謀長指揮且沒選＝隱藏
+const RING_COLORS := {"player": Color(1.0, 0.75, 0.2), "selected": Color(1.0, 1.0, 1.0), "both": Color(1.0, 0.9, 0.4)}
+static var _ring_mesh: TorusMesh = null
+static var _ring_materials := {}
 
 func setup(data: Dictionary, side_: String, at: Vector3) -> void:
 	id = str(data["id"])
@@ -50,6 +55,7 @@ func setup(data: Dictionary, side_: String, at: Vector3) -> void:
 	add_to_group(RTSKit.UNIT_GROUP)
 	add_to_group("platoons")
 	_spawn_men()
+	_spawn_ring()
 	var dead := MEN_PER_SQUAD * SQUADS - clampi(roundi(strength * MEN_PER_SQUAD * SQUADS), 0, MEN_PER_SQUAD * SQUADS)   # 與 sync_men 同一公式
 	for i in dead:
 		soldiers[soldiers.size() - 1 - i].fall()
@@ -65,6 +71,46 @@ func _spawn_men() -> void:
 			man.setup(unit_type, side, man_slots[m])
 			add_child(man)
 			soldiers.append(man)
+
+func _spawn_ring() -> void:
+	if _ring_mesh == null:
+		_ring_mesh = TorusMesh.new()
+		_ring_mesh.inner_radius = 3.2
+		_ring_mesh.outer_radius = 3.7
+		_ring_mesh.rings = 24
+		_ring_mesh.ring_segments = 6
+	ring = MeshInstance3D.new()
+	ring.name = "Ring"
+	ring.mesh = _ring_mesh
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.position = anchor + Vector3(0.0, 0.08, 0.0)
+	ring.scale = Vector3(1.0, 0.25, 1.0)
+	add_child(ring)
+	update_ring()
+
+## 骨架 RTSSelection 的鉤子（施工單 19 也直接呼叫）。
+func rts_set_selected(on: bool) -> void:
+	selected = on
+	update_ring()
+
+## 環的顏色依直轄與選取決定；參謀長指揮且沒被選＝不顯示（畫面乾淨）。
+func update_ring() -> void:
+	if ring == null:
+		return
+	var player := controlled_by == "player"
+	ring.visible = player or selected
+	if not ring.visible:
+		return
+	var key := "both" if (player and selected) else ("player" if player else "selected")
+	if not _ring_materials.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = RING_COLORS[key]
+		_ring_materials[key] = m
+	ring.material_override = _ring_materials[key]
+
+func ring_color() -> Color:
+	return ring.material_override.albedo_color if (ring != null and ring.visible and ring.material_override != null) else Color(0, 0, 0, 0)
 
 func alive_count() -> int:
 	var n := 0
@@ -108,6 +154,8 @@ func rts_is_alive() -> bool:
 func place(at: Vector3) -> void:
 	anchor = at
 	step_target = ""
+	if ring != null:
+		ring.position = anchor + Vector3(0.0, 0.08, 0.0)
 	waypoints = PackedVector3Array()
 	pause_until = -1.0
 	var squad_slots := RTSKit.formation(anchor, SQUADS, SQUAD_SPACING)
@@ -120,6 +168,8 @@ func place(at: Vector3) -> void:
 
 ## 更新每個人的站位（錨點動了之後呼叫），再讓他們走過去。
 func follow_anchor(dt: float, speed: float) -> void:
+	if ring != null:
+		ring.position = anchor + Vector3(0.0, 0.08, 0.0)
 	var squad_slots := RTSKit.formation(anchor, SQUADS, SQUAD_SPACING)
 	for s in SQUADS:
 		var man_slots := RTSKit.formation(squad_slots[s], MEN_PER_SQUAD, MAN_SPACING)

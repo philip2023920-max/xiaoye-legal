@@ -3,7 +3,7 @@
     uv run chief serve --port 8765 --provider fake [--token <亂數>]
     POST /session/start {board, provider?, model?, harness?, doctrine?, lang?, budget_usd?, effort?, aar_provider?, aar_model?} → 會話資訊與開局引用句
     POST /tick {t, board}            → 命令（已過驗證器）、退回、用量、費用、推翻後果
-    POST /override {unit_id, player_order, ai_order?, board?}
+    POST /override {unit_id, player_order, t?, ai_order?, board?} ；POST /release {unit_ids}
     POST /battle/end {board, result} → 戰報卡
     POST /aar/line | /aar/discuss {text|index} | /aar/propose | /aar/adopt | /aar/skip | /aar/undo
     GET  /status | /health ；POST /settings {...} ；POST /shutdown
@@ -74,6 +74,10 @@ def pid_alive(pid: int) -> bool:
         import ctypes
         from ctypes import wintypes
         k32 = ctypes.windll.kernel32   # type: ignore[attr-defined]
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        k32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
         handle = k32.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
         if not handle:
             return False
@@ -192,6 +196,11 @@ class ChiefService:
             if body.get("ai_order") is not None and not isinstance(body["ai_order"], dict):
                 raise BoardError("ai_order 要是物件（{task, target}）")
             return 200, s.override(str(body["unit_id"]), body["player_order"], body.get("board"), body.get("ai_order"), body.get("t"))
+        if path == "/release":
+            ids = body.get("unit_ids")
+            if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
+                raise BoardError("缺少 unit_ids（字串清單）")
+            return 200, s.release(ids)
         if path == "/battle/end":
             if not isinstance(body.get("board"), dict) or not isinstance(body.get("result"), dict):
                 raise BoardError("缺少 board 或 result")
@@ -351,7 +360,12 @@ def run_server(defaults: SessionConfig, host: str = "127.0.0.1", port: int = 876
     def parent_watch() -> None:   # Godot（或任何啟動者）被殺、被編輯器停止：不靠它來 kill，自己走
         while True:
             time.sleep(parent_poll_s)
-            if not pid_alive(parent_pid):
+            try:
+                alive = pid_alive(parent_pid)
+            except Exception as err:  # noqa: BLE001 - 查不到就當活著，別讓看門執行緒靜默死掉
+                print(f"查父程序 {parent_pid} 失敗（{type(err).__name__}: {err}），當作還活著", flush=True)
+                continue
+            if not alive:
                 print(f"啟動參謀長服務的程序 {parent_pid} 已不在，退出。", flush=True)
                 server.shutdown()
                 return

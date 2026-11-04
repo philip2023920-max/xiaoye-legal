@@ -1,7 +1,8 @@
 class_name Battle
 extends Node3D
 ## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14；
-## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）；右側戰情板側欄在 18。
+## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）；右側戰情板側欄在 18；
+## 推翻與接管（點排／點側欄 → 面板 → 點地圖選目標 → 直轄、/override）在 19。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
 @export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
@@ -58,6 +59,12 @@ var _chief_ending := false
 var chief_last_orders: Array[String] = []   # 側欄「最近命令」（最近一拍放行的）
 var sidebar: Sidebar = null
 var _sidebar_acc := 0.0
+var flow := OverrideFlow.new()        # 施工單 19：推翻／接管狀態機
+var panel: OverridePanel = null
+var override_rate := ""               # 服務回的「推翻數／參謀長放行命令數」
+var last_override := {}               # 最近一次 /override 的回應（測試看）
+var overrides_sent := 0
+const PICK_RADIUS_PX := 28.0
 
 func _ready() -> void:
 	board = BoardIO.load_board(board_path)
@@ -247,6 +254,13 @@ func _add_hud() -> void:
 		sidebar.unit_selected.connect(_on_sidebar_unit_selected)
 		hud.add_child(sidebar)
 		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
+	panel = OverridePanel.new()
+	panel.task_pressed.connect(_on_panel_task)
+	panel.takeover_pressed.connect(func() -> void: commander_takeover(flow.unit_id))
+	panel.release_pressed.connect(func() -> void: commander_release(flow.unit_id))
+	panel.cancel_pressed.connect(func() -> void: flow.cancel())
+	flow.changed.connect(func(_st: String) -> void: refresh_panel())
+	hud.add_child(panel)
 
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
@@ -286,15 +300,181 @@ func _process(_delta: float) -> void:
 		_sidebar_acc = 0.0
 		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
 
-## 偵錯用：空白鍵＝「A 連 奪取 C3」（施工單 11 的 30 秒驗收）。
+## 滑鼠：左鍵點排＝選取（開面板）；選目標中左鍵＝點分區／點友軍；右鍵＝取消選目標。鍵盤：空白鍵＝「A 連 奪取 C3」（施工單 11）；R 重開。
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and orbat != null:
+	if orbat == null:
+		return
+	if event is InputEventMouseButton and event.pressed and camera_rig != null:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_left_click(event.position)
+		elif event.button_index == MOUSE_BUTTON_RIGHT and flow.is_picking():
+			flow.cancel()
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE:
 			var rejected := orbat.apply_orders("us", [Order.make("co-A", "seize", "C3", "player", "偵錯")])
 			for r in rejected:
 				push_warning(r)
 		elif event.keycode == KEY_R:
 			restart()
+		elif event.keycode == KEY_ESCAPE:
+			if flow.is_picking():
+				flow.cancel()
+			else:
+				select_unit("")
+
+func _left_click(screen: Vector2) -> void:
+	if flow.state == "picking_unit":
+		var friend := platoon_at_screen(screen)
+		if friend != "":
+			flow.pick_unit(friend)
+			_execute_flow()
+		return
+	if flow.state == "picking_sector":
+		var sid := sector_map.sector_at(camera_rig.ground_at(screen))
+		if sid != "":
+			flow.pick_sector(sid)
+			_execute_flow()
+		return
+	var hit := platoon_at_screen(screen)
+	if hit != "":
+		select_unit(hit)
+
+## 螢幕上最近的我方排（錨點投影距離 < PICK_RADIUS_PX）；沒有＝""。
+func platoon_at_screen(screen: Vector2) -> String:
+	var best := ""
+	var best_d := PICK_RADIUS_PX
+	for p in orbat.leaves("us"):
+		if p.state == "destroyed" or not camera_rig.is_on_screen(p.anchor):
+			continue
+		var d := camera_rig.screen_position(p.anchor).distance_to(screen)
+		if d < best_d:
+			best_d = d
+			best = p.id
+	return best
+
+# ---- 推翻與接管（施工單 19）----
+## 選取排或連（""＝取消選取）：環變白、面板出現；側欄點樹也走這裡。
+func select_unit(unit_id: String) -> void:
+	if flow.unit_id != "" and orbat.platoons.has(flow.unit_id):
+		orbat.platoons[flow.unit_id].rts_set_selected(false)
+	for cid in _subtree(flow.unit_id):
+		if orbat.platoons.has(cid):
+			orbat.platoons[cid].rts_set_selected(false)
+	flow.select(unit_id)
+	for cid in _subtree(unit_id):
+		if orbat.platoons.has(cid):
+			orbat.platoons[cid].rts_set_selected(true)
+	refresh_panel()
+
+func _on_panel_task(task: String) -> void:
+	if flow.unit_id != "":
+		flow.choose_task(task)
+
+## 流程到 ready 就下令（點完目標立刻生效，不再多一個確認鍵）。
+func _execute_flow() -> void:
+	var o := flow.take_order()
+	if o != null:
+		commander_override(o.unit_id, o.task, o.target)
+
+## 單位資訊給面板（排或連）。
+func unit_info(unit_id: String) -> Dictionary:
+	if orbat.platoons.has(unit_id):
+		var p: Platoon = orbat.platoons[unit_id]
+		return {"id": p.id, "name": p.display_name, "echelon": "platoon", "task": p.task, "controlled_by": p.controlled_by, "state": p.state}
+	if orbat.companies.has(unit_id):
+		var c: Dictionary = orbat.companies[unit_id]
+		return {"id": c["id"], "name": c["name"], "echelon": "company", "task": c["task"], "controlled_by": c["controlled_by"], "state": c["state"]}
+	return {}
+
+func refresh_panel() -> void:
+	if panel == null:
+		return
+	if flow.unit_id == "" or unit_info(flow.unit_id).is_empty():
+		panel.hide_panel()
+		return
+	panel.show_unit(unit_info(flow.unit_id), flow.state, flow.task)
+
+## unit 本身＋所有下級排（連＝連同子排一起直轄／放手，§9）。
+func _subtree(unit_id: String) -> Array[String]:
+	var out: Array[String] = []
+	if unit_id == "":
+		return out
+	out.append(unit_id)
+	if orbat.companies.has(unit_id):
+		for p in orbat.children_of(unit_id):
+			out.append(p.id)
+	return out
+
+func _set_controlled(unit_id: String, who: String) -> void:
+	for uid in _subtree(unit_id):
+		if orbat.platoons.has(uid):
+			orbat.platoons[uid].controlled_by = who
+			orbat.platoons[uid].update_ring()
+		elif orbat.companies.has(uid):
+			orbat.companies[uid]["controlled_by"] = who
+
+## 總司令下令（含接管）：先過引擎檢查，再直轄整棵子樹、套用命令、記事件、通知服務（/override）。
+func commander_override(unit_id: String, task: String, target: String) -> bool:
+	var o := Order.make(unit_id, task, target, "player", "總司令")
+	var problem := orbat.order_problem("us", o)
+	if problem != "":
+		orbat.log_event(orbat.second(), "info", tr("UI_EVT_ORDER_REJECTED") % problem)
+		refresh_panel()
+		return false
+	_set_controlled(unit_id, "player")
+	orbat.apply_orders("us", [o])
+	var who := str(unit_info(unit_id).get("name", unit_id))
+	orbat.log_event(orbat.second(), "override", tr("UI_EVT_TAKEOVER") % [who, Order.TASK_ZH.get(task, task), target], unit_id, target if sector_map.sectors.has(target) else "")
+	refresh_panel()
+	if chief_state == "online":
+		_send_override(unit_id, {"task": task, "target": target})
+	return true
+
+## 「接管」：照目前任務直轄（沒任務就固守所在分區）。
+func commander_takeover(unit_id: String) -> bool:
+	var info := unit_info(unit_id)
+	if info.is_empty():
+		return false
+	var task: Dictionary = info["task"] if info["task"] is Dictionary else {}
+	if task.is_empty():
+		var sec := orbat.unit_sector("us", unit_id)
+		task = {"type": "hold", "target": sec if sec != "" else "A1"}
+	return commander_override(unit_id, str(task.get("type", "hold")), str(task.get("target", "")))
+
+## 「放手」：整棵子樹交回參謀長；通知服務（/release），下一拍參謀長就會重新下令。
+func commander_release(unit_id: String) -> bool:
+	if unit_info(unit_id).is_empty() or not _is_player_controlled(unit_id):
+		return false
+	var ids := _subtree(unit_id)
+	_set_controlled(unit_id, "ai")
+	orbat.log_event(orbat.second(), "info", tr("UI_EVT_RELEASE") % str(unit_info(unit_id).get("name", unit_id)), unit_id)
+	refresh_panel()
+	if chief_state == "online":
+		_send_release(ids)
+	return true
+
+func _send_override(unit_id: String, player_order: Dictionary) -> void:
+	overrides_sent += 1
+	var r: Dictionary = await chief.override(unit_id, player_order, writer.to_dict(), float(orbat.second()))
+	last_override = r
+	if orbat == null:
+		return
+	if r["code"] != 200:
+		orbat.log_event(orbat.second(), "info", "推翻沒記錄到（%s）" % r["error"])
+		return
+	var body: Dictionary = r["body"]
+	override_rate = str(body.get("override_rate", override_rate))
+	if bool(body.get("counted", false)):
+		orbat.overrides_this_battle += 1
+		orbat.log_event(orbat.second(), "info", tr("UI_EVT_OVERRIDE_RECORDED") % [int(body.get("recorded", 0)), override_rate], unit_id)
+	else:
+		orbat.log_event(orbat.second(), "info", tr("UI_EVT_OVERRIDE_NOT_COUNTED"), unit_id)
+
+func _send_release(ids: Array[String]) -> void:
+	var r: Dictionary = await chief.call_api("POST", "/release", {"unit_ids": Array(ids)}, 10.0)
+	if r["code"] == 200:
+		override_rate = str(r["body"].get("override_rate", override_rate))
 
 ## R 重開：先關參謀長服務（下一場會重新啟動），再重載場景。
 func restart() -> void:
@@ -435,13 +615,14 @@ func _chief_end() -> void:
 ## 側欄「參謀長」區用的狀態（施工單 18）。
 func chief_sidebar_info() -> Dictionary:
 	return {"state": chief_state, "line": chief_line, "busy_s": chief.busy_seconds() if (chief != null and chief_state == "online") else 0.0,
-		"orders": chief_last_orders, "cost": chief_cost, "ticks": chief_ticks, "ended": director != null and director.finished}
+		"orders": chief_last_orders, "cost": chief_cost, "ticks": chief_ticks, "ended": director != null and director.finished, "override_rate": override_rate}
 
-## 側欄點了排或連：攝影機移過去；selected_unit 留給施工單 19 的接管面板。
+## 側欄點了排或連：攝影機移過去，並選取（面板出現，施工單 19）。
 func _on_sidebar_unit_selected(unit_id: String) -> void:
 	var at := unit_world_position(unit_id)
 	if camera_rig != null and at != Vector3.INF:
 		camera_rig.look_at_ground(at)
+	select_unit(unit_id)
 
 ## 排＝錨點；連＝存活下級排的平均；找不到＝Vector3.INF。
 func unit_world_position(unit_id: String) -> Vector3:

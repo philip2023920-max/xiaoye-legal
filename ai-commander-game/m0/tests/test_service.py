@@ -106,6 +106,21 @@ def test_override_counting_and_ai_order_chain(workdir):
     assert len(s.overrides.records) == 3
 
 
+def test_release_makes_next_takeover_count(workdir):
+    """施工單 19：放手立刻生效（不等下一拍的板），之後再接管算新的一次推翻。"""
+    s = ChiefSession(cfg(workdir), BOARD)
+    s.tick(BOARD, t=120)
+    assert s.override("plt-A1", {"task": "hold", "target": "B2"}, board=at(121, **{"plt-A1": "player"}), t=121)["counted"]
+    assert not s.override("plt-A1", {"task": "seize", "target": "C3"}, board=at(125, **{"plt-A1": "player"}), t=125)["counted"]
+    rel = s.release(["plt-A1", "plt-A9"])
+    assert rel["released"] == ["plt-A1"] and rel["player_units"] == [] and rel["override_rate"] == "1/3"
+    assert s.override("plt-A1", {"task": "hold", "target": "B2"}, board=at(130, **{"plt-A1": "player"}), t=130)["counted"] and len(s.overrides.records) == 2
+    svc = ChiefService(cfg(workdir)); svc.start({"board": BOARD})
+    with pytest.raises(BoardError, match="unit_ids"):
+        svc.handle("POST", "/release", {"unit_ids": "plt-A1"})
+    assert svc.handle("POST", "/release", {"unit_ids": ["plt-A1"]})[1]["released"] == []
+
+
 def test_judge_timing_seconds_and_turns(workdir):
     """審查 5：秒制板的後果至少隔 20 秒才判；回合制板維持下一拍。"""
     s = ChiefSession(cfg(workdir), BOARD)

@@ -198,6 +198,8 @@ static func chief_text(chief: Dictionary) -> String:
 		lines.append(str(chief.get("line", "")))
 		if float(chief.get("busy_s", 0.0)) > 0.0:
 			lines.append(TranslationServer.translate("UI_CHIEF_THINKING") % int(chief.get("busy_s", 0.0)))
+		if str(chief.get("override_rate", "")) != "":
+			lines.append(TranslationServer.translate("UI_OVERRIDE_RATE") % str(chief["override_rate"]))
 		var orders: Array = chief.get("orders", [])
 		lines.append(TranslationServer.translate("UI_CHIEF_LAST_ORDERS"))
 		if orders.is_empty():

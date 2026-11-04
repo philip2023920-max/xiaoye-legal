@@ -2,6 +2,11 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十七次）— 施工單 17 二審修正並結案；施工單 19 推翻與接管（程式完成）
+- 17 二審：孤兒與取消確認修好；補 `_stopping`（排隊／新請求與 wait_online 跟著取消）、Godot 孤兒測試的 `\\$!` 跳脫與不得假綠、`--idle-exit` 回 600、`parent_watch` 包 try、ctypes 型別、§16 補 `--parent-pid` → 17 ✅
+- 19：服務新端點 `POST /release {unit_ids}`（放手立刻生效、再接管算新的一次；`released_units`）；Godot `scripts/ui/override_flow.gd`（狀態機）、`override_panel.gd`（左下面板）、`Platoon` 選取／直轄環（TorusMesh 共用）、`battle.gd` 點排／點地圖／側欄點樹 → 面板 → 下令（`order_problem` 擋壞命令、子樹直轄、`/override` 帶 t、`counted` → `overrides_this_battle` 與事件、`/release`）、推翻率進側欄；`ChiefClient.override` 收 t；字串表 +15 鍵
+- 測試：`tests/test_override.gd` 37 檢查；`test_service.py` 26 → 27
+
 ## 2026-11-04（第三十六次）— 施工單 18 戰情板側欄（程式完成）
 - `godot/scripts/ui/sidebar.gd`（`Sidebar`：部隊樹／事件流／參謀長區／據點分數／天氣時段／費用；可收合；`unit_selected`；純函式 `tree_rows`／`strength_bar`／`event_color`／`events_bbcode`／…）、`scripts/ui/i18n.gd`（`UiText`：執行期載 `i18n/ui.csv` 進 TranslationServer）、`i18n/ui.csv` 46 鍵三語；`battle.gd` 掛側欄、每 0.5 秒 refresh、`chief_sidebar_info()`、點排移攝影機、`-- lang=`
 - `tests/test_sidebar.gd` 31 檢查；其他 Godot 測試不受影響

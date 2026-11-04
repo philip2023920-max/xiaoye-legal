@@ -12,7 +12,7 @@ signal _slot_free
 const HEALTH_TIMEOUT_S := 10.0
 const COLD_BOOT_TIMEOUT_S := 45.0    # 自己啟動且子程序還活著：第一次 uv run 要建環境，可以等久一點
 const DEFAULT_TIMEOUT_S := 60.0      # 施工單 17：60 秒無回覆算無回應
-const IDLE_EXIT_S := 90              # 服務 90 秒沒請求就自滅（節拍 20 秒；客戶端死了的保險）
+const IDLE_EXIT_S := 600             # 服務多久沒請求自滅：戰後 AAR 畫面玩家可能看很久，客戶端死了由 --parent-pid 收掉，這裡只是保險
 const RESULT_TEXT := {
 	HTTPRequest.RESULT_CANT_CONNECT: "連不上參謀長服務", HTTPRequest.RESULT_CANT_RESOLVE: "解析不了位址",
 	HTTPRequest.RESULT_CONNECTION_ERROR: "連線中斷", HTTPRequest.RESULT_TIMEOUT: "逾時沒有回覆",
@@ -31,6 +31,7 @@ var last_error := ""
 var requests := 0
 var _http: HTTPRequest
 var _taken := false
+var _stopping := false               # stop() 進行中：排隊的與新的請求（除 /shutdown）直接回「已取消」
 
 func _ready() -> void:
 	_http = HTTPRequest.new()
@@ -84,6 +85,9 @@ func wait_online(timeout_s: float = HEALTH_TIMEOUT_S, cold_timeout_s: float = CO
 			_set_online(true)
 			return true
 		var waited := float(Time.get_ticks_msec() - t0) / 1000.0
+		if _stopping:
+			last_error = "啟動被中止（關機）"
+			break
 		if pid > 0 and not OS.is_process_running(pid):
 			last_error = "參謀長服務一啟動就結束了（找不到 uv？或 m0 的 Python 環境有問題：先在 m0 跑 uv sync）"
 			break
@@ -98,8 +102,13 @@ func wait_online(timeout_s: float = HEALTH_TIMEOUT_S, cold_timeout_s: float = CO
 ## 送一個請求，等回覆。回 {code, body, error, latency_s, path}；送不出／逾時／連不上時 code=0、error 是人話。
 ## 服務回 4xx／5xx 時 code 照回、error＝服務的人話。
 func call_api(method: String, path: String, body: Dictionary = {}, timeout_s: float = DEFAULT_TIMEOUT_S) -> Dictionary:
+	var cancelled := {"code": 0, "body": {}, "error": str(RESULT_TEXT[RESULT_CANCELLED]), "latency_s": 0.0, "path": path}
+	if _stopping and path != "/shutdown":
+		return cancelled
 	while _taken:
 		await _slot_free
+		if _stopping and path != "/shutdown":   # 排隊期間開始關機：不要再送出去
+			return cancelled
 	_taken = true
 	_set_busy(true)
 	requests += 1
@@ -147,8 +156,10 @@ func start_session(board: Dictionary, settings: Dictionary = {}) -> Dictionary:
 func tick(t: float, board: Dictionary) -> Dictionary:
 	return await call_api("POST", "/tick", {"t": t, "board": board}, DEFAULT_TIMEOUT_S)
 
-func override(unit_id: String, player_order: Dictionary, board: Dictionary, ai_order: Variant = null) -> Dictionary:
+func override(unit_id: String, player_order: Dictionary, board: Dictionary, t: float = -1.0, ai_order: Variant = null) -> Dictionary:
 	var body := {"unit_id": unit_id, "player_order": player_order, "board": board}
+	if t >= 0.0:
+		body["t"] = t
 	if ai_order != null:
 		body["ai_order"] = ai_order
 	return await call_api("POST", "/override", body, 10.0)
@@ -162,10 +173,14 @@ func status() -> Dictionary:
 ## 關機：在飛的請求先取消（不然 /shutdown 會排在一個最長 60 秒的 /tick 後面），再請服務自己退（/shutdown，
 ## 會補寫戰例），2 秒內沒結束就 kill。
 func stop() -> void:
-	if _taken:
+	_stopping = true
+	var guard := 0
+	while _taken and guard < 8:
 		_http.cancel_request()
-		# cancel_request 不會發 request_completed：自己補一個「已取消」，讓等在 call_api 裡的人立刻拿到結果
+		# cancel_request 不會發 request_completed：自己補一個「已取消」，讓等在 call_api 裡的人立刻拿到結果；
+		# 排隊中的會在醒來時看到 _stopping 自己退出
 		_http.request_completed.emit(RESULT_CANCELLED, 0, PackedStringArray(), PackedByteArray())
+		guard += 1
 	if base_url != "" and online:
 		await call_api("POST", "/shutdown", {}, 3.0)
 	if pid > 0:
@@ -176,6 +191,7 @@ func stop() -> void:
 			OS.kill(pid)
 		pid = -1
 	_set_online(false)
+	_stopping = false
 
 ## 節點被拆掉（場景重載）而沒先 stop()：直接 kill，別留孤兒程序。
 func _exit_tree() -> void:

@@ -149,8 +149,11 @@ func _run() -> void:
 	var fake_parent := -1
 	if OS.get_name() != "Windows":
 		var out: Array = []
-		OS.execute("sh", ["-c", "sleep 3 >/dev/null 2>&1 & echo $!"], out)
+		# Godot 的 OS.execute 會把每個引數再包一層 sh：$! 要跳脫，不然被外層 shell 展開成空字串
+		OS.execute("sh", ["-c", "sleep 6 >/dev/null 2>&1 & echo \\$!"], out)
 		fake_parent = int(str(out[0]).strip_edges()) if out.size() > 0 else -1
+		if fake_parent <= 0:
+			h.check(false, "拿不到假父程序的 pid（OS.execute 輸出：%s）" % str(out))
 	if fake_parent > 0:
 		orphan.launch("fake", PackedStringArray(["--out-root", out_dir, "--ledger", "none", "--parent-pid", str(fake_parent)]))
 		var up: bool = await orphan.wait_online(10.0)
@@ -169,10 +172,12 @@ func _run() -> void:
 				gone = true
 				break
 			await create_timer(0.5).timeout
-		h.check(up and gone, "啟動者消失 → 服務 %d 秒內自己退出（--parent-pid）" % int((Time.get_ticks_msec() - t1) / 1000))
+		h.check(up and gone, "啟動者消失 → 服務 %d 秒內自己退出（--parent-pid；up=%s）" % [int((Time.get_ticks_msec() - t1) / 1000), str(up)])
 		probe.queue_free()
+	elif OS.get_name() == "Windows":
+		h.check(true, "（Windows 略過孤兒測試：由 m0 的 test_parent_pid_watch 覆蓋）")
 	else:
-		h.check(true, "（Windows 沙盒略過孤兒測試）")
+		h.check(false, "假父程序沒起來")
 
 	# ---- 3c. 關機不等在飛的請求：對一個只接受連線、永不回覆的埠送 /tick，stop() 要在 3 秒內回來 ----
 	var sink := TCPServer.new()

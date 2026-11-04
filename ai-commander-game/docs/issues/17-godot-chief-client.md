@@ -1,6 +1,6 @@
 # 17 Godot 節拍與參謀長客戶端
 
-> 狀態：🟡 程式完成（2026-11-04；`tests/test_chief_client.gd` 32 檢查全過，沙盒真的啟動 `uv run chief serve --provider fake` 打完 300 秒：21 拍、12 條參謀長令；其他 6 支 Godot 測試不受影響），審查中。ADR-0015（D23、D24、D28）。
+> 狀態：✅ 2026-11-04 結案：三審兩輪（第一輪 6 項、第二輪 2 補強＋4 建議）全部修正；`tests/test_chief_client.gd` 35 檢查全過，沙盒真的啟動 `uv run chief serve --provider fake` 打完 300 秒：21 拍、12 條參謀長令；其他 6 支 Godot 測試不受影響）。真機驗收併入 M2 驗收。ADR-0015（D23、D24、D28）。
 
 **重用**：Godot `HTTPRequest`、`OS.create_process`；M1 的 `Orbat.apply_orders`／事件流；16 的服務。自製：`scripts/chief/chief_client.gd`（啟動服務、健康檢查、請求佇列、逾時）、`scripts/chief/tick_scheduler.gd`（20 秒＋事件、最短間隔 8 秒）。
 
@@ -26,3 +26,8 @@ cd godot; & "C:\dev\godot\Godot_v4.7.2-stable_win64_console.exe" --headless --pa
 - 必修：kill 只殺到 uv 外殼、Python 服務變孤兒 → 服務加 `--parent-pid`（跨平台 `pid_alive`，Windows 用 OpenProcess 不用 os.kill）＋ `--idle-exit 90`；關窗／R 會卡在在飛的 /tick 後面最長 65 秒 → `stop()` 先 `cancel_request` 並補發「已取消」；`tests/run_tests.gd` 用預設匯出會偷啟動服務 → `chief_autostart=false`。
 - 建議：冷啟 uv 超過 10 秒 → 子程序活著放寬到 45 秒、README 補「第一次先 `uv sync`」；Unix 下「找不到 uv」是 exec 失敗（pid>0）→ 訊息併進「一啟動就結束」；docs/12 §2 的固定埠 8765 改成空埠＋token。
 - 測試 32 → 35（孤兒自滅、取消在飛、uv 訊息）；m0 加 `test_parent_pid_watch_exits_when_parent_dies`。
+
+## 三審第二輪 → 2 補強＋4 建議全部修正
+- 補強：Godot 的孤兒測試假綠（`OS.execute` 外層 sh 把 `$!` 展開成空字串 → 走了「略過」分支）→ `\\$!` 跳脫、非 Windows 拿不到 pid 直接 FAIL、假父程序活 6 秒；`stop()` 只取消在飛那一個、排隊中的與 `wait_online` 照跑 → `_stopping` 旗標讓排隊／新請求（除 /shutdown）直接回「已取消」、`wait_online` 中止、取消改成迴圈。
+- 建議：`--idle-exit` 由 90 改回 600（戰後 AAR 畫面玩家可能看很久；客戶端死掉由 `--parent-pid` 收）；`parent_watch` 包 try（查不到當活著並印一行）；Windows ctypes 標 `restype`／`argtypes`；§16 補 `--parent-pid`。
+- 已知限制：R 重開時若 /tick 的 LLM 呼叫還在服務端跑，`/shutdown` 會排在鎖後面等到 LLM 回來才處理（客戶端 3 秒逾時後只 kill 到 uv），舊服務會多活到該次呼叫結束；關窗則由 `--parent-pid` 在 2 秒內收掉。
