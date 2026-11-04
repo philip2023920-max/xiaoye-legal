@@ -159,7 +159,7 @@ markmap:
   - 施工單 18 戰情板側欄（部隊樹、事件流、參謀長區、據點、天氣費用；可收合；三語字串表；三審三輪 26 項已修；44 檢查） ✅ → docs/issues/18-godot-sidebar.md
   - 施工單 19 推翻與接管 UI（點排／側欄 → 面板 → 點地圖；直轄環；/override、/release；服務子樹計數；三審兩輪 12 項已修；46 檢查） ✅ → docs/issues/19-godot-override.md
   - 施工單 20 戰後 AAR 畫面（卡、徽章、三幕、一句話、討論、提案、採納／撤銷、再打一場；三審兩輪 13 項已修；37 檢查） ✅ → docs/issues/20-godot-aar.md
-  - 施工單 21 設定頁（Esc）、費用 HUD、三語 HUD（settings.json、/settings 即時、語言即時切換；33 檢查；審查中） 🟡 → docs/issues/21-godot-settings.md
+  - 施工單 21 設定頁（Esc）、費用 HUD、三語 HUD（settings.json、/settings 即時、語言即時切換；33 檢查；審查中） 🟡 → docs/issues/21-godot-settings-cost-i18n.md
   - M2 驗收：老闆本機 Haiku 打完一場（含至少一次推翻與戰後採納） ⬜ → docs/12-m2-architecture.md
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
