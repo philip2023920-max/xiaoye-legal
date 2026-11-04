@@ -154,8 +154,9 @@ markmap:
 - M2 參謀長接入＋玩家接管 UI（4 週；2026-11-04 老闆「下一步」） 🟡 → docs/12-m2-architecture.md
   - 選型決策 D23～D29 已拍板（ADR-0015：本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管） ✅ → docs/adr/0015-m2-chief-service.md
   - 沙盒探針：Godot 無頭 HTTPRequest ↔ Python 服務往返、子程序啟動都通 ✅
-  - 施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點、9 測試；審查中） 🟡 → docs/issues/16-chief-service.md
-  - 施工單 17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語 ⬜ → docs/issues/README.md
+  - 施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點；三審兩輪 28 項已修；25 測試；真機驗收併入 M2 驗收） ✅ → docs/issues/16-chief-service.md
+  - 施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、/health、排隊、逾時、關機；HUD 第二行；32 檢查跨程序整合；審查中） 🟡 → docs/issues/17-godot-chief-client.md
+  - 施工單 18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語 ⬜ → docs/issues/README.md
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
 

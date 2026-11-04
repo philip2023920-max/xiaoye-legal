@@ -1131,15 +1131,23 @@
             },
             {
               "id": "n_905537af",
-              "text": "施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點、9 測試；審查中）",
-              "status": "doing",
+              "text": "施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點；三審兩輪 28 項已修；25 測試；真機驗收併入 M2 驗收）",
+              "status": "done",
               "link": "docs/issues/16-chief-service.md",
-              "note": "",
+              "note": "2026-11-04 結案。合約 docs/10 §16；/override 帶 t、已直轄不算、≥20 秒判、--token、嚴格驗型別。",
+              "children": []
+            },
+            {
+              "id": "n_bc689576",
+              "text": "施工單 17 Godot 節拍與參謀長客戶端（TickScheduler 20 秒＋事件至少隔 8 秒；ChiefClient 啟動 uv run chief serve、/health、排隊、逾時、關機；HUD 第二行；32 檢查跨程序整合；審查中）",
+              "status": "doing",
+              "link": "docs/issues/17-godot-chief-client.md",
+              "note": "2026-11-04 程式完成：沙盒真的起服務打完 300 秒，21 拍、12 條參謀長令、費用 0。",
               "children": []
             },
             {
               "id": "n_4803f8b5",
-              "text": "施工單 17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
+              "text": "施工單 18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
               "status": "todo",
               "link": "docs/issues/README.md",
               "note": "",
@@ -1605,8 +1613,8 @@
       ]
     }
   ],
-  "version": 50,
-  "updatedAt": "2026-11-04T03:59:21Z",
+  "version": 51,
+  "updatedAt": "2026-11-04T04:59:00Z",
   "updatedBy": "claude",
   "instructions": ""
 }
