@@ -239,6 +239,9 @@ func _add_hud() -> void:
 	hud_label.position = Vector2(12, 10)
 	hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	hud_label.add_theme_constant_override("outline_size", 4)
+	hud_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # 側欄佔右側 440 px：兩行 HUD 在左邊換行，不被蓋住
+	hud_label.custom_minimum_size = Vector2(hud_text_width(), 0.0)
+	hud_label.size = Vector2(hud_text_width(), 0.0)
 	hud_label.text = _status_text("")
 	hud.add_child(hud_label)
 	chief_label = Label.new()
@@ -247,13 +250,17 @@ func _add_hud() -> void:
 	chief_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	chief_label.add_theme_constant_override("outline_size", 4)
 	chief_label.add_theme_color_override("font_color", Color(1.0, 0.93, 0.6))
+	chief_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	chief_label.custom_minimum_size = Vector2(hud_text_width(), 0.0)
+	chief_label.size = Vector2(hud_text_width(), 0.0)
+	chief_label.position = Vector2(12, 58)                           # 狀態行可能兩行，第二行往下讓位
 	chief_label.text = chief_hud_text()
 	hud.add_child(chief_label)
 	if sidebar_enabled:
 		sidebar = Sidebar.new()
 		sidebar.unit_selected.connect(_on_sidebar_unit_selected)
 		hud.add_child(sidebar)
-		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
+		sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
 	panel = OverridePanel.new()
 	panel.task_pressed.connect(_on_panel_task)
 	panel.takeover_pressed.connect(func() -> void: commander_takeover(flow.unit_id))
@@ -298,7 +305,8 @@ func _process(_delta: float) -> void:
 	_sidebar_acc += _delta
 	if sidebar != null and _sidebar_acc >= SIDEBAR_INTERVAL:
 		_sidebar_acc = 0.0
-		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
+		sidebar.refresh(writer.to_dict(), chief_sidebar_info(), battle_seconds())
+	camera_rig.edge_scroll_enabled = not mouse_over_ui()                # 滑鼠在側欄／面板上（含捲軸）時不要邊緣捲動地圖
 
 ## 滑鼠：左鍵點排＝選取（開面板）；選目標中左鍵＝點分區／點友軍；右鍵＝取消選目標。鍵盤：空白鍵＝「A 連 奪取 C3」（施工單 11）；R 重開。
 func _unhandled_input(event: InputEvent) -> void:
@@ -611,6 +619,24 @@ func _chief_end() -> void:
 	else:
 		orbat.log_event(orbat.second(), "info", "戰報卡沒拿到（%s）" % r["error"])
 	chief_state = "ended"
+
+## 會戰長度（秒）：導演的常數，HUD、側欄都用這一份。
+func battle_seconds() -> int:
+	return int(Director.TURN_SECONDS) * Director.MAX_TURNS
+
+## HUD 左上兩行可用的寬度（視窗寬 − 側欄 − 邊距）。
+func hud_text_width() -> float:
+	var w := get_viewport().get_visible_rect().size.x if get_viewport() != null else 1280.0
+	return maxf(300.0, w - (Sidebar.WIDTH if sidebar_enabled else 0.0) - 24.0)
+
+## 滑鼠是否在側欄或面板上（這些 Control 擋得了點擊，擋不了用座標算的邊緣捲動）。
+func mouse_over_ui() -> bool:
+	var m := get_viewport().get_mouse_position()
+	if sidebar != null and sidebar.visible and sidebar.get_global_rect().has_point(m):
+		return true
+	if panel != null and panel.visible and panel.get_global_rect().has_point(m):
+		return true
+	return false
 
 ## 側欄「參謀長」區用的狀態（施工單 18）。
 func chief_sidebar_info() -> Dictionary:

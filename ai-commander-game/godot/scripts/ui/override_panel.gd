@@ -45,6 +45,7 @@ func _init() -> void:
 		var b := Button.new()
 		b.name = t
 		b.text = tr("UI_TASK_" + t)
+		b.focus_mode = Control.FOCUS_NONE     # 按過任務鈕後空白鍵不能再觸發它
 		b.pressed.connect(func() -> void: task_pressed.emit(t))
 		row.add_child(b)
 		task_buttons[t] = b
@@ -58,16 +59,19 @@ func _init() -> void:
 	takeover_btn = Button.new()
 	takeover_btn.name = "Takeover"
 	takeover_btn.text = tr("UI_PANEL_TAKEOVER")
+	takeover_btn.focus_mode = Control.FOCUS_NONE
 	takeover_btn.pressed.connect(func() -> void: takeover_pressed.emit())
 	row2.add_child(takeover_btn)
 	release_btn = Button.new()
 	release_btn.name = "Release"
 	release_btn.text = tr("UI_PANEL_RELEASE")
+	release_btn.focus_mode = Control.FOCUS_NONE
 	release_btn.pressed.connect(func() -> void: release_pressed.emit())
 	row2.add_child(release_btn)
 	cancel_btn = Button.new()
 	cancel_btn.name = "Cancel"
 	cancel_btn.text = tr("UI_PANEL_CANCEL")
+	cancel_btn.focus_mode = Control.FOCUS_NONE
 	cancel_btn.pressed.connect(func() -> void: cancel_pressed.emit())
 	row2.add_child(cancel_btn)
 	visible = false

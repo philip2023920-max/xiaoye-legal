@@ -8,7 +8,8 @@ extends PanelContainer
 signal unit_selected(unit_id: String)
 
 const MAX_EVENTS := 12
-const WIDTH := 340.0
+const WIDTH := 440.0          # 四欄（名稱 ★直轄／戰力條／狀態／任務）實測要約 400 px
+const TOP_OFFSET := 0.0
 const COLOR_GOOD := Color(0.55, 0.95, 0.55)
 const COLOR_BAD := Color(1.0, 0.45, 0.45)
 const COLOR_NEUTRAL := Color(0.85, 0.85, 0.85)
@@ -21,7 +22,9 @@ const COLOR_PLAYER := Color(1.0, 0.8, 0.3)
 var collapsed := false
 var selected_unit := ""
 var toggle_btn: Button
+var scroll: ScrollContainer
 var body: VBoxContainer
+var battle_seconds := 300
 var tree: Tree
 var events_label: RichTextLabel
 var chief_label: Label
@@ -48,12 +51,19 @@ func _init() -> void:
 	toggle_btn = Button.new()
 	toggle_btn.name = "Toggle"
 	toggle_btn.text = tr("UI_SIDEBAR_COLLAPSE")
+	toggle_btn.focus_mode = Control.FOCUS_NONE      # 不搶鍵盤焦點：按過它之後空白鍵不能再觸發它
 	toggle_btn.pressed.connect(toggle)
 	root.add_child(toggle_btn)
+	scroll = ScrollContainer.new()                    # 內容比 720 高就捲，不會把費用與天氣擠出螢幕
+	scroll.name = "Scroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
 	body = VBoxContainer.new()
 	body.name = "Body"
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(body)
+	scroll.add_child(body)
 	_section(tr("UI_SECTION_UNITS"))
 	tree = Tree.new()
 	tree.name = "Units"
@@ -64,11 +74,15 @@ func _init() -> void:
 	tree.set_column_title(2, tr("UI_COL_STATE"))
 	tree.set_column_title(3, tr("UI_COL_TASK"))
 	tree.set_column_expand(0, true)
-	tree.set_column_custom_minimum_width(1, 70)
-	tree.set_column_custom_minimum_width(2, 48)
-	tree.set_column_custom_minimum_width(3, 80)
+	tree.set_column_clip_content(0, true)
+	for c in [1, 2, 3]:
+		tree.set_column_expand(c, false)
+	tree.set_column_custom_minimum_width(1, 100)
+	tree.set_column_custom_minimum_width(2, 56)
+	tree.set_column_custom_minimum_width(3, 104)
 	tree.hide_root = true
-	tree.custom_minimum_size = Vector2(WIDTH - 16.0, 200.0)
+	tree.focus_mode = Control.FOCUS_NONE              # 點樹不吃空白鍵（仍會發 item_selected）
+	tree.custom_minimum_size = Vector2(WIDTH - 24.0, 140.0)
 	tree.item_selected.connect(_on_item_selected)
 	body.add_child(tree)
 	_section(tr("UI_SECTION_EVENTS"))
@@ -77,7 +91,8 @@ func _init() -> void:
 	events_label.bbcode_enabled = true
 	events_label.scroll_following = true
 	events_label.fit_content = false
-	events_label.custom_minimum_size = Vector2(WIDTH - 16.0, 180.0)
+	events_label.custom_minimum_size = Vector2(WIDTH - 24.0, 120.0)
+	events_label.focus_mode = Control.FOCUS_NONE
 	events_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(events_label)
 	_section(tr("UI_SECTION_CHIEF"))
@@ -99,12 +114,13 @@ func _label(n: String) -> Label:
 	var l := Label.new()
 	l.name = n
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(WIDTH - 16.0, 0.0)
+	l.custom_minimum_size = Vector2(WIDTH - 24.0, 0.0)
 	body.add_child(l)
 	return l
 
 func toggle() -> void:
 	collapsed = not collapsed
+	scroll.visible = not collapsed
 	body.visible = not collapsed
 	toggle_btn.text = tr("UI_SIDEBAR_EXPAND") if collapsed else tr("UI_SIDEBAR_COLLAPSE")
 	offset_left = -toggle_btn.get_combined_minimum_size().x - 16.0 if collapsed else -WIDTH
@@ -129,7 +145,9 @@ static func strength_bar(x: float) -> String:
 static func task_text(task: Dictionary) -> String:
 	if task.is_empty():
 		return TranslationServer.translate("UI_TASK_none")
-	return "%s %s" % [TranslationServer.translate("UI_TASK_" + str(task.get("type", ""))), str(task.get("target", ""))]
+	var key := "UI_TASK_" + str(task.get("type", ""))
+	var t := TranslationServer.translate(key)
+	return "%s %s" % [str(task.get("type", "")) if t == key else t, str(task.get("target", ""))]
 
 static func state_text(state: String) -> String:
 	var key := "UI_STATE_" + state
@@ -210,14 +228,16 @@ static func chief_text(chief: Dictionary) -> String:
 
 # ---- 更新 ----
 
-## board＝BoardWriter.to_dict()；chief＝Battle.chief_sidebar_info()。
-func refresh(board: Dictionary, chief: Dictionary = {}) -> void:
+## board＝BoardWriter.to_dict()；chief＝Battle.chief_sidebar_info()；battle_seconds_＝會戰長度（Battle 傳導演的常數，別兩邊各寫一份）。
+func refresh(board: Dictionary, chief: Dictionary = {}, battle_seconds_: int = -1) -> void:
 	refreshes += 1
+	if battle_seconds_ > 0:
+		battle_seconds = battle_seconds_
 	_rebuild_tree(board)
 	events_label.text = events_bbcode(board.get("events", []))
 	chief_label.text = chief_text(chief)
 	objectives_label.text = objectives_text(board)
-	conditions_label.text = conditions_text(board)
+	conditions_label.text = conditions_text(board, battle_seconds)
 	cost_label.text = TranslationServer.translate("UI_COST_LINE") % [float(chief.get("cost", 0.0)), int(chief.get("ticks", 0))]
 	if bool(chief.get("ended", false)):
 		conditions_label.text += "｜" + TranslationServer.translate("UI_ENDED")
@@ -227,19 +247,28 @@ func _rebuild_tree(board: Dictionary) -> void:
 	var ids := {}
 	for r in rows:
 		ids[r["id"]] = true
-	for uid in _items.keys():          # 不在板上的（殲滅後被拿掉）移除
+	for uid in _items.keys():          # 不在板上的移除；連被釋放時子項跟著沒了，一起從表裡拿掉
 		if not ids.has(uid):
 			var it: TreeItem = _items[uid]
-			it.free()
+			if is_instance_valid(it):
+				it.free()
+			_items.erase(uid)
+	for uid in _items.keys():
+		if not is_instance_valid(_items[uid]):
 			_items.erase(uid)
 	var root := tree.get_root()
 	if root == null:
 		root = tree.create_item()
-	for r in rows:                     # 先確保每列都有 item（連先於排，照板的順序）
-		if not _items.has(r["id"]):
-			var parent_item: TreeItem = _items.get(r["parent"], root) if r["parent"] != "" else root
+	for pass_companies in [true, false]:   # 先連再排：排才一定掛得到自己的連（不靠板的順序）
+		for r in rows:
+			if (r["echelon"] != "platoon") != pass_companies or _items.has(r["id"]):
+				continue
+			var parent_item: TreeItem = root
+			if r["parent"] != "" and _items.has(r["parent"]) and is_instance_valid(_items[r["parent"]]):
+				parent_item = _items[r["parent"]]
 			var it := tree.create_item(parent_item)
 			it.set_metadata(0, r["id"])
+			it.set_collapsed(false)         # 只在建立時展開；之後尊重使用者的收合
 			_items[r["id"]] = it
 	for r in rows:
 		var it: TreeItem = _items[r["id"]]
@@ -251,8 +280,6 @@ func _rebuild_tree(board: Dictionary) -> void:
 		var col := COLOR_PLAYER if r["player"] else (COLOR_BAD if r["state"] in ["routed", "destroyed"] else Color.WHITE)
 		for c in 4:
 			it.set_custom_color(c, col)
-		if r["echelon"] != "platoon":
-			it.set_collapsed(false)
 
 func unit_count() -> int:
 	return _items.size()

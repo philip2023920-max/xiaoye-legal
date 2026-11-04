@@ -2,6 +2,10 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十八次）— 施工單 18 三審第一輪 14 項修正
+- 版面：`ScrollContainer`、寬 440、欄寬固定、HUD 兩行換行與下移、滑鼠在 UI 上停邊緣捲動、全部 `FOCUS_NONE`；樹：`is_instance_valid` 守門、先連再排、收合保留；會戰長度由 Battle 傳導演常數；`task_text` 保底；匯入器產物改 `importer="keep"`、刪 3 個 .translation、`.gitignore`
+- 測試：`test_sidebar.gd` 31 → 39（版面、焦點、收合、排先於連、連消失、HUD 換行）
+
 ## 2026-11-04（第三十七次）— 施工單 17 二審修正並結案；施工單 19 推翻與接管（程式完成）
 - 17 二審：孤兒與取消確認修好；補 `_stopping`（排隊／新請求與 wait_online 跟著取消）、Godot 孤兒測試的 `\\$!` 跳脫與不得假綠、`--idle-exit` 回 600、`parent_watch` 包 try、ctypes 型別、§16 補 `--parent-pid` → 17 ✅
 - 19：服務新端點 `POST /release {unit_ids}`（放手立刻生效、再接管算新的一次；`released_units`）；Godot `scripts/ui/override_flow.gd`（狀態機）、`override_panel.gd`（左下面板）、`Platoon` 選取／直轄環（TorusMesh 共用）、`battle.gd` 點排／點地圖／側欄點樹 → 面板 → 下令（`order_problem` 擋壞命令、子樹直轄、`/override` 帶 t、`counted` → `overrides_this_battle` 與事件、`/release`）、推翻率進側欄；`ChiefClient.override` 收 t；字串表 +15 鍵
