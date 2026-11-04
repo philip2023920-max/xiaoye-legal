@@ -604,6 +604,14 @@
           ]
         },
         {
+          "id": "n_1e436773",
+          "text": "參謀長服務（M2 建議 D23）：`chief serve` 本機 HTTP JSON，M0 的閘道／驗證器／準則／戰例庫／戰報卡全部重用，Godot 只管畫面與節拍",
+          "status": "doing",
+          "link": "docs/12-m2-architecture.md",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_da0c1642",
           "text": "參謀長包 Harness：manifest、doctrine、prompts、evals 打包",
           "status": "done",
@@ -1099,12 +1107,37 @@
           ]
         },
         {
-          "id": "n_7075a18e",
-          "text": "M2 參謀長接入＋玩家接管 UI（4 週；待老闆下令）",
-          "status": "todo",
-          "link": "",
+          "id": "n_6a45b2e9",
+          "text": "M2 參謀長接入＋玩家接管 UI（4 週；2026-11-04 老闆「下一步」）",
+          "status": "doing",
+          "link": "docs/12-m2-architecture.md",
           "note": "",
-          "children": []
+          "children": [
+            {
+              "id": "n_63439a5b",
+              "text": "選型決策 D23～D29（本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管）待老闆拍板",
+              "status": "doing",
+              "link": "docs/05-decisions.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_8214ebd1",
+              "text": "沙盒探針：Godot 無頭 HTTPRequest ↔ Python 服務往返、子程序啟動都通",
+              "status": "done",
+              "link": "",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_c91ab2c0",
+              "text": "施工單草案 16 參謀長服務、17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
+              "status": "todo",
+              "link": "",
+              "note": "",
+              "children": []
+            }
+          ]
         },
         {
           "id": "n_b0a537f2",
@@ -1522,6 +1555,14 @@
           "children": []
         },
         {
+          "id": "n_ef8993ed",
+          "text": "docs/12-m2-architecture.md（M2 選型、決策、施工單草案）",
+          "status": "",
+          "link": "",
+          "note": "",
+          "children": []
+        },
+        {
           "id": "n_368f013e",
           "text": "THIRD_PARTY.md（第三方元件與授權）",
           "status": "",
@@ -1556,8 +1597,8 @@
       ]
     }
   ],
-  "version": 48,
-  "updatedAt": "2026-11-04T03:44:15Z",
+  "version": 49,
+  "updatedAt": "2026-11-04T03:48:20Z",
   "updatedBy": "claude",
   "instructions": ""
 }

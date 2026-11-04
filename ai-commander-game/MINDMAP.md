@@ -88,6 +88,7 @@ markmap:
   - 最低公分母：schema 進提示 → JSON → 本地驗證 → 重試 ≤ 2 ✅
   - 供應商能力表 provider.json ✅
   - 首批：Anthropic 原生＋Ollama 本地（ADR-0009） ✅
+- 參謀長服務（M2 建議 D23）：`chief serve` 本機 HTTP JSON，M0 的閘道／驗證器／準則／戰例庫／戰報卡全部重用，Godot 只管畫面與節拍 🟡 → docs/12-m2-architecture.md
 - 參謀長包 Harness：manifest、doctrine、prompts、evals 打包 ✅
   - 匯出／匯入（zip，不含金鑰，路徑安全檢查） ✅
   - 參謀長對決：兩個包各指揮一方，本地對戰 ⬜
@@ -150,7 +151,10 @@ markmap:
   - 施工單 15 效能（CPU 0.34 ms/tick；方塊人共用材質；畫面側目標硬體未驗、風險低，有低階機再補） ✅ → docs/issues/15-godot-performance.md
   - M1 驗收「5 分鐘會戰無 LLM 打完」老闆本機達成 ✅
   - 環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json ⬜
-- M2 參謀長接入＋玩家接管 UI（4 週；待老闆下令） ⬜
+- M2 參謀長接入＋玩家接管 UI（4 週；2026-11-04 老闆「下一步」） 🟡 → docs/12-m2-architecture.md
+  - 選型決策 D23～D29（本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管）待老闆拍板 🟡 → docs/05-decisions.md
+  - 沙盒探針：Godot 無頭 HTTPRequest ↔ Python 服務往返、子程序啟動都通 ✅
+  - 施工單草案 16 參謀長服務、17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語 ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
 
@@ -205,6 +209,7 @@ markmap:
 - docs/09-board-schema.md（戰情板合約）
 - docs/10-sim-rules.md（模擬會戰規則與手算範例）
 - docs/11-m1-architecture.md（M1 選型、重用檢查、環境、施工單草案）
+- docs/12-m2-architecture.md（M2 選型、決策、施工單草案）
 - THIRD_PARTY.md（第三方元件與授權）
 - m0/（M0 環境骨架）
 - docs/adr/（ADR-0001～0013）
