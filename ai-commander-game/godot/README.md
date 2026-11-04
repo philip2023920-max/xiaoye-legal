@@ -6,7 +6,7 @@ Godot **4.7.2 標準版**、Compatibility 渲染器、Jolt 物理。骨架 `addo
 1. Godot 專案管理員 → 匯入 → 選這個資料夾的 `project.godot`。
 2. F5 跑 `scenes/Battle.tscn`：看到 M0 的 5×5 地圖變 3D（讀的是隔壁 `m0/samples/board_start.json`，所以 repo 結構要保持 `godot/` 與 `m0/` 並列）。
 3. WASD 或滑鼠到邊緣平移、滾輪縮放；HUD 左上角顯示 FPS 與幀時間（ms）、方塊人數、難度、時間、雙方戰力、據點分、滑鼠下的分區；**空白鍵**＝「A 連 奪取 C3」；**R**＝重開。5 分鐘或一方戰力低於 30% 結束，畫面出結果。
-4. 參謀長（施工單 17）：預設 F5 就會從 `godot/` 旁的 `m0/` 啟動 `uv run chief serve --provider fake`（不花錢），HUD 第二行顯示參謀長的話、思考中秒數、費用；要真模型填引數 `-- chief=anthropic`（或 `chief=ollama chief_model=qwen2.5:3b`），金鑰在 `m0/.env`；`chief=off` 關掉。服務沒起來（沒裝 uv）會顯示原因並退回離線模式。
+4. 參謀長（施工單 17）：預設 F5 就會從 `godot/` 旁的 `m0/` 啟動 `uv run chief serve --provider fake`（不花錢；第一次請先在 `m0/` 跑過 `uv sync`，否則 uv 建環境可能超過上線等待），HUD 第二行顯示參謀長的話、思考中秒數、費用；要真模型填引數 `-- chief=anthropic`（或 `chief=ollama chief_model=qwen2.5:3b`），金鑰在 `m0/.env`；`chief=off` 關掉。服務沒起來（沒裝 uv）會顯示原因並退回離線模式。
 5. 難度、我方劇本、壓力模式用命令列引數：專案設定 → 執行 → 主要執行引數填 `-- difficulty=hard friendly=m0://samples/orders_v1_assault.json stress=10`（stress＝額外 N×126 個不動的方塊人，只量畫面，會自動關 V-Sync；無頭同樣寫法）。快照與結果在 `user://battles/<戰鬥id>-<難度>/`，M0 的 `chief replay` 可回放。
 
 ## 怎麼測（無頭，不需要顯示卡）

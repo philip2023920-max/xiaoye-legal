@@ -2,6 +2,10 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十五次）— 施工單 17 三審第一輪 6 項修正
+- `chief serve --parent-pid`（啟動者消失 2 秒內退出；`pid_alive` 跨平台）＋客戶端預設 `--idle-exit 90`：kill 只殺得到 uv 外殼的孤兒問題；`ChiefClient.stop()` 先取消在飛的請求再 `/shutdown`（關窗不再卡 60 秒）；`tests/run_tests.gd` 不再偷啟動服務；冷啟放寬到 45 秒；「找不到 uv」訊息；docs/12 §2 埠與 token
+- 測試：`test_chief_client.gd` 32 → 35；`test_service.py` 25 → 26（parent-pid）
+
 ## 2026-11-04（第三十四次）— 施工單 16 二審修正並結案；施工單 17 Godot 節拍與參謀長客戶端（程式完成）
 - 16 二審：18 項確認修好；再修 3 必修（start／settings 嚴格驗型別、harness 名稱白名單、系統提示模板去掉「10 turns／turn-based」）＋7 小項（`/override` 收 `t` 與 `t_at`、`end()` 例外不留半套、`final.json`、settings 先套語言預算、HEAD／GET body、文件漂移）；`tests/test_service.py` 20 → 25；M0 測試 203 過＋1 skip → 16 ✅
 - 17：`godot/scripts/chief/tick_scheduler.gd`（t=0 立即、每 20 秒、接觸／易手／潰散／殲滅事件提前但至少隔 8 秒、一次一個在飛）、`chief_client.gd`（`uv run --directory m0 chief serve --port 空埠 --token 亂數`、/health 10 秒、請求排隊、逾時人話、/shutdown 後 kill）、`battle.gd` 整合（HUD 第二行：開局引用句／研判／思考中 n 秒／費用；`參謀長回覆：n 條命令（延遲 n 秒）` 事件；直轄排不套用；/battle/end；R 與關窗先關服務；`-- chief=off` 離線）；`tests/test_chief_client.gd` 32 檢查（排程器、沒服務、真的啟動服務打完 300 秒：21 拍、12 條參謀長令、費用 0、戰報卡、關機、找不到 uv → 離線）

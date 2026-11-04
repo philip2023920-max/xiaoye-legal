@@ -90,6 +90,7 @@ func _run() -> void:
 	# ---- Battle 場景 ----
 	var scene: PackedScene = load("res://scenes/Battle.tscn")
 	var battle: Node3D = scene.instantiate()
+	battle.chief_autostart = false      # 施工單 17：這支測試不碰參謀長服務
 	get_root().add_child(battle)
 	await process_frame
 	check(battle.camera_rig != null and battle.camera_rig.is_in_group(RTSKit.CAMERA_GROUP), "攝影機是骨架的 RTSCameraRig")

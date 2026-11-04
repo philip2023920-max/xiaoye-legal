@@ -309,7 +309,7 @@ func start_chief() -> bool:
 	if chief_url != "":
 		chief.connect_to(chief_url, chief_token)
 	else:
-		var extra := PackedStringArray(["--harness", chief_harness, "--lang", chief_lang])
+		var extra := PackedStringArray(["--harness", chief_harness, "--lang", chief_lang])   # --parent-pid／--idle-exit 由 ChiefClient.launch 加
 		if chief_model != "":
 			extra.append_array(PackedStringArray(["--model", chief_model]))
 		if chief_budget >= 0.0:

@@ -21,7 +21,7 @@
 
 ```
 Godot（畫面、節拍、推翻 UI、側欄、AAR 畫面、設定）
-   │ HTTP JSON（127.0.0.1:8765）                 ▲ 戰情板：Godot 每 0.1 秒寫 user://board.json（M1 已做）；
+   │ HTTP JSON（127.0.0.1:<空埠>＋X-Chief-Token）  ▲ 戰情板：Godot 每 0.1 秒寫 user://board.json（M1 已做）；
    ▼                                            │ 節拍時把整份板放進 /tick 的請求裡（服務不用讀檔）
 Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server，不加依賴）
    ├─ /session/start   board、參謀長包／準則、供應商、模型、語言、預算 → 開局引用句
@@ -38,7 +38,7 @@ Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server�
 - **推翻流程**：玩家點排（地圖）或排／連（側欄樹）→ 面板：六種任務＋「點地圖選目標」→ 送 `Orbat.apply_orders(side="us", issuer="player")` 並標 `controlled_by=player`（直轄：參謀長不得下令，驗證器 V2 在服務端擋）→ POST /override；「放手」把 `controlled_by` 改回 ai。推翻後果由服務在推翻後 ≥20 秒的第一個 tick 判（§9），回傳到側欄事件流顯示 👍👎➖；/override 要在接管當下、下一拍之前送，板上要標好 `controlled_by`，服務才分得出「接管」與「已直轄再改令」。
 - **戰後**：導演結束 → POST /battle/end → AAR 畫面：戰報卡（三幕、徽章、一句話）→ 討論（三個快速回覆按鈕＋輸入框，最多三回合）→ 準則 diff（採納／不採納／撤銷）→ 回歸結果（退步自動回滾的訊息）。自動模式（沒有推翻）只出卡。
 - **費用 HUD**：每個 tick 回來更新本場費用；每 30 秒 GET /status 更新今天／本月；80% 提醒、100% 參謀長暫停（服務端已有）。
-- **開發期啟動**：Godot 從 `godot/` 執行 `uv run chief serve --port 8765`（工作目錄 `../m0`，讀 `.env`）；找不到 uv 或 10 秒內服務沒起來 → HUD 顯示「參謀長服務沒起來」並提供「離線模式」（M1 的劇本／空白鍵）。M3 打包時再決定凍結 Python 的方式。
+- **開發期啟動**：Godot 執行 `uv run --directory <m0> chief serve --port <自動找空埠> --token <亂數> --parent-pid <Godot pid> --idle-exit 90`（`--directory` 讓服務的工作目錄是 m0，讀 `.env`）；找不到 uv、服務一啟動就結束、或 10 秒（子程序還活著放寬到 45 秒，第一次 uv 建環境）內 `/health` 不通 → HUD 顯示原因並退回「離線模式」（M1 的劇本／空白鍵）。孤兒防護：`OS.kill` 只殺得到 uv 外殼，所以服務自己看 `--parent-pid`（Godot 消失 2 秒內退出）＋ `--idle-exit 90` 保險；關窗與 R 先取消在飛的請求再 `/shutdown`。M3 打包時再決定凍結 Python 的方式。
 
 ## 3. 施工單草案（老闆拍板後正式建檔）
 

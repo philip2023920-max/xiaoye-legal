@@ -443,12 +443,41 @@ def test_idle_exit_waits_for_in_flight_request(workdir, monkeypatch):
     assert not th.is_alive()
 
 
+def test_parent_pid_watch_exits_when_parent_dies(workdir):
+    """施工單 17 審查 1：Godot 被殺（或編輯器停止）→ 服務靠 --parent-pid 自己退出，不留孤兒。"""
+    import os
+    import subprocess
+    import sys
+    from chief.serve import pid_alive
+    assert pid_alive(os.getpid()) and not pid_alive(0) and not pid_alive(2 ** 22 + 12345)
+    dummy = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        assert pid_alive(dummy.pid)
+        th, conn = _serve(workdir, idle_exit_s=0, parent_pid=dummy.pid, parent_poll_s=0.2)
+        conn.request("GET", "/health"); r = conn.getresponse(); assert r.status == 200; r.read()
+        dummy.kill(); dummy.wait()
+        th.join(timeout=10)
+        assert not th.is_alive()                                                                   # 父程序沒了 → 服務退出
+    finally:
+        if dummy.poll() is None:
+            dummy.kill()
+    if sys.platform.startswith("linux"):                                                             # 殭屍不算活著（Godot 不一定 wait 它開的子程序）
+        zombie = subprocess.Popen([sys.executable, "-c", "pass"])
+        for _ in range(100):
+            if Path(f"/proc/{zombie.pid}/stat").read_text().rsplit(")", 1)[-1].split()[0] == "Z":
+                break
+            time.sleep(0.02)
+        assert not pid_alive(zombie.pid)
+        zombie.wait()
+
+
 def test_cli_serve_idle_exit(workdir, capsys):
     from chief.cli import main
     rc_box: dict = {}
-    th = threading.Thread(target=lambda: rc_box.update(rc=main(["serve", "--port", "0", "--idle-exit", "1", "--out-root", str(workdir / "b"), "--ledger", "none", "--token", "x"])), daemon=True)
+    import os
+    th = threading.Thread(target=lambda: rc_box.update(rc=main(["serve", "--port", "0", "--idle-exit", "1", "--out-root", str(workdir / "b"), "--ledger", "none", "--token", "x", "--parent-pid", str(os.getpid())])), daemon=True)
     th.start()
     th.join(timeout=20)
     assert not th.is_alive() and rc_box["rc"] == 0
     out = capsys.readouterr().out
-    assert "參謀長服務 http://127.0.0.1:" in out and "需 X-Chief-Token" in out
+    assert "參謀長服務 http://127.0.0.1:" in out and "需 X-Chief-Token" in out and f"父程序 {os.getpid()} 消失就退出" in out

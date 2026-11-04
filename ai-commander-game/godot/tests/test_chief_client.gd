@@ -7,7 +7,7 @@ extends SceneTree
 var h: TestHarness
 
 func _initialize() -> void:
-	h = TestHarness.new(self, 32, 600.0)
+	h = TestHarness.new(self, 35, 600.0)
 	_run.call_deferred()
 
 func wipe(real: String) -> void:
@@ -18,6 +18,9 @@ func wipe(real: String) -> void:
 		DirAccess.remove_absolute(real.path_join(sub))
 	for f in DirAccess.get_files_at(real):
 		DirAccess.remove_absolute(real.path_join(f))
+
+func _call_into(client: ChiefClient, box: Dictionary) -> void:
+	box["r"] = await client.call_api("POST", "/tick", {"t": 0, "board": {}}, 30.0)
 
 func _run() -> void:
 	# ---- 1. 排程器 ----
@@ -137,6 +140,62 @@ func _run() -> void:
 	battle.queue_free()
 	await process_frame
 
+	# ---- 3b. 孤兒：客戶端沒 stop() 就被拆（編輯器停止、當掉）→ 服務靠 --parent-pid 不會留下來 ----
+	# 這裡拆的是 ChiefClient 節點（kill 到 uv 外殼）；Python 服務要自己發現啟動者消失才退出。
+	# 沙盒裡 Godot 本身還活著，所以模擬「啟動者消失」的方式是：用一個很快結束的假父程序 pid。
+	var orphan := ChiefClient.new()
+	get_root().add_child(orphan)
+	# 假父程序要「真的消失」而不是變殭屍（Godot 不會 wait 它開的子程序），所以用 sh 背景起一個 sleep 再讓 sh 自己退出
+	var fake_parent := -1
+	if OS.get_name() != "Windows":
+		var out: Array = []
+		OS.execute("sh", ["-c", "sleep 3 >/dev/null 2>&1 & echo $!"], out)
+		fake_parent = int(str(out[0]).strip_edges()) if out.size() > 0 else -1
+	if fake_parent > 0:
+		orphan.launch("fake", PackedStringArray(["--out-root", out_dir, "--ledger", "none", "--parent-pid", str(fake_parent)]))
+		var up: bool = await orphan.wait_online(10.0)
+		var url := orphan.base_url
+		var tok := orphan.token
+		orphan.queue_free()
+		await process_frame
+		var probe := ChiefClient.new()
+		get_root().add_child(probe)
+		probe.connect_to(url, tok)
+		var gone := false
+		var t1 := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t1 < 12000:
+			var hr: Dictionary = await probe.call_api("GET", "/health", {}, 1.0)
+			if hr["code"] == 0:
+				gone = true
+				break
+			await create_timer(0.5).timeout
+		h.check(up and gone, "啟動者消失 → 服務 %d 秒內自己退出（--parent-pid）" % int((Time.get_ticks_msec() - t1) / 1000))
+		probe.queue_free()
+	else:
+		h.check(true, "（Windows 沙盒略過孤兒測試）")
+
+	# ---- 3c. 關機不等在飛的請求：對一個只接受連線、永不回覆的埠送 /tick，stop() 要在 3 秒內回來 ----
+	var sink := TCPServer.new()
+	sink.listen(0, "127.0.0.1")
+	var hang := ChiefClient.new()
+	get_root().add_child(hang)
+	hang.connect_to("http://127.0.0.1:%d" % sink.get_local_port())
+	hang.online = true
+	var box := {}
+	_call_into(hang, box)                      # 不 await：讓它在飛
+	await create_timer(0.3).timeout
+	if sink.is_connection_available():
+		sink.take_connection()                 # 接受但永不回覆
+	var t2 := Time.get_ticks_msec()
+	await hang.stop()
+	while not box.has("r"):
+		await process_frame
+	var cancelled: Dictionary = box["r"]
+	h.check(Time.get_ticks_msec() - t2 < 5000 and cancelled["code"] == 0 and cancelled["error"].contains("取消") and not hang.busy, "stop() 取消在飛的請求（%d ms）；該請求回「已取消」" % (Time.get_ticks_msec() - t2))
+	sink.stop()
+	hang.queue_free()
+	await process_frame
+
 	# ---- 4. 離線模式：找不到 uv ----
 	var b2: Battle = scene.instantiate()
 	b2.auto_advance = false; b2.use_cmdline_args = false; b2.board_out = ""; b2.snapshot_dir = ""
@@ -147,6 +206,7 @@ func _run() -> void:
 	await physics_frame
 	var ok2: bool = await b2.start_chief()
 	h.check(not ok2 and b2.chief_state == "offline" and b2.chief_line.contains("離線模式") and b2.chief_hud_text().contains("沒起來"), "找不到 uv → 離線模式、HUD 說明")
+	h.check(b2.chief.last_error.contains("找不到 uv") and (b2.chief.pid == -1 or not OS.is_process_running(b2.chief.pid)), "錯誤訊息提到 uv（Unix 是 exec 失敗、Windows 是 pid<=0 兩條路都進這句）")
 	b2.chief_update()
 	h.check(b2.scheduler.ticks_sent == 0 and b2.orbat.apply_orders("us", [Order.make("co-A", "seize", "C3", "player", "偵錯")]).is_empty(), "離線時不送節拍；空白鍵命令照常")
 	b2.chief_provider = "off"

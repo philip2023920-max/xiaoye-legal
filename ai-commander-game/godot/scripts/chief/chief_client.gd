@@ -10,12 +10,16 @@ signal replied(path: String, code: int, body: Dictionary, latency_s: float)
 signal _slot_free
 
 const HEALTH_TIMEOUT_S := 10.0
+const COLD_BOOT_TIMEOUT_S := 45.0    # 自己啟動且子程序還活著：第一次 uv run 要建環境，可以等久一點
 const DEFAULT_TIMEOUT_S := 60.0      # 施工單 17：60 秒無回覆算無回應
+const IDLE_EXIT_S := 90              # 服務 90 秒沒請求就自滅（節拍 20 秒；客戶端死了的保險）
 const RESULT_TEXT := {
 	HTTPRequest.RESULT_CANT_CONNECT: "連不上參謀長服務", HTTPRequest.RESULT_CANT_RESOLVE: "解析不了位址",
 	HTTPRequest.RESULT_CONNECTION_ERROR: "連線中斷", HTTPRequest.RESULT_TIMEOUT: "逾時沒有回覆",
 	HTTPRequest.RESULT_NO_RESPONSE: "服務沒有回應", HTTPRequest.RESULT_BODY_SIZE_LIMIT_EXCEEDED: "回應太大",
+	HTTPRequest.RESULT_REQUEST_FAILED: "請求失敗", RESULT_CANCELLED: "請求已取消（關機中）",
 }
+const RESULT_CANCELLED := -1		  # HTTPRequest 沒有「取消」這個結果碼；stop() 取消在飛請求時自己補發這個
 
 var base_url := ""
 var token := ""
@@ -46,12 +50,16 @@ static func free_port() -> int:
 static func new_token() -> String:
 	return Crypto.new().generate_random_bytes(16).hex_encode()
 
-## 啟動服務子程序：`uv run --directory <m0> chief serve --port <p> --provider <provider> --token <亂數> <extra>`。
-## 回傳 pid（<=0＝啟動失敗，例如找不到 uv）。之後要 wait_online() 等 /health 通。
+## 啟動服務子程序：`uv run --directory <m0> chief serve --port <p> --provider <provider> --token <亂數>
+##   --parent-pid <Godot 的 pid> --idle-exit 90 <extra>`。
+## uv 是外殼、Python 是它的子程序：OS.kill 只殺得到 uv，所以服務自己看 --parent-pid（Godot 消失 2 秒內退出）、
+## 加 --idle-exit 當保險；extra 在後面可覆寫。回傳 pid（<=0＝啟動失敗；Unix 下 exec 失敗仍回 pid>0，
+## 由 wait_online 的「一啟動就結束」偵測）。之後要 wait_online() 等 /health 通。
 func launch(provider: String, extra_args: PackedStringArray = PackedStringArray(), uv_path: String = "uv", port: int = 0) -> int:
 	var p := port if port > 0 else free_port()
 	token = new_token()
-	var args := PackedStringArray(["run", "--directory", BoardIO.m0_dir(), "chief", "serve", "--port", str(p), "--provider", provider, "--token", token])
+	var args := PackedStringArray(["run", "--directory", BoardIO.m0_dir(), "chief", "serve", "--port", str(p), "--provider", provider, "--token", token,
+		"--parent-pid", str(OS.get_process_id()), "--idle-exit", str(IDLE_EXIT_S)])
 	args.append_array(extra_args)
 	base_url = "http://127.0.0.1:%d" % p
 	pid = OS.create_process(uv_path, args, false)
@@ -66,19 +74,22 @@ func connect_to(url: String, token_: String = "") -> void:
 	token = token_
 	pid = -1
 
-## 等 /health 通（最多 timeout_s 秒，每 0.5 秒問一次）。
-func wait_online(timeout_s: float = HEALTH_TIMEOUT_S) -> bool:
-	var deadline := Time.get_ticks_msec() + int(timeout_s * 1000.0)
+## 等 /health 通（每 0.5 秒問一次）。連別人的服務最多 timeout_s 秒；自己啟動且子程序還活著則放寬到 cold_timeout_s
+## （第一次 uv run 要建 .venv，常超過 10 秒）。
+func wait_online(timeout_s: float = HEALTH_TIMEOUT_S, cold_timeout_s: float = COLD_BOOT_TIMEOUT_S) -> bool:
+	var t0 := Time.get_ticks_msec()
 	while true:
 		var r: Dictionary = await call_api("GET", "/health", {}, 2.0)
 		if r["code"] == 200:
 			_set_online(true)
 			return true
+		var waited := float(Time.get_ticks_msec() - t0) / 1000.0
 		if pid > 0 and not OS.is_process_running(pid):
-			last_error = "參謀長服務一啟動就結束了（uv 或 Python 環境有問題？）"
+			last_error = "參謀長服務一啟動就結束了（找不到 uv？或 m0 的 Python 環境有問題：先在 m0 跑 uv sync）"
 			break
-		if Time.get_ticks_msec() >= deadline:
-			last_error = "參謀長服務 %d 秒內沒起來（/health 不通）" % int(timeout_s)
+		var limit := cold_timeout_s if (pid > 0 and cold_timeout_s > timeout_s) else timeout_s
+		if waited >= limit:
+			last_error = "參謀長服務 %d 秒內沒起來（/health 不通）" % int(limit)
 			break
 		await get_tree().create_timer(0.5).timeout
 	_set_online(false)
@@ -148,8 +159,13 @@ func battle_end(board: Dictionary, result: Dictionary) -> Dictionary:
 func status() -> Dictionary:
 	return await call_api("GET", "/status", {}, 5.0)
 
-## 關機：先請服務自己退（/shutdown，會補寫戰例），2 秒內沒結束就 kill。
+## 關機：在飛的請求先取消（不然 /shutdown 會排在一個最長 60 秒的 /tick 後面），再請服務自己退（/shutdown，
+## 會補寫戰例），2 秒內沒結束就 kill。
 func stop() -> void:
+	if _taken:
+		_http.cancel_request()
+		# cancel_request 不會發 request_completed：自己補一個「已取消」，讓等在 call_api 裡的人立刻拿到結果
+		_http.request_completed.emit(RESULT_CANCELLED, 0, PackedStringArray(), PackedByteArray())
 	if base_url != "" and online:
 		await call_api("POST", "/shutdown", {}, 3.0)
 	if pid > 0:

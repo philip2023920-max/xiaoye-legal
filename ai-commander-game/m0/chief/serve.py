@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 import threading
 import time
 from dataclasses import asdict
@@ -62,6 +64,38 @@ def _fields(model: type[BaseModel], body: dict, what: str) -> dict:
         return {k: v for k, v in model.model_validate(body).model_dump().items() if v is not None}
     except ValidationError as err:
         raise BoardError(f"{what} 不合法：{_validation_text(err)}") from None
+
+
+def pid_alive(pid: int) -> bool:
+    """父程序還在嗎？Windows 不能用 os.kill(pid, 0)（那會 TerminateProcess），用 OpenProcess + GetExitCodeProcess。"""
+    if pid <= 0:
+        return False
+    if sys.platform == "win32":
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.windll.kernel32   # type: ignore[attr-defined]
+        handle = k32.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        try:
+            code = wintypes.DWORD()
+            if not k32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return code.value == 259   # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    try:                                   # Linux：殭屍（父程序還沒 wait 的已結束程序）不算活著
+        with open(f"/proc/{pid}/stat", encoding="utf-8", errors="replace") as f:
+            state = f.read().rsplit(")", 1)[-1].split()[0]
+        return state != "Z"
+    except OSError:
+        return True
 
 
 def _looks_like_board(body: dict) -> bool:
@@ -290,7 +324,8 @@ def make_handler(service: ChiefService, server_ref: dict):
 
 
 def run_server(defaults: SessionConfig, host: str = "127.0.0.1", port: int = 8765, idle_exit_s: float = 600.0,
-               verbose: bool = False, ready_cb=None, token: Optional[str] = None) -> int:
+               verbose: bool = False, ready_cb=None, token: Optional[str] = None, parent_pid: Optional[int] = None,
+               parent_poll_s: float = 2.0) -> int:
     service = ChiefService(defaults, token=token)
     ref: dict = {"verbose": verbose}
     server = ThreadingHTTPServer((host, port), make_handler(service, ref))
@@ -298,7 +333,7 @@ def run_server(defaults: SessionConfig, host: str = "127.0.0.1", port: int = 876
     ref["server"] = server
     actual = server.server_address[1]
     print(f"參謀長服務 http://{host}:{actual}（{defaults.provider}/{defaults.model or '預設模型'}；{idle_exit_s:.0f} 秒沒請求自動退出"
-          + ("；需 X-Chief-Token" if token else "") + "）", flush=True)
+          + ("；需 X-Chief-Token" if token else "") + (f"；父程序 {parent_pid} 消失就退出" if parent_pid else "") + "）", flush=True)
     if ready_cb:
         ready_cb(actual)
 
@@ -312,6 +347,16 @@ def run_server(defaults: SessionConfig, host: str = "127.0.0.1", port: int = 876
                 server.shutdown()
                 return
     threading.Thread(target=idle_watch, daemon=True).start()
+
+    def parent_watch() -> None:   # Godot（或任何啟動者）被殺、被編輯器停止：不靠它來 kill，自己走
+        while True:
+            time.sleep(parent_poll_s)
+            if not pid_alive(parent_pid):
+                print(f"啟動參謀長服務的程序 {parent_pid} 已不在，退出。", flush=True)
+                server.shutdown()
+                return
+    if parent_pid:
+        threading.Thread(target=parent_watch, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:

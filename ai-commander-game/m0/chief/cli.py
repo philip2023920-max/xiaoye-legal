@@ -359,7 +359,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
     defaults = SessionConfig(provider=args.provider, model=args.model, harness=args.harness, doctrine=args.doctrine if args.doctrine != "harness/default/doctrine.md" else None,
                              lang=args.lang, budget_usd=args.budget, effort=args.effort, aar_provider=args.aar_provider, aar_model=args.aar_model,
                              out_root=args.out_root, ledger=(args.ledger if args.ledger not in ("", "none", "-", "off") else None), prices=args.prices)
-    return run_server(defaults, host=args.host, port=args.port, idle_exit_s=args.idle_exit, verbose=args.verbose, token=args.token or None)
+    return run_server(defaults, host=args.host, port=args.port, idle_exit_s=args.idle_exit, verbose=args.verbose, token=args.token or None,
+                      parent_pid=args.parent_pid or None)
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
@@ -509,6 +510,7 @@ def build_parser() -> argparse.ArgumentParser:
     sv.add_argument("--ledger", default="battles/ledger.jsonl"); sv.add_argument("--prices", default=None)
     sv.add_argument("--idle-exit", type=float, default=600.0, help="幾秒沒請求自動退出（0＝不退出）")
     sv.add_argument("--token", default=None, help="要求每個請求帶 X-Chief-Token（Godot 啟動服務時自己產生亂數傳入；不給＝不驗，只限本機）")
+    sv.add_argument("--parent-pid", type=int, default=None, help="啟動者的程序 id：它消失就自動退出（Godot 被編輯器停止或當掉時不留孤兒）")
     sv.add_argument("--verbose", action="store_true", help="印每個請求")
     sv.set_defaults(func=cmd_serve)
     st = sub.add_parser("stats", help="列出歷史戰鬥與推翻率曲線")
