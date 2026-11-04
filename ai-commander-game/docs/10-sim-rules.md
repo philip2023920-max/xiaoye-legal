@@ -226,3 +226,13 @@ v1 加兩個欄位：`weather_changes`（回合 → 天氣）與 `time_changes`�
 - **戰鬥（施工單 12）**：30 秒一回合，回合開始把「所有單位」戰力拍成快照（不管有沒有在交戰，與 M0 整回合用回合開始戰力相同；回合中才建立的單位以建立當下為準），接下來每秒套用「M0 一回合傷害 ÷ 30」（攻擊與分攤都用快照），所以 30 秒合計與 §4 手算例一致（審查用含潰散、撤退、工兵、雙方迫砲的 11 單位場景對照 M0，四位小數全同），人是一個一個倒（存活人數＝round(戰力×9)）。門檻每秒判定；潰散／殲滅時清任務與「進敵格停 30 秒」的暫停，下一 tick 就撤退。**與 M0 的差異**：落單的殘排一掉到 0.30 以下就潰散、該側沒有能戰鬥的單位就不再交火，所以它逃得掉；M0 整回合一次結算可能直接殲滅。同格還有本方能戰鬥的排時，潰散排仍分攤火力。
 - **導演（施工單 14）**：劇本第 n 回合的命令與天氣變化在第 30(n−1) 秒下達；結束每秒判定（300 秒或一方戰力 < 初始 30%）；每 30 秒一份快照 `t<n>.json`（t0 開局，含開局那秒的歸屬事件；開局先清掉同資料夾的舊快照）＋`result.json`；提早結束時補最後一份快照＝結束那秒，檔名＝turns_played（＝ceil(秒÷30)）；M0 的 `chief replay` 把第 30(n−1)～30n−1 秒的事件歸到第 n 回合（結束那秒併入最後一回合）並印 result.json 的勝負。
 - **戰情板（施工單 13）**：每秒做 §6 歸屬（目標 owner 無條件跟著分區）與 §2 視距／敵情（可信度 0.9、看到殲滅就移除；骨架迷霧半徑跟著天氣時段變）；`t` 為遊戲秒（`Orbat.second()`，浮點累加 119.9999 算 120）、`time_unit: second`、階段 ≤90 秒 early／≤210 mid／其餘 late（M0 回合 3／7 × 30）；每 0.1 秒先寫 `.tmp` 再改名：讀端不會讀到半截，但 Windows 的改名是「先刪再搬」可能短暫無檔，所以 M0 的 `chief show` 讀不到會重試 4 次（M2 的節拍讀取也要）；orbat 連全部在前、排依戰情板順序。
+
+## 16. 參謀長服務合約（施工單 16，ADR-0015 D23）
+
+- 一個服務、一個目前會話；請求序列化（一把鎖）；`--idle-exit` 秒內沒請求自動退出；`POST /shutdown` 立即退出。金鑰只在服務端 `.env`。
+- `POST /session/start {board, provider?, model?, harness?, doctrine?, lang?, budget_usd?, effort?, aar_provider?, aar_model?}` → `{battle_id, out_dir, provider, model, harness, lang, budget_usd, opening_line}`；每場一個 `battles/<id>-<時間>/`，開局板存 `t0.json`。
+- `POST /tick {t, board}`：第 n 次呼叫＝第 n 拍；收到的板存成 `t<n−1>.json`（＝這拍開始前的狀態，戰例庫 snapshot_ref 用）→ 壓縮快照 → 閘道 → 驗證器 → `{turn, assessment, orders（放行，含 reason）, rejected（人話）, usage, cost_usd, cost_total_usd, latency_s, error, outcomes, budget_hit, messages}`；退回清單自動當下一拍的 feedback；預算 80% 進 messages、100% 之後每拍回空命令與 error「已達預算上限」。
+- `POST /override {unit_id, player_order{task,target}, ai_order?, board?}`：記錄 turn＝目前拍、snapshot_ref＝`t<turn−1>.json`、strength_at、目標分區當時擁有者；ai_order 省略時用參謀長最近一次對該單位的令（接管沒令的單位＝null）。下一拍 `/tick` 的 `outcomes` 以 §9 判 👍👎➖。推翻率＝推翻數 ÷ 參謀長放行命令數。
+- `POST /battle/end {board, result{winner, score_us, score_enemy, end_reason, turns_played, strength_us, strength_enemy}}` → `{card, summary, unjudged, quick_replies}`（卡＝§11，離線；aar.json 先以 skipped 寫一份）。之後：`/aar/line` → `{chief_line}`；`/aar/discuss {text|index}` → `{reply, round, done, next_quick}`（最多三回合，回覆兩句）；`/aar/propose` → `{diff{summary, add, remove, empty}}`；`/aar/adopt` → `{adopted, rolled_back, report, messages, doctrine}`（套用、上限、回歸退步自動回滾、戰例進戰例庫、aar.json）；`/aar/skip`；`/aar/undo`。
+- `GET /status` → 供應商、模型、拍數、本場費用與 token、今天／本月、預算狀態、推翻數與率、是否結束；`POST /settings {provider?, model?, lang?, budget_usd?（<0 取消）, effort?, aar_provider?, aar_model?}` 重建閘道，失敗保留原設定並回 error。
+- 錯誤：400 `{error: 人話}`（缺欄位、壞 JSON、BoardError）、404 沒有端點、405 方法不對、500 服務內部錯誤（服務不死）。

@@ -33,12 +33,17 @@ def quick_replies(card: BattleCard, lang: str, rnd: int = 1) -> list[str]:
     return options
 
 
+def system_prompt(card: BattleCard, doctrine: str, lang: str) -> str:
+    """討論用的系統提示（終端機與參謀長服務共用）。"""
+    return ("You are the Chief of Staff debriefing with the Commander after a battle. Answer in at most TWO sentences, "
+            f"in {LANG_NAME.get(lang, lang)}, concrete and without flattery. Battle summary:\n" + card_summary_text(card)
+            + "\n\n## Your doctrine\n" + doctrine)
+
+
 def run_discussion(gateway, card: BattleCard, doctrine: str, lang: str, console: Console, input_fn=input,
                    max_rounds: int = MAX_ROUNDS, on_usage=None) -> list[dict]:
     """回傳對話紀錄 [{role, content}]。輸入空白提前結束；EOF／Ctrl+C 視同結束。"""
-    system = ("You are the Chief of Staff debriefing with the Commander after a battle. Answer in at most TWO sentences, "
-              f"in {LANG_NAME.get(lang, lang)}, concrete and without flattery. Battle summary:\n" + card_summary_text(card)
-              + "\n\n## Your doctrine\n" + doctrine)
+    system = system_prompt(card, doctrine, lang)
     history: list[dict] = []
     rnd = 1
     while rnd <= max_rounds:

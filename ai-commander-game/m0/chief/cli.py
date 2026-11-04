@@ -352,6 +352,16 @@ def cmd_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """`chief serve`：本機參謀長服務（施工單 16）。Godot 用它下令、推翻、戰後檢討。"""
+    from .bridge import SessionConfig
+    from .serve import run_server
+    defaults = SessionConfig(provider=args.provider, model=args.model, harness=args.harness, doctrine=args.doctrine if args.doctrine != "harness/default/doctrine.md" else None,
+                             lang=args.lang, budget_usd=args.budget, effort=args.effort, aar_provider=args.aar_provider, aar_model=args.aar_model,
+                             out_root=args.out_root, ledger=(args.ledger if args.ledger not in ("", "none", "-", "off") else None), prices=args.prices)
+    return run_server(defaults, host=args.host, port=args.port, idle_exit_s=args.idle_exit, verbose=args.verbose)
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     from .acceptance import battle_stats, render_curve
     rows = battle_stats(args.battles)
@@ -486,6 +496,20 @@ def build_parser() -> argparse.ArgumentParser:
     rp.add_argument("battle_dir", help="戰鬥資料夾，例如 battles/hill-town-start-1102-104637")
     rp.add_argument("--all", action="store_true", help="連 contact／info 事件也印")
     rp.set_defaults(func=cmd_replay)
+    sv = sub.add_parser("serve", help="本機參謀長服務（HTTP JSON，Godot 用；施工單 16）")
+    sv.add_argument("--host", default="127.0.0.1"); sv.add_argument("--port", type=int, default=8765, help="0＝自動找空埠")
+    sv.add_argument("--provider", default="fake", help="ollama / openai / deepseek / openrouter / anthropic / fake")
+    sv.add_argument("--model", default=None)
+    sv.add_argument("--harness", default="default", help="參謀長包；給 none 則只用 --doctrine")
+    sv.add_argument("--doctrine", default="harness/default/doctrine.md")
+    sv.add_argument("--lang", default="zh-TW", choices=["zh-TW", "zh-CN", "en"])
+    sv.add_argument("--budget", type=float, default=None); sv.add_argument("--effort", default=None, choices=["low", "medium", "high"])
+    sv.add_argument("--aar-provider", default=None); sv.add_argument("--aar-model", default=None)
+    sv.add_argument("--out-root", default="battles", help="每場一個資料夾放在這裡")
+    sv.add_argument("--ledger", default="battles/ledger.jsonl"); sv.add_argument("--prices", default=None)
+    sv.add_argument("--idle-exit", type=float, default=600.0, help="幾秒沒請求自動退出（0＝不退出）")
+    sv.add_argument("--verbose", action="store_true", help="印每個請求")
+    sv.set_defaults(func=cmd_serve)
     st = sub.add_parser("stats", help="列出歷史戰鬥與推翻率曲線")
     st.add_argument("--battles", default="battles"); st.add_argument("--last", type=int, default=10)
     st.set_defaults(func=cmd_stats)

@@ -604,8 +604,8 @@
           ]
         },
         {
-          "id": "n_1e436773",
-          "text": "參謀長服務（M2 建議 D23）：`chief serve` 本機 HTTP JSON，M0 的閘道／驗證器／準則／戰例庫／戰報卡全部重用，Godot 只管畫面與節拍",
+          "id": "n_d7f408db",
+          "text": "參謀長服務（ADR-0015 D23）：`chief serve` 本機 HTTP JSON，M0 的閘道／驗證器／準則／戰例庫／戰報卡全部重用，Godot 只管畫面與節拍（合約 docs/10 §16）",
           "status": "doing",
           "link": "docs/12-m2-architecture.md",
           "note": "",
@@ -1114,10 +1114,10 @@
           "note": "",
           "children": [
             {
-              "id": "n_63439a5b",
-              "text": "選型決策 D23～D29（本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管）待老闆拍板",
-              "status": "doing",
-              "link": "docs/05-decisions.md",
+              "id": "n_76d0e4e1",
+              "text": "選型決策 D23～D29 已拍板（ADR-0015：本機 Python 參謀長服務、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管）",
+              "status": "done",
+              "link": "docs/adr/0015-m2-chief-service.md",
               "note": "",
               "children": []
             },
@@ -1130,10 +1130,18 @@
               "children": []
             },
             {
-              "id": "n_c91ab2c0",
-              "text": "施工單草案 16 參謀長服務、17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
+              "id": "n_905537af",
+              "text": "施工單 16 參謀長服務 chief serve（ChiefSession 重用 M0 全部、13 個端點、9 測試；審查中）",
+              "status": "doing",
+              "link": "docs/issues/16-chief-service.md",
+              "note": "",
+              "children": []
+            },
+            {
+              "id": "n_4803f8b5",
+              "text": "施工單 17 節拍與客戶端、18 側欄、19 推翻與接管、20 AAR 畫面、21 設定與費用與三語",
               "status": "todo",
-              "link": "",
+              "link": "docs/issues/README.md",
               "note": "",
               "children": []
             }
@@ -1597,8 +1605,8 @@
       ]
     }
   ],
-  "version": 49,
-  "updatedAt": "2026-11-04T03:48:20Z",
+  "version": 50,
+  "updatedAt": "2026-11-04T03:59:21Z",
   "updatedBy": "claude",
   "instructions": ""
 }

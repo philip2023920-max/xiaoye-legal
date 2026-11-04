@@ -2,6 +2,12 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十二次）— M2 拍板（ADR-0015）、施工單 16～21 建檔、16 參謀長服務（程式完成）
+- 老闆「全照建議」→ `docs/adr/0015-m2-chief-service.md`；決策第六輪 ✅；施工單 16～21 建檔
+- `chief/bridge.py`：`ChiefSession`（start／tick／override／end／aar_line／discuss／propose／adopt／skip／undo／status／settings），把 play.py 的每回合與戰後流程拆成不靠終端機的方法；`discussion.system_prompt`、`play.regression_check_core` 抽出共用
+- `chief/serve.py`：標準庫 HTTP 服務（13 個端點、請求序列化、idle-exit、shutdown、人話錯誤）；`chief serve` 子命令；規則 §16 服務合約
+- `tests/test_service.py` 9 個（流程、後果 👍、預算暫停、設定切換、自訂準則、HTTP 往返、CLI idle-exit）；M0 測試 179 → 188
+
 ## 2026-11-04（第三十一次）— 老闆「下一步」：M2 Stage 2 選型
 - 沙盒探針：Godot 4.7.2 無頭 `HTTPRequest` ↔ 本機 Python `ThreadingHTTPServer` JSON 往返、`OS.create_process` 啟動子程序，都通
 - `docs/12-m2-architecture.md`：D23～D29 建議答案（本機 Python 參謀長服務重用 M0 全部、20 秒＋事件節拍不暫停、金鑰留 .env、內建 UI、三語字串表、不串流、排與連接管）、服務端點、Godot 端模組、施工單草案 16～21、風險

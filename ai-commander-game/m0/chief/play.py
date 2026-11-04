@@ -270,210 +270,36 @@ def _aar_flow(console, gateway, aar_gateway, battle, start_board, result, overri
 
 
 def regression_check(console, gateway, store, evals_dir: Path, lang: str, on_usage=None) -> bool:
-    """採納後用戰例庫重問參謀長；對齊率退步超過 5 點就回滾準則。回傳是否回滾。"""
+    """採納後用戰例庫重問參謀長；對齊率退步超過 5 點就回滾準則。回傳是否回滾（終端機版，訊息印到 console）。"""
+    return regression_check_core(gateway, store, evals_dir, lang, on_usage, lambda text, style=None: console.print(Text(text, style=style)))
+
+
+def regression_check_core(gateway, store, evals_dir: Path, lang: str, on_usage, say) -> bool:
+    """規則 §12。say(text, style) 收訊息：終端機印出來、參謀長服務收進回應。"""
     from .evals import compare, load_cases, load_result, run_evals, save_result
     cases = load_cases(evals_dir / "cases.jsonl")
     if not cases:
-        console.print(Text("戰例庫還是空的，略過回歸測試（這場的推翻會進戰例庫，下次採納就有得比）。", style="dim"))
+        say("戰例庫還是空的，略過回歸測試（這場的推翻會進戰例庫，下次採納就有得比）。", "dim")
         return False
     prev = load_result(evals_dir / "last.json")
     if not prev or prev.get("model") != gateway.model:
         # 沒有同模型的基準：先用「採納前」的準則跑一次當基準（多 ≤10 次呼叫，只在第一次）
-        console.print(Text(f"沒有 {gateway.model} 的基準成績，先用上一版準則建立基準（{len(cases)} 個戰例）…", style="dim"))
+        say(f"沒有 {gateway.model} 的基準成績，先用上一版準則建立基準（{len(cases)} 個戰例）…", "dim")
         base_text = store.prev.read_text(encoding="utf-8") if store.prev.exists() else store.load()
         base = run_evals(gateway, cases, base_text, store.path.parent.name, lang, on_usage=on_usage)
         if base.cases:
             save_result(base, evals_dir / "last.json")
             prev = load_result(evals_dir / "last.json")
-    console.print(Text(f"戰例庫回歸：用新準則重跑 {len(cases)} 個戰例…", style="dim"))
+    say(f"戰例庫回歸：用新準則重跑 {len(cases)} 個戰例…", "dim")
     res = run_evals(gateway, cases, store.load(), store.path.parent.name, lang, on_usage=on_usage)
     regressed, msg = compare(prev, res)
-    console.print(Text(f"回歸結果：{msg}；退回率 {res.rejected_pct}%", style="red" if regressed else "green"))
+    say(f"回歸結果：{msg}；退回率 {res.rejected_pct}%", "red" if regressed else "green")
     if regressed:
         if store.undo():
-            console.print(Text("準則退步，已自動回滾到上一版（這次採納作廢）。", style="yellow"))
+            say("準則退步，已自動回滾到上一版（這次採納作廢）。", "yellow")
         else:
-            console.print(Text("準則退步，但找不到上一版可回滾，請手動檢查準則。", style="red"))
+            say("準則退步，但找不到上一版可回滾，請手動檢查準則。", "red")
         return True
     if "無法判定" not in msg:
         save_result(res, evals_dir / "last.json")
     return False
-
-
-def _orders_table(accepted, rejected: list[Rejection], numbered: bool = False) -> Table:
-    table = Table(box=box.SIMPLE, title="本回合命令")
-    if numbered:
-        table.add_column("#", justify="right")
-    table.add_column("單位"); table.add_column("任務"); table.add_column("目標"); table.add_column("理由"); table.add_column("狀態")
-    for i, o in enumerate(accepted, 1):   # 模型回的字串一律包 Text()，避免 [/x] 之類被當 Rich 標記
-        row = [Text(o.unit_id), Text(TASK_ZH.get(o.task, o.task)), Text(o.target), Text(o.reason), Text("放行", style="green")]
-        table.add_row(*([Text(str(i))] + row if numbered else row))
-    for r in rejected:
-        row = [Text(r.order.unit_id), Text(TASK_ZH.get(r.order.task, r.order.task)), Text(r.order.target), Text(r.order.reason), Text(f"退回 {r.rule}：{r.reason}", style="red")]
-        table.add_row(*([Text("")] + row if numbered else row))
-    return table
-
-
-def _show_proposal(console, battle, t, resp, accepted, rejected) -> None:
-    console.rule(f"第 {t} 回合：參謀長提案")
-    console.print(map_table(battle.board, console))
-    if resp is not None and resp.orders is not None:
-        console.print(Panel(Text(resp.orders.assessment), title="參謀長評估", border_style="cyan"))
-    elif resp is not None:
-        console.print(Panel(Text(resp.error or "無回應", style="red"), title="參謀長", border_style="red"))
-    console.print(_orders_table(accepted, rejected, numbered=True))
-    mine = [u for u in battle.board.orbat if u.controlled_by == "player" and u.state != "destroyed"]
-    if mine:
-        lines = [Text(f"{u.id}（{u.name}）戰力{int(round(u.strength*100))}% @{u.sector}" + (f" ➜ {TASK_ZH[u.task.type]} {u.task.target}" if u.task else "")) for u in mine]
-        console.print(Panel(Group(*lines), title="總司令直轄部隊（任務延續，+ 可改令，- 放手）", border_style="yellow"))
-
-
-def _ask_order(console, battle, unit_id: str, input_fn) -> Order | None:
-    """問任務與目標；回 None 表示取消。"""
-    console.print("任務：" + "｜".join(f"{i+1}={TASK_ZH[tk]}({tk})" for i, tk in enumerate(TASK_CHOICES)))
-    raw = (_read(input_fn, "任務編號或名稱（Enter 取消）> ") or "").strip().lower()
-    if not raw:
-        return None
-    task = TASK_CHOICES[int(raw) - 1] if raw.isdecimal() and 1 <= int(raw) <= 6 else raw
-    if task not in TASK_CHOICES:
-        console.print(Text("不認識的任務", style="red"))
-        return None
-    tgt = (_read(input_fn, "目標（分區如 C3；support 填友軍單位 id）> ") or "").strip()
-    if not tgt:
-        return None
-    tgt = tgt.upper() if len(tgt) <= 3 and tgt[0].isalpha() and tgt[1:].isdecimal() else tgt
-    order = Order(unit_id=unit_id, task=task, target=tgt, reason="總司令命令", issuer="player")
-    problem = player_order_problem(battle.board, order)
-    if problem:
-        console.print(Text(problem, style="red"))   # 玩家輸入一律 Text()，不當 Rich 標記
-        return None
-    return order
-
-
-class _Quit(Exception):
-    """玩家按 Ctrl+C／Ctrl+D／Ctrl+Z：視同 q。"""
-
-
-def _read(input_fn, prompt: str) -> str:
-    try:
-        return input_fn(prompt)
-    except (EOFError, KeyboardInterrupt):
-        raise _Quit() from None
-
-
-def _commander_turn(console, battle, t, accepted: list[Order], overrides: OverrideLog, owner_cache: dict, result, input_fn):
-    """互動：Enter 採納；數字改令；+/- 接管／放手；q 結束。回傳（最終命令清單, 是否結束）。"""
-    orders = list(accepted)            # 編號固定＝畫面上的 #，被接管的用 replaced 標記，不位移
-    replaced: set[int] = set()
-    player_orders: dict[str, Order] = {}
-    snapshot_ref = str(battle.out_dir / f"t{battle.t}.json")
-    by_id = {u.id: u for u in battle.board.orbat}
-
-    def chief_order_for(unit_id: str) -> Order | None:
-        """參謀長本回合對這個單位或它任何上級的命令（上級的連令會拆到它身上）。"""
-        chain, cur = [unit_id], by_id.get(unit_id)
-        while cur is not None and cur.parent:
-            chain.append(cur.parent)
-            cur = by_id.get(cur.parent)
-        for uid in chain:
-            for i, o in enumerate(orders):
-                if o.unit_id == uid and i not in replaced:
-                    return o
-        return None
-
-    def take_over(unit_id: str) -> None:
-        u = by_id[unit_id]
-        ai_order = chief_order_for(unit_id)
-        new = _ask_order(console, battle, unit_id, input_fn)
-        if new is None:
-            return
-        was_ai = u.controlled_by == "ai"
-        for uid in subtree_ids(battle.board, unit_id):      # 接管連＝連同所有下級一起直轄
-            by_id[uid].controlled_by = "player"
-        player_orders[unit_id] = new
-        for i, o in enumerate(orders):                         # 參謀長對這棵子樹的命令全部作廢
-            if o.unit_id in subtree_ids(battle.board, unit_id):
-                replaced.add(i)
-        if was_ai:   # 從參謀長手上接過來才算一次推翻
-            rec = OverrideRecord(turn=t, unit_id=unit_id, ai_order=ai_order.model_dump() if ai_order else (u.task.model_dump() if u.task else None),
-                                 player_order=new.model_dump(), snapshot_ref=snapshot_ref, strength_at=u.strength)
-            sector = target_sector(battle.board, rec.player_order)
-            owner_cache[id(rec)] = battle.board.map.sectors[sector].owner if sector else None
-            overrides.add(rec)
-            battle.board.overrides_this_battle += 1
-            battle.board.events.append(Event(t=t, kind="override", text=f"總司令接管 {u.name}，改為 {TASK_ZH[new.task]} {new.target}", unit=unit_id))
-        console.print(Text(f"{u.name} 已直轄：{TASK_ZH[new.task]} {new.target}", style="yellow"))
-
-    try:
-        while True:
-            raw = (_read(input_fn, f"總司令（{HELP}）> ") or "").strip()
-            if raw == "":
-                break
-            if raw.lower() == "q":
-                return [], True
-            if raw == "?":
-                console.print(HELP)
-                continue
-            if raw.isdecimal():
-                n = int(raw)
-                if not (1 <= n <= len(orders)):
-                    console.print(Text("沒有這個編號", style="red"))
-                    continue
-                if (n - 1) in replaced:
-                    console.print(Text("這條已被你的命令取代", style="red"))
-                    continue
-                take_over(orders[n - 1].unit_id)
-                continue
-            if raw.startswith("+"):
-                unit_id = raw[1:].strip()
-                if unit_id not in by_id or by_id[unit_id].state == "destroyed":
-                    console.print(Text(f"單位 {unit_id} 不存在或已殲滅（例如 +plt-A2）", style="red"))
-                    continue
-                take_over(unit_id)
-                continue
-            if raw.startswith("-"):
-                unit_id = raw[1:].strip()
-                if unit_id not in by_id:
-                    console.print(Text(f"單位 {unit_id} 不存在", style="red"))
-                    continue
-                if by_id[unit_id].controlled_by != "player":
-                    console.print(Text(f"單位 {unit_id} 本來就由參謀長指揮", style="yellow"))
-                    continue
-                for uid in subtree_ids(battle.board, unit_id):  # 放手連＝連同下級一起交回
-                    by_id[uid].controlled_by = "ai"
-                    player_orders.pop(uid, None)
-                battle.board.events.append(Event(t=t, kind="info", text=f"總司令放手 {by_id[unit_id].name}，交回參謀長", unit=unit_id))
-                console.print(Text(f"{by_id[unit_id].name} 已交回參謀長", style="green"))
-                continue
-            console.print(Text("看不懂，輸入 ? 看說明", style="red"))
-    except _Quit:
-        console.print(Text("（收到中斷，視同結束戰鬥）", style="yellow"))
-        return [], True
-    return [o for i, o in enumerate(orders) if i not in replaced] + list(player_orders.values()), False
-
-
-def _print_turn(console, battle, t, resp, accepted, rejected: list[Rejection], entry, report, verbose, running_cost: float, ledger=None, show_orders: bool = True) -> None:
-    console.rule(f"第 {t} 回合")
-    if show_orders:
-        if resp.orders is not None:
-            console.print(Panel(Text(resp.orders.assessment), title="參謀長評估", border_style="cyan"))
-        else:
-            console.print(Panel(Text(resp.error or "無回應", style="red"), title="參謀長", border_style="red"))
-        if accepted or rejected:
-            console.print(_orders_table(accepted, rejected))
-    if verbose:
-        render_board(battle.board, console)
-    else:
-        console.print(map_table(battle.board, console))
-    lines = [Text(f"[{e.kind}] {e.text}") for e in report.events] or [Text("（本回合無事件）", style="dim")]
-    console.print(Panel(Group(*lines), title=f"第 {t} 回合事件", border_style="blue"))
-    if resp.orders is None:
-        return
-    est = "（粗估）" if entry.usage.estimated else ""
-    cache = f"｜快取讀 {entry.usage.cache_read_tokens}" if entry.usage.cache_read_tokens else ""
-    hud = f"本場 ${running_cost:.4f}"
-    if ledger:
-        tot = ledger.totals()
-        hud += f"｜今天 ${tot['today']:.4f}｜本月 ${tot['month']:.4f}"
-    console.print(f"[dim]token 輸入 {entry.usage.prompt_tokens}／輸出 {entry.usage.completion_tokens}{est}{cache}｜"
-                  f"${entry.cost_usd:.4f}｜{entry.latency_s:.1f}s｜嘗試 {resp.attempts} 次｜{hud}[/]")
