@@ -27,7 +27,7 @@
 <div class="bar">
   <b>AI 參謀長 RTS 心智圖</b>
   <span>來源：MINDMAP.md（改完跑 <code>python tools/sync_mindmap.py</code>）</span>
-  <span>⬜ 25　🟡 6　✅ 81　❌ 3　❓ 2</span>
+  <span>⬜ 25　🟡 4　✅ 83　❌ 3　❓ 2</span>
 </div>
 <div class="markmap">
 <script type="text/template">
@@ -99,7 +99,7 @@ markmap:
 - 單位：膠囊體＋方塊頭；兵種七種（步兵、機槍、迫砲、反戰車、戰車、偵察、工兵） ⬜
 - 地圖：平面＋據點＋方塊掩體 ⬜
 - 敵方：固定劇本 AI，三級難度 easy／normal／hard（對決模式時換成另一個參謀長） ✅ → docs/10-sim-rules.md
-- 效能目標：會戰規模 60 FPS，2018 內顯筆電（CPU 側已驗 0.34 ms/tick；畫面待讀數） 🟡 → docs/issues/15-godot-performance.md
+- 效能目標：會戰規模 60 FPS，2018 內顯筆電（CPU 側已驗；畫面側目標硬體未驗、負載極低；有低階機再補） 🟡 → docs/issues/15-godot-performance.md
 - 戰鬥模型 v1（ADR-0013，資料表驅動；完成並真機驗證；平衡待調） ✅ → docs/10-sim-rules.md
   - 兵種七種 × 屬性；點數預算部署配比＋三種範本（D11）
   - 科技世代：二戰 1944 先做；早期／晚期冷戰預留表格（D12）
@@ -170,7 +170,7 @@ markmap:
     - 實體護欄 .claude/hooks 已裝並自測 ✅
     - 環境建置精靈 7/7：uv、Git、Ollama qwen2.5:3b、金鑰、.env、doctor ✅
     - THIRD_PARTY.md（M0 部分） ✅
-- M1 Godot 4 戰鬥沙盤（4～6 週；2026-11-02 老闆下令進入） 🟡 → docs/11-m1-architecture.md
+- M1 Godot 4 戰鬥沙盤（2026-11-02 進入、11-04 完成：六張施工單、5 分鐘會戰無 LLM 打完；低階機畫面效能未驗） ✅ → docs/11-m1-architecture.md
   - T1.0 重用檢查：godot-rts-kit 採用、rts_demo 參考、huginhelm 找不到、素材 M1 不需要 ✅
   - 選型決策 D15～D21 已拍板（ADR-0014：4.7.2、Compatibility＋Jolt、godot-rts-kit、寫檔、1 回合＝30 秒、自寫測試、程式畫） ✅ → docs/adr/0014-m1-godot-stack.md
   - 沙盒可跑 Godot 4.7.2 無頭測試（探針專案通過）；畫面與 FPS 只能在老闆本機驗 ✅
@@ -180,10 +180,10 @@ markmap:
   - 施工單 13 戰情板寫入（歸屬、視距敵情、每 0.1 秒寫 board.json；老闆本機 chief show 讀到） ✅ → docs/issues/13-godot-board-writer.md
   - D22 落單殘排潰散後逃得掉：維持（三難度與 M0 同趨勢） ✅ → docs/05-decisions.md
   - 施工單 14 五分鐘會戰（導演、劇本排程、難度、天氣、結束與結果、快照回放；審查 9 項已修；老闆本機打完一場並回放） ✅ → docs/issues/14-godot-battle-director.md
-  - 施工單 15 效能（HUD FPS／幀時間／人數、壓力模式關 V-Sync、CPU 基準 0.34 ms/tick p99 1.0、方塊人共用材質；審查 10 項已修；畫面幀時間待老闆讀數） 🟡 → docs/issues/15-godot-performance.md
+  - 施工單 15 效能（CPU 0.34 ms/tick；方塊人共用材質；畫面側目標硬體未驗、風險低，有低階機再補） ✅ → docs/issues/15-godot-performance.md
   - M1 驗收「5 分鐘會戰無 LLM 打完」老闆本機達成 ✅
   - 環境精靈：Godot 4.7.2 標準版、匯入專案、F5、無頭測試、chief show 讀 board.json ⬜
-- M2 參謀長接入＋玩家接管 UI（4 週） ⬜
+- M2 參謀長接入＋玩家接管 UI（4 週；待老闆下令） ⬜
 - M3 可玩 Demo＋參謀長包＋對決＋itch.io（3～4 週） ⬜
 - M4 商業化（不排程，本版不做） ❌
 
