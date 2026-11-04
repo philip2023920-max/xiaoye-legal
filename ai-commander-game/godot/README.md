@@ -6,7 +6,8 @@ Godot **4.7.2 標準版**、Compatibility 渲染器、Jolt 物理。骨架 `addo
 1. Godot 專案管理員 → 匯入 → 選這個資料夾的 `project.godot`。
 2. F5 跑 `scenes/Battle.tscn`：看到 M0 的 5×5 地圖變 3D（讀的是隔壁 `m0/samples/board_start.json`，所以 repo 結構要保持 `godot/` 與 `m0/` 並列）。
 3. WASD 或滑鼠到邊緣平移、滾輪縮放；HUD 左上角顯示 FPS 與幀時間（ms）、方塊人數、難度、時間、雙方戰力、據點分、滑鼠下的分區；**空白鍵**＝「A 連 奪取 C3」；**R**＝重開。5 分鐘或一方戰力低於 30% 結束，畫面出結果。
-4. 難度、我方劇本、壓力模式用命令列引數：專案設定 → 執行 → 主要執行引數填 `-- difficulty=hard friendly=m0://samples/orders_v1_assault.json stress=10`（stress＝額外 N×126 個不動的方塊人，只量畫面，會自動關 V-Sync；無頭同樣寫法）。快照與結果在 `user://battles/<戰鬥id>-<難度>/`，M0 的 `chief replay` 可回放。
+4. 參謀長（施工單 17）：預設 F5 就會從 `godot/` 旁的 `m0/` 啟動 `uv run chief serve --provider fake`（不花錢），HUD 第二行顯示參謀長的話、思考中秒數、費用；要真模型填引數 `-- chief=anthropic`（或 `chief=ollama chief_model=qwen2.5:3b`），金鑰在 `m0/.env`；`chief=off` 關掉。服務沒起來（沒裝 uv）會顯示原因並退回離線模式。
+5. 難度、我方劇本、壓力模式用命令列引數：專案設定 → 執行 → 主要執行引數填 `-- difficulty=hard friendly=m0://samples/orders_v1_assault.json stress=10`（stress＝額外 N×126 個不動的方塊人，只量畫面，會自動關 V-Sync；無頭同樣寫法）。快照與結果在 `user://battles/<戰鬥id>-<難度>/`，M0 的 `chief replay` 可回放。
 
 ## 怎麼測（無頭，不需要顯示卡）
 ```bash
@@ -20,6 +21,7 @@ godot --headless --path . -s tools/dump_board.gd -- out=/tmp/board.json seconds=
 godot --headless --path . -s tools/run_battle.gd -- difficulty=normal out_dir=/tmp/b   # 跑完一場，寫 t0～t10 與 result.json
 godot --headless --path . -s tests/test_perf.gd        # 施工單 15：CPU 守門
 godot --headless --path . -s tools/bench.gd -- scales=1,5,10 max_ms=8   # CPU 基準：每 tick 平均／p99／最大毫秒
+godot --headless --path . -s tests/test_chief_client.gd   # 施工單 17：真的啟動 m0 的 chief serve（fake）打完一場（需 uv 在 PATH，約 1 分鐘）
 ```
 Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerShell）：
 ```powershell
@@ -35,5 +37,6 @@ Windows 要用 zip 裡的 **console 版**（GUI 版不會把輸出接到 PowerSh
 - `scripts/units/` 方塊人、排（三班九人）、編制 AI（六種任務）、部隊樹與移動推進（`Orbat.advance`）
 - `scripts/combat/` 每秒戰鬥解算（30 秒回合快照，查 m0 規則表）
 - `scripts/core/board_writer.gd` 歸屬、視距敵情、Board v0.2 JSON、原子寫入 `user://board.json`（M0 的 `chief show` 直接讀）
-- `scripts/battle/` 場景組裝與導演（劇本排程、結束判定、快照、結果）
+- `scripts/battle/` 場景組裝與導演（劇本排程、結束判定、快照、結果）；參謀長的啟動、節拍、套用命令、HUD 第二行也在 `battle.gd`
+- `scripts/chief/` 參謀長客戶端（啟動／連線 `chief serve`、請求排隊、逾時、關機）與節拍排程器（20 秒＋事件、至少隔 8 秒）
 - `tests/` 無頭測試；`tools/` 產生場景等小工具

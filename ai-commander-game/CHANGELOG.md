@@ -2,12 +2,17 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十四次）— 施工單 16 二審修正並結案；施工單 17 Godot 節拍與參謀長客戶端（程式完成）
+- 16 二審：18 項確認修好；再修 3 必修（start／settings 嚴格驗型別、harness 名稱白名單、系統提示模板去掉「10 turns／turn-based」）＋7 小項（`/override` 收 `t` 與 `t_at`、`end()` 例外不留半套、`final.json`、settings 先套語言預算、HEAD／GET body、文件漂移）；`tests/test_service.py` 20 → 25；M0 測試 203 過＋1 skip → 16 ✅
+- 17：`godot/scripts/chief/tick_scheduler.gd`（t=0 立即、每 20 秒、接觸／易手／潰散／殲滅事件提前但至少隔 8 秒、一次一個在飛）、`chief_client.gd`（`uv run --directory m0 chief serve --port 空埠 --token 亂數`、/health 10 秒、請求排隊、逾時人話、/shutdown 後 kill）、`battle.gd` 整合（HUD 第二行：開局引用句／研判／思考中 n 秒／費用；`參謀長回覆：n 條命令（延遲 n 秒）` 事件；直轄排不套用；/battle/end；R 與關窗先關服務；`-- chief=off` 離線）；`tests/test_chief_client.gd` 32 檢查（排程器、沒服務、真的啟動服務打完 300 秒：21 拍、12 條參謀長令、費用 0、戰報卡、關機、找不到 uv → 離線）
+- 文件：規則 §16 補型別／harness／t／final.json／HEAD；docs/12 §2 欄位；施工單 16 ✅、17 🟡、19 待辦；godot/README 新測試與 chief 引數
+
 ## 2026-11-04（第三十三次）— 施工單 16 三審第一輪 18 項全部修正
 - `chief/bridge.py`：`aar_closed`（adopt／skip 只做一次，之後 409）、`/override` 先驗命令、已直轄不算推翻（`counted`、`player_units`）、`ai_order` 沿上級鏈取最近一拍、§9 秒制板 ≥20 秒才判（`JUDGE_DELAY_S`）、`EndResult` 先驗、拍數不動、每拍同組鍵、`close()` 補寫戰例、`duration_s` 從第一次互動起算、settings 的 `aar_*` 獨立
 - `chief/serve.py`：`/session/start` 白名單＋準則路徑限工作目錄＋裸板自動包、`--token`／`X-Chief-Token`（401）、`in_flight` 閒置計時、409／404／405／411／413、斷線不噴 traceback；`chief serve --token`；`gateway.make_gateway("anthropic")` 缺金鑰直接 ValueError
 - `chief/prompts.py`：秒制板提示改「Decision n (t=… s)」＋「Time left … of 300」
 - 文件：規則 §9 補秒制判定時點、§16 合約全面改寫；docs/12 §2 端點欄位修正；施工單 16 驗收腳本第 1 行修正＋審查紀錄
-- 測試：`tests/test_service.py` 9 → 21；M0 測試 188 → 199（198 過＋1 skip）
+- 測試：`tests/test_service.py` 9 → 20；M0 測試 188 → 199（198 過＋1 skip）
 
 ## 2026-11-04（第三十二次）— M2 拍板（ADR-0015）、施工單 16～21 建檔、16 參謀長服務（程式完成）
 - 老闆「全照建議」→ `docs/adr/0015-m2-chief-service.md`；決策第六輪 ✅；施工單 16～21 建檔

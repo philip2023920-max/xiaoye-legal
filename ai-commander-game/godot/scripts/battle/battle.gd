@@ -1,6 +1,7 @@
 class_name Battle
 extends Node3D
-## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14。
+## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14；
+## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
 @export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
@@ -12,7 +13,19 @@ extends Node3D
 @export var stress: int = 0                     # 施工單 15：額外擺 stress×126 個不動的方塊人（＝每倍一整個會戰的人數；純畫面負載），命令列 -- stress=10
 @export var snapshot_dir: String = "user://battles"   # 每 30 秒一份快照到 <snapshot_dir>/<battle_id>-<難度>/t<n>.json；"" 不寫
 @export var board_out: String = "user://board.json"   # 施工單 13：每 WRITE_INTERVAL 秒原子寫一次
+@export_group("參謀長（施工單 17）")
+@export var chief_provider: String = "fake"   # fake／ollama／anthropic…；"off" 或 "" ＝離線（M1 的劇本／空白鍵）；命令列 -- chief=anthropic
+@export var chief_model: String = ""          # 空＝供應商預設（anthropic＝Haiku）
+@export var chief_harness: String = "default"
+@export var chief_lang: String = "zh-TW"
+@export var chief_budget: float = -1.0        # 本場預算（美元）；<0 不設
+@export var chief_url: String = ""            # 連到已在跑的服務（空＝自己 uv run chief serve）
+@export var chief_token: String = ""          # 配合 chief_url
+@export var chief_uv: String = "uv"           # uv 執行檔（不在 PATH 時填完整路徑）
+@export var chief_extra: PackedStringArray = PackedStringArray()   # 服務的額外命令列（測試：--out-root … --ledger none）
+@export var chief_autostart: bool = true      # _ready 時自動啟動；測試關掉自己 await start_chief()
 const WRITE_INTERVAL := 0.1
+const CHIEF_BOOT_TIMEOUT_S := 10.0
 
 var board := {}
 var enemy_script := {}
@@ -29,6 +42,16 @@ var result_label: Label
 var _write_acc := 0.0
 var _tracer_mesh: ImmediateMesh
 var _tracer_second := -1
+var chief: ChiefClient = null
+var scheduler: TickScheduler = null
+var chief_state := "off"          # off / starting / online / offline / ended
+var chief_line := ""              # HUD 第二行：開局引用句 → 每拍的研判 → 戰報摘要
+var chief_cost := 0.0             # 本場費用（服務回的 cost_total_usd）
+var chief_ticks := 0              # 成功回覆的拍數
+var chief_session := {}           # /session/start 的回應
+var chief_end_response := {}      # /battle/end 的回應（施工單 20 的 AAR 畫面用）
+var chief_label: Label
+var _chief_ending := false
 
 func _ready() -> void:
 	board = BoardIO.load_board(board_path)
@@ -46,6 +69,10 @@ func _ready() -> void:
 				friendly_path = a.trim_prefix("friendly=")
 			elif a.begins_with("stress="):
 				stress = int(a.trim_prefix("stress="))
+			elif a.begins_with("chief="):
+				chief_provider = a.trim_prefix("chief=")
+			elif a.begins_with("chief_model="):
+				chief_model = a.trim_prefix("chief_model=")
 	difficulty = Director.normalize_difficulty(difficulty)
 	if enemy_path == "":
 		enemy_path = Director.enemy_path_for(difficulty)
@@ -78,18 +105,24 @@ func _ready() -> void:
 	nav = RTSNavGrid.new(sector_map.world_rect(), 2.0)
 	nav.bake_from_physics(get_world_3d(), SectorMap.COVER_MASK, 1.0)
 	orbat.nav = nav
+	if chief_autostart and auto_advance and chief_enabled():   # 工具與測試（auto_advance=false）自己決定要不要 start_chief()
+		get_tree().auto_accept_quit = false   # 關窗先讓服務收 /shutdown（_notification）
+		start_chief()
 
 func _physics_process(delta: float) -> void:
 	if orbat == null or not auto_advance or director == null:
 		return
 	if director.finished:
+		chief_update()                # 結束後只剩 /battle/end 要送
 		return
 	director.tick(delta)
 	if director.finished:
 		show_result()
 		if writer != null and board_out != "":
 			writer.write(board_out)   # 結束那秒的板也要寫出去（之後不再寫）
+		chief_update()
 		return
+	chief_update()
 	_write_acc += delta
 	if _write_acc >= WRITE_INTERVAL - 1e-6 and writer != null and board_out != "":
 		_write_acc -= WRITE_INTERVAL
@@ -191,6 +224,14 @@ func _add_hud() -> void:
 	hud_label.add_theme_constant_override("outline_size", 4)
 	hud_label.text = _status_text("")
 	hud.add_child(hud_label)
+	chief_label = Label.new()
+	chief_label.name = "Chief"
+	chief_label.position = Vector2(12, 34)
+	chief_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	chief_label.add_theme_constant_override("outline_size", 4)
+	chief_label.add_theme_color_override("font_color", Color(1.0, 0.93, 0.6))
+	chief_label.text = chief_hud_text()
+	hud.add_child(chief_label)
 
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
@@ -223,6 +264,8 @@ func _process(_delta: float) -> void:
 	if under != "":
 		desc = "%s %s%s" % [under, sector_map.terrain_of(under), ("／" + sector_map.owner_of(under)) if sector_map.owner_of(under) != "none" else ""]
 	hud_label.text = _status_text(desc)
+	if chief_label != null:
+		chief_label.text = chief_hud_text()
 
 ## 偵錯用：空白鍵＝「A 連 奪取 C3」（施工單 11 的 30 秒驗收）。
 func _unhandled_input(event: InputEvent) -> void:
@@ -232,7 +275,151 @@ func _unhandled_input(event: InputEvent) -> void:
 			for r in rejected:
 				push_warning(r)
 		elif event.keycode == KEY_R:
-			get_tree().reload_current_scene()
+			restart()
+
+## R 重開：先關參謀長服務（下一場會重新啟動），再重載場景。
+func restart() -> void:
+	if chief != null:
+		chief_state = "off"
+		await chief.stop()
+	get_tree().reload_current_scene()
+
+## 關窗：先讓服務收 /shutdown（它會補寫戰例），再真的退出。
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if chief != null and chief_state != "off":
+			chief_state = "off"
+			await chief.stop()
+		get_tree().quit()
+
+# ---- 參謀長（施工單 17）----
+func chief_enabled() -> bool:
+	return chief_provider != "" and chief_provider != "off"
+
+## 啟動（或連上）參謀長服務並開局。回傳是否上線；失敗＝離線模式（M1 的劇本／空白鍵照常）。
+func start_chief() -> bool:
+	if orbat == null or writer == null:
+		return false
+	chief = ChiefClient.new()
+	chief.name = "Chief"
+	add_child(chief)
+	scheduler = TickScheduler.new()
+	chief_state = "starting"
+	chief_line = "參謀長服務啟動中…"
+	if chief_url != "":
+		chief.connect_to(chief_url, chief_token)
+	else:
+		var extra := PackedStringArray(["--harness", chief_harness, "--lang", chief_lang])
+		if chief_model != "":
+			extra.append_array(PackedStringArray(["--model", chief_model]))
+		if chief_budget >= 0.0:
+			extra.append_array(PackedStringArray(["--budget", str(chief_budget)]))
+		extra.append_array(chief_extra)
+		if chief.launch(chief_provider, extra, chief_uv) <= 0:
+			return _chief_offline(chief.last_error)
+	if not await chief.wait_online(CHIEF_BOOT_TIMEOUT_S):
+		return _chief_offline(chief.last_error)
+	if orbat == null:
+		return false
+	var r: Dictionary = await chief.start_session(writer.to_dict(), {"lang": chief_lang})
+	if r["code"] != 200:
+		return _chief_offline("開局失敗：" + str(r["error"]))
+	chief_session = r["body"]
+	chief_state = "online"
+	var line := str(chief_session.get("opening_line", ""))
+	chief_line = ("參謀長：" + line) if line != "" else "參謀長就位（%s／%s）" % [chief_session.get("provider", "?"), chief_session.get("model", "?")]
+	orbat.log_event(orbat.second(), "info", chief_line)
+	return true
+
+func _chief_offline(why: String) -> bool:
+	chief_state = "offline"
+	chief_line = "參謀長服務沒起來：%s → 離線模式（劇本／空白鍵）" % why
+	push_warning(chief_line)
+	if orbat != null:
+		orbat.log_event(orbat.second(), "info", chief_line)
+	return false
+
+## 每個物理 tick（或測試每步）呼叫：到期就送 /tick；會戰結束就送 /battle/end。遊戲不等回覆。
+func chief_update() -> void:
+	if chief_state != "online" or director == null or orbat == null:
+		return
+	if director.finished:
+		if not _chief_ending:
+			_chief_ending = true
+			_chief_end()
+		return
+	if scheduler.due(orbat.t, orbat.events):
+		_chief_tick()
+
+func _chief_tick() -> void:
+	var sec := orbat.second()
+	scheduler.mark_sent(orbat.t)
+	var r: Dictionary = await chief.tick(float(sec), writer.to_dict())
+	scheduler.mark_done()
+	if chief_state != "online" or orbat == null:
+		return
+	if r["code"] != 200:
+		orbat.log_event(orbat.second(), "info", "參謀長無回應（%s）" % r["error"])
+		if r["code"] == 409:
+			chief_state = "ended"
+		return
+	var body: Dictionary = r["body"]
+	chief_ticks += 1
+	chief_cost = float(body.get("cost_total_usd", chief_cost))
+	for oc in body.get("outcomes", []):
+		orbat.log_event(orbat.second(), "info", str(oc.get("text", "")), str(oc.get("unit_id", "")))
+	var orders: Array = []
+	var skipped := 0
+	for d in body.get("orders", []):
+		var o := Order.from_dict(d, "ai")
+		if _is_player_controlled(o.unit_id):      # 直轄：參謀長不得下令（服務端 V2 也會擋；這裡是保險）
+			skipped += 1
+			continue
+		orders.append(o)
+	var engine_rejected := orbat.apply_orders("us", orders)
+	var service_rejected: Array = body.get("rejected", [])
+	var latency: float = r["latency_s"]
+	orbat.log_event(orbat.second(), "info", "參謀長回覆：%d 條命令、%d 條退回（延遲 %.1f 秒）" % [orders.size() - engine_rejected.size(), service_rejected.size() + engine_rejected.size() + skipped, latency])
+	var assessment := str(body.get("assessment", "")) if body.get("assessment") != null else ""
+	if assessment != "":
+		chief_line = "參謀長：" + assessment
+	if body.get("error") != null and str(body["error"]) != "":
+		orbat.log_event(orbat.second(), "info", "參謀長：" + str(body["error"]))
+		chief_line = "參謀長：" + str(body["error"])
+	for m in body.get("messages", []):          # 預算 80%／100%
+		orbat.log_event(orbat.second(), "info", str(m))
+
+func _is_player_controlled(uid: String) -> bool:
+	if orbat.platoons.has(uid):
+		return orbat.platoons[uid].controlled_by == "player"
+	if orbat.companies.has(uid):
+		return str(orbat.companies[uid].get("controlled_by", "ai")) == "player"
+	return false
+
+func _chief_end() -> void:
+	var r: Dictionary = await chief.battle_end(writer.to_dict(), director.result)
+	chief_end_response = r
+	if orbat == null:
+		return
+	if r["code"] == 200:
+		var body: Dictionary = r["body"]
+		var card: Dictionary = body.get("card", {})
+		orbat.log_event(orbat.second(), "info", "戰報卡已產生（推翻 %d、未判定 %d）" % [int(card.get("overrides", 0)), int(body.get("unjudged", 0))])
+		chief_line = "參謀長：" + str(body.get("summary", "")).split("\n")[0]
+	else:
+		orbat.log_event(orbat.second(), "info", "戰報卡沒拿到（%s）" % r["error"])
+	chief_state = "ended"
+
+## HUD 第二行。
+func chief_hud_text() -> String:
+	if not chief_enabled():
+		return "參謀長：離線（劇本／空白鍵）"
+	var parts: Array[String] = [chief_line]
+	if chief != null and chief.busy and chief_state == "online":
+		parts.append("參謀長思考中 %d 秒" % int(chief.busy_seconds()))
+	if chief_state in ["online", "ended"]:
+		parts.append("第 %d 拍｜費用 $%.4f" % [chief_ticks, chief_cost])
+	return "｜".join(parts)
 
 ## 結果畫面：一塊面板寫勝負、據點、戰力、用時（M0 BattleResult 同欄位，另存 result.json）。
 func show_result() -> void:
