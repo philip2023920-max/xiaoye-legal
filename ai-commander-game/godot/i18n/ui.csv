@@ -1,0 +1,46 @@
+keys,zh_TW,zh_CN,en
+UI_SIDEBAR_COLLAPSE,收合側欄 ▶,收起侧栏 ▶,Collapse ▶
+UI_SIDEBAR_EXPAND,◀ 戰情,◀ 战情,◀ Board
+UI_SECTION_UNITS,部隊,部队,Units
+UI_SECTION_EVENTS,事件流,事件流,Events
+UI_SECTION_CHIEF,參謀長,参谋长,Chief of Staff
+UI_SECTION_OBJECTIVES,據點與分數,据点与分数,Objectives & score
+UI_SECTION_CONDITIONS,天氣／時段,天气／时段,Weather / time
+UI_SECTION_COST,本場費用,本场费用,Cost this battle
+UI_COL_UNIT,單位,单位,Unit
+UI_COL_STRENGTH,戰力,战力,Strength
+UI_COL_STATE,狀態,状态,State
+UI_COL_TASK,任務,任务,Task
+UI_PLAYER_MARK,★直轄,★直辖,★yours
+UI_SCORE,我 %d：敵 %d,我 %d：敌 %d,Us %d : Enemy %d
+UI_OBJECTIVE_LINE,%s（%d 分，%s）%s,%s（%d 分，%s）%s,%s (%d pts at %s) %s
+UI_OWNER_us,我方,我方,ours
+UI_OWNER_enemy,敵方,敌方,enemy
+UI_OWNER_none,無主,无主,unowned
+UI_TIME_LEFT,t=%d 秒｜剩 %d 秒,t=%d 秒｜剩 %d 秒,t=%d s | %d s left
+UI_ENDED,已結束,已结束,Ended
+UI_COST_LINE,$%.4f｜第 %d 拍,$%.4f｜第 %d 拍,$%.4f | tick %d
+UI_CHIEF_THINKING,參謀長思考中 %d 秒…,参谋长思考中 %d 秒…,Chief thinking… %d s
+UI_CHIEF_OFFLINE,參謀長離線（劇本／空白鍵）,参谋长离线（剧本／空格键）,Chief offline (script / Space)
+UI_CHIEF_STARTING,參謀長服務啟動中…,参谋长服务启动中…,Starting chief service…
+UI_CHIEF_LAST_ORDERS,最近命令：,最近命令：,Last orders:
+UI_CHIEF_NO_ORDERS,（還沒有命令）,（还没有命令）,(no orders yet)
+UI_EVENTS_EMPTY,（還沒有事件）,（还没有事件）,(no events yet)
+UI_WEATHER_clear,晴,晴,Clear
+UI_WEATHER_rain,雨,雨,Rain
+UI_WEATHER_snow,雪,雪,Snow
+UI_WEATHER_fog,霧,雾,Fog
+UI_TOD_day,日間,日间,Day
+UI_TOD_night,夜間,夜间,Night
+UI_STATE_idle,待命,待命,Idle
+UI_STATE_moving,移動,移动,Moving
+UI_STATE_engaged,交戰,交战,Engaged
+UI_STATE_routed,潰散,溃散,Routed
+UI_STATE_destroyed,殲滅,歼灭,Destroyed
+UI_TASK_seize,奪取,夺取,Seize
+UI_TASK_hold,固守,固守,Hold
+UI_TASK_flank,側翼包抄,侧翼包抄,Flank
+UI_TASK_withdraw,撤往,撤往,Withdraw
+UI_TASK_support,支援,支援,Support
+UI_TASK_reserve,預備於,预备于,Reserve
+UI_TASK_none,—,—,—

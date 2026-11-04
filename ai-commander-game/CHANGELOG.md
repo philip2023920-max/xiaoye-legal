@@ -2,6 +2,10 @@
 
 每次依心智圖施工後，在此新增一條：日期｜動了哪些節點｜改了哪些檔案。
 
+## 2026-11-04（第三十六次）— 施工單 18 戰情板側欄（程式完成）
+- `godot/scripts/ui/sidebar.gd`（`Sidebar`：部隊樹／事件流／參謀長區／據點分數／天氣時段／費用；可收合；`unit_selected`；純函式 `tree_rows`／`strength_bar`／`event_color`／`events_bbcode`／…）、`scripts/ui/i18n.gd`（`UiText`：執行期載 `i18n/ui.csv` 進 TranslationServer）、`i18n/ui.csv` 46 鍵三語；`battle.gd` 掛側欄、每 0.5 秒 refresh、`chief_sidebar_info()`、點排移攝影機、`-- lang=`
+- `tests/test_sidebar.gd` 31 檢查；其他 Godot 測試不受影響
+
 ## 2026-11-04（第三十五次）— 施工單 17 三審第一輪 6 項修正
 - `chief serve --parent-pid`（啟動者消失 2 秒內退出；`pid_alive` 跨平台）＋客戶端預設 `--idle-exit 90`：kill 只殺得到 uv 外殼的孤兒問題；`ChiefClient.stop()` 先取消在飛的請求再 `/shutdown`（關窗不再卡 60 秒）；`tests/run_tests.gd` 不再偷啟動服務；冷啟放寬到 45 秒；「找不到 uv」訊息；docs/12 §2 埠與 token
 - 測試：`test_chief_client.gd` 32 → 35；`test_service.py` 25 → 26（parent-pid）

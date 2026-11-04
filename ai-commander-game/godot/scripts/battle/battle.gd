@@ -1,7 +1,7 @@
 class_name Battle
 extends Node3D
 ## 一場會戰的根節點：地圖、光、固定俯視攝影機、HUD（施工單 10），部隊樹與編制 AI（11）；戰鬥、戰情板寫入、導演在 12～14；
-## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）。
+## 參謀長客戶端與節拍在 17（服務在 m0 的 chief serve；遊戲不暫停，回覆到了才套用命令）；右側戰情板側欄在 18。
 
 @export var board_path: String = "m0://samples/board_deployed_balanced.json"
 @export var enemy_path: String = ""           # 空＝依 difficulty 選劇本
@@ -24,7 +24,10 @@ extends Node3D
 @export var chief_uv: String = "uv"           # uv 執行檔（不在 PATH 時填完整路徑）
 @export var chief_extra: PackedStringArray = PackedStringArray()   # 服務的額外命令列（測試：--out-root … --ledger none）
 @export var chief_autostart: bool = true      # _ready 時自動啟動；測試關掉自己 await start_chief()
+@export_group("側欄（施工單 18）")
+@export var sidebar_enabled: bool = true
 const WRITE_INTERVAL := 0.1
+const SIDEBAR_INTERVAL := 0.5
 const CHIEF_BOOT_TIMEOUT_S := 10.0
 
 var board := {}
@@ -52,6 +55,9 @@ var chief_session := {}           # /session/start 的回應
 var chief_end_response := {}      # /battle/end 的回應（施工單 20 的 AAR 畫面用）
 var chief_label: Label
 var _chief_ending := false
+var chief_last_orders: Array[String] = []   # 側欄「最近命令」（最近一拍放行的）
+var sidebar: Sidebar = null
+var _sidebar_acc := 0.0
 
 func _ready() -> void:
 	board = BoardIO.load_board(board_path)
@@ -73,7 +79,11 @@ func _ready() -> void:
 				chief_provider = a.trim_prefix("chief=")
 			elif a.begins_with("chief_model="):
 				chief_model = a.trim_prefix("chief_model=")
+			elif a.begins_with("lang="):
+				chief_lang = a.trim_prefix("lang=")
 	difficulty = Director.normalize_difficulty(difficulty)
+	UiText.load_csv()
+	UiText.set_lang(chief_lang)              # UI 與參謀長同一種語言（D27）
 	if enemy_path == "":
 		enemy_path = Director.enemy_path_for(difficulty)
 	enemy_script = BoardIO.load_json(enemy_path)
@@ -232,6 +242,11 @@ func _add_hud() -> void:
 	chief_label.add_theme_color_override("font_color", Color(1.0, 0.93, 0.6))
 	chief_label.text = chief_hud_text()
 	hud.add_child(chief_label)
+	if sidebar_enabled:
+		sidebar = Sidebar.new()
+		sidebar.unit_selected.connect(_on_sidebar_unit_selected)
+		hud.add_child(sidebar)
+		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
 
 func _status_text(mouse_desc: String) -> String:
 	var us := orbat.total_strength("us") if orbat else 0.0
@@ -266,6 +281,10 @@ func _process(_delta: float) -> void:
 	hud_label.text = _status_text(desc)
 	if chief_label != null:
 		chief_label.text = chief_hud_text()
+	_sidebar_acc += _delta
+	if sidebar != null and _sidebar_acc >= SIDEBAR_INTERVAL:
+		_sidebar_acc = 0.0
+		sidebar.refresh(writer.to_dict(), chief_sidebar_info())
 
 ## 偵錯用：空白鍵＝「A 連 奪取 C3」（施工單 11 的 30 秒驗收）。
 func _unhandled_input(event: InputEvent) -> void:
@@ -378,6 +397,9 @@ func _chief_tick() -> void:
 		orders.append(o)
 	var engine_rejected := orbat.apply_orders("us", orders)
 	var service_rejected: Array = body.get("rejected", [])
+	chief_last_orders.clear()
+	for o in orders:
+		chief_last_orders.append("%s %s %s" % [o.unit_id, Order.TASK_ZH.get(o.task, o.task), o.target])
 	var latency: float = r["latency_s"]
 	orbat.log_event(orbat.second(), "info", "參謀長回覆：%d 條命令、%d 條退回（延遲 %.1f 秒）" % [orders.size() - engine_rejected.size(), service_rejected.size() + engine_rejected.size() + skipped, latency])
 	var assessment := str(body.get("assessment", "")) if body.get("assessment") != null else ""
@@ -409,6 +431,36 @@ func _chief_end() -> void:
 	else:
 		orbat.log_event(orbat.second(), "info", "戰報卡沒拿到（%s）" % r["error"])
 	chief_state = "ended"
+
+## 側欄「參謀長」區用的狀態（施工單 18）。
+func chief_sidebar_info() -> Dictionary:
+	return {"state": chief_state, "line": chief_line, "busy_s": chief.busy_seconds() if (chief != null and chief_state == "online") else 0.0,
+		"orders": chief_last_orders, "cost": chief_cost, "ticks": chief_ticks, "ended": director != null and director.finished}
+
+## 側欄點了排或連：攝影機移過去；selected_unit 留給施工單 19 的接管面板。
+func _on_sidebar_unit_selected(unit_id: String) -> void:
+	var at := unit_world_position(unit_id)
+	if camera_rig != null and at != Vector3.INF:
+		camera_rig.look_at_ground(at)
+
+## 排＝錨點；連＝存活下級排的平均；找不到＝Vector3.INF。
+func unit_world_position(unit_id: String) -> Vector3:
+	if orbat == null:
+		return Vector3.INF
+	if orbat.platoons.has(unit_id):
+		return orbat.platoons[unit_id].anchor
+	if orbat.companies.has(unit_id):
+		var sum := Vector3.ZERO
+		var n := 0
+		for p in orbat.children_of(unit_id):
+			if p.state != "destroyed":
+				sum += p.anchor
+				n += 1
+		if n > 0:
+			return sum / float(n)
+		var sec := str(orbat.companies[unit_id].get("sector", ""))
+		return sector_map.center_of(sec) if sec != "" and sector_map.sectors.has(sec) else Vector3.INF
+	return Vector3.INF
 
 ## HUD 第二行。
 func chief_hud_text() -> String:
