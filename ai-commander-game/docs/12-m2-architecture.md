@@ -25,10 +25,10 @@ Godot（畫面、節拍、推翻 UI、側欄、AAR 畫面、設定）
    ▼                                            │ 節拍時把整份板放進 /tick 的請求裡（服務不用讀檔）
 Python 參謀長服務 chief serve（m0/chief/serve.py，標準庫 http.server，不加依賴）
    ├─ /session/start   board、參謀長包／準則、供應商、模型、語言、預算 → 開局引用句
-   ├─ /tick            {t, board} → {turn, assessment, orders(驗證放行), rejected, usage, cost, latency, error, outcomes}（退回回饋由服務自己帶到下一拍）
-   ├─ /override        {unit_id, player_order, ai_order?, board?} → 先驗命令再記錄；推翻後 ≥20 秒的第一個 tick 判後果（§9）；已直轄單位再改令不算
+   ├─ /tick            {t, board} → {turn, t, assessment, orders(驗證放行), rejected, usage, cost_usd, cost_total_usd, latency_s, error, outcomes, budget_hit, messages}（退回回饋由服務自己帶到下一拍）
+   ├─ /override        {unit_id, player_order, t, ai_order?, board?} → 先驗命令再記錄；推翻後 ≥20 秒的第一個 tick 判後果（§9）；已直轄單位再改令不算
    ├─ /battle/end      {board, result} → 戰報卡（card）、徽章、未判定數
-   ├─ /aar/line  /aar/discuss  /aar/propose  /aar/adopt  /aar/undo   重用 report／discussion／doctrine／evals
+   ├─ /aar/line  /aar/discuss  /aar/propose  /aar/adopt  /aar/skip  /aar/undo   重用 report／discussion／doctrine／evals
    ├─ /status          供應商、模型、本場費用、今天／本月（ledger）、預算狀態
    └─ /settings        改供應商／模型／語言／預算／effort（重建閘道）
 ```

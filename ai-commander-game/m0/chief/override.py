@@ -23,6 +23,7 @@ class OverrideRecord:
     strength_at: float
     outcome: Optional[str] = None   # 👍 / 👎 / ➖，t+1 回合結束時填
     judged_turn: Optional[int] = None
+    t_at: Optional[float] = None    # 推翻當下的遊戲秒（秒制板；服務用它決定判定時點，§9）
 
 
 class OverrideLog:

@@ -18,14 +18,50 @@ import time
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .board import BoardError
-from .bridge import ChiefSession, ConflictError, SessionConfig
+from .bridge import ChiefSession, ConflictError, SessionConfig, _validation_text
 
 __version__ = "0.2"
 START_FIELDS = ("provider", "model", "harness", "doctrine", "lang", "budget_usd", "effort", "aar_provider", "aar_model")   # §16：/session/start 只收這些
 MAX_BODY = 16 * 1024 * 1024
+Lang = Literal["zh-TW", "zh-CN", "en"]
+Effort = Literal["low", "medium", "high"]
+
+
+class StartFields(BaseModel):
+    """`/session/start` 的設定欄位：只收白名單、驗型別（壞型別若放進會話，之後每拍都 TypeError）。"""
+    model_config = ConfigDict(extra="ignore", strict=True)   # "0.5" 這種字串也擋：引擎送的就該是數字
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    harness: Optional[str] = None
+    doctrine: Optional[str] = None
+    lang: Optional[Lang] = None
+    budget_usd: Optional[float] = None
+    effort: Optional[Effort] = None
+    aar_provider: Optional[str] = None
+    aar_model: Optional[str] = None
+
+
+class SettingsFields(BaseModel):
+    model_config = ConfigDict(extra="ignore", strict=True)   # "0.5" 這種字串也擋：引擎送的就該是數字
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    lang: Optional[Lang] = None
+    budget_usd: Optional[float] = None
+    effort: Optional[Effort] = None
+    aar_provider: Optional[str] = None
+    aar_model: Optional[str] = None
+
+
+def _fields(model: type[BaseModel], body: dict, what: str) -> dict:
+    try:
+        return {k: v for k, v in model.model_validate(body).model_dump().items() if v is not None}
+    except ValidationError as err:
+        raise BoardError(f"{what} 不合法：{_validation_text(err)}") from None
 
 
 def _looks_like_board(body: dict) -> bool:
@@ -67,10 +103,15 @@ class ChiefService:
         board = body.get("board")
         if not isinstance(board, dict):
             raise BoardError("缺少 board（Board v0.2 物件）")
-        overrides = {k: v for k, v in body.items() if k in START_FIELDS and v is not None}
+        overrides = _fields(StartFields, {k: v for k, v in body.items() if k in START_FIELDS}, "session 設定")
         if "doctrine" in overrides:          # 準則檔只能在工作目錄（m0/）底下：別讓任何本機程式把系統檔餵進 LLM
             from .harness import _inside
             overrides["doctrine"] = str(_inside(Path.cwd(), str(overrides["doctrine"])))
+        if "harness" in overrides:           # 參謀長包只能用名字（harness/<name>/），不能是路徑
+            from .harness import NAME_RE
+            h = str(overrides["harness"])
+            if h not in ("", "none", "-", "off") and not NAME_RE.match(h):
+                raise BoardError(f"參謀長包名稱不合法：「{h}」（只能是 harness/ 底下的名字，或 none）")
         cfg = SessionConfig(**{**asdict(self.defaults), **overrides})
         new = ChiefSession(cfg, board)
         if self.session is not None:
@@ -103,7 +144,7 @@ class ChiefService:
         if path == "/shutdown":
             return 200, {"bye": True}
         if path == "/settings":
-            return 200, self.require().settings(**{k: body.get(k) for k in ("provider", "model", "lang", "budget_usd", "effort", "aar_provider", "aar_model")})
+            return 200, self.require().settings(**_fields(SettingsFields, body, "settings"))
         if path == "/health":
             return 405, {"error": "/health 只接受 GET"}
         s = self.require()
@@ -114,7 +155,9 @@ class ChiefService:
         if path == "/override":
             if not body.get("unit_id") or not isinstance(body.get("player_order"), dict):
                 raise BoardError("缺少 unit_id 或 player_order")
-            return 200, s.override(str(body["unit_id"]), body["player_order"], body.get("board"), body.get("ai_order"))
+            if body.get("ai_order") is not None and not isinstance(body["ai_order"], dict):
+                raise BoardError("ai_order 要是物件（{task, target}）")
+            return 200, s.override(str(body["unit_id"]), body["player_order"], body.get("board"), body.get("ai_order"), body.get("t"))
         if path == "/battle/end":
             if not isinstance(body.get("board"), dict) or not isinstance(body.get("result"), dict):
                 raise BoardError("缺少 board 或 result")
@@ -122,7 +165,10 @@ class ChiefService:
         if path == "/aar/line":
             return 200, s.aar_line()
         if path == "/aar/discuss":
-            return 200, s.discuss(body.get("text"), body.get("index"))
+            index = body.get("index")
+            if index is not None and (isinstance(index, bool) or not isinstance(index, (int, float)) or int(index) != index):
+                raise BoardError("index 要是 1～3 的整數")
+            return 200, s.discuss(body.get("text"), None if index is None else int(index))
         if path == "/aar/propose":
             return 200, s.propose()
         if path == "/aar/adopt":
@@ -178,12 +224,27 @@ def make_handler(service: ChiefService, server_ref: dict):
                 return None
             return body
 
+        def _drain(self) -> bool:
+            """非 POST 卻帶 body：讀掉，殘餘位元組才不會毒化同一條連線的下一個請求。回傳是否該關連線。"""
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                return True
+            if n < 0 or n > MAX_BODY or self.headers.get("Transfer-Encoding"):
+                return True
+            if n:
+                self.rfile.read(n)
+            return False
+
         def _dispatch(self, method: str) -> None:
             body: Optional[dict] = {}
             if method == "POST":
                 body = self._read_body()
                 if body is None:
                     return
+            elif self._drain():
+                self._send(400, {"error": "GET 不該帶 body"}, close=True)
+                return
             path = self.path.split("?", 1)[0]
             service.begin()
             try:
@@ -210,16 +271,17 @@ def make_handler(service: ChiefService, server_ref: dict):
             self._dispatch("POST")
 
         def _not_allowed(self) -> None:
-            try:                               # 把 body 讀掉，殘餘位元組才不會毒化下一個 keep-alive 請求
-                n = int(self.headers.get("Content-Length") or 0)
-                if 0 < n <= MAX_BODY:
-                    self.rfile.read(n)
-                    n = 0
-            except ValueError:
-                n = -1
-            self._send(405, {"error": "只接受 GET 與 POST"}, close=n != 0 or bool(self.headers.get("Transfer-Encoding")))
+            self._send(405, {"error": "只接受 GET 與 POST"}, close=self._drain())
 
-        do_PUT = do_DELETE = do_PATCH = do_HEAD = do_OPTIONS = _not_allowed   # noqa: N815
+        def do_HEAD(self) -> None:  # noqa: N802 - HEAD 不能有 body：送標頭就關連線
+            self._drain()
+            self.send_response(405)
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.close_connection = True
+
+        do_PUT = do_DELETE = do_PATCH = do_OPTIONS = _not_allowed   # noqa: N815
 
         def log_message(self, fmt: str, *args: Any) -> None:  # 安靜；需要時用 --verbose
             if server_ref.get("verbose"):

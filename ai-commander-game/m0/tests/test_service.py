@@ -248,7 +248,75 @@ def test_custom_doctrine_without_harness(workdir):
     assert not (workdir / "harness" / "default" / "evals" / "cases.jsonl").exists()               # 沒有參謀長包就沒有戰例庫
 
 
+def test_override_t_decides_judging_time(workdir):
+    """二審 (b)5：/override 可帶 t；不帶板時推翻秒不再退化成上一拍的 t。"""
+    s = ChiefSession(cfg(workdir), BOARD)
+    s.tick(BOARD, t=120)
+    ov = s.override("plt-A1", {"task": "hold", "target": "B2"}, t=139)
+    assert ov["counted"] and s.overrides.records[0].t_at == 139.0 and '"t_at": 139.0' in (s.out_dir / "overrides.jsonl").read_text(encoding="utf-8")
+    assert s.tick(at(140), t=140)["outcomes"] == [] and s.tick(at(158), t=158)["outcomes"] == []      # 139+20=159 才判
+    assert len(s.tick(at(159), t=159)["outcomes"]) == 1
+    with pytest.raises(BoardError, match="數字"):
+        s.override("plt-A2", {"task": "hold", "target": "B2"}, t="soon")
+    ov2 = s.override("plt-A2", {"task": "hold", "target": "B2"}, board=at(170, **{"plt-A2": "player"}))   # 沒 t → 用附帶板的 t
+    assert s.overrides.records[1].t_at == 170.0 and ov2["counted"]
+
+
+def test_end_exception_leaves_no_half_state(workdir, monkeypatch):
+    """二審 (c)3：建卡中途例外 → 不算結束、再 end 一次要能成功。"""
+    import chief.bridge as bridge
+    s = ChiefSession(cfg(workdir), BOARD)
+    s.tick(BOARD, t=120); s.override("plt-A1", {"task": "hold", "target": "B2"})
+    real = bridge.build_card_from
+    monkeypatch.setattr(bridge, "build_card_from", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    with pytest.raises(RuntimeError):
+        s.end(at(300), RESULT)
+    assert not s.ended and s.card is None and s.override_outcomes == [] and s.overrides.records[0].outcome is None and not (s.out_dir / "t1.json").exists()
+    monkeypatch.setattr(bridge, "build_card_from", real)
+    assert s.end(at(300), RESULT)["unjudged"] == 0 and s.ended and (s.out_dir / "t1.json").exists()
+
+
+def test_end_before_any_tick_keeps_t0(workdir):
+    """二審 (c)4：還沒 tick 就結束 → 開局板 t0.json 不被最終板蓋掉。"""
+    s = ChiefSession(cfg(workdir), BOARD)
+    s.override("plt-A1", {"task": "hold", "target": "B2"})
+    s.end(at(300), RESULT)
+    assert json.loads((s.out_dir / "t0.json").read_text(encoding="utf-8"))["t"] == 120 and json.loads((s.out_dir / "final.json").read_text(encoding="utf-8"))["t"] == 300
+
+
+def test_settings_applies_lang_before_gateway_failure(workdir, monkeypatch):
+    """二審 (c)5：閘道失敗不會把同一請求的語言／預算丟掉。"""
+    s = ChiefSession(cfg(workdir), BOARD)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    out = s.settings(provider="anthropic", lang="en", budget_usd=0.2)
+    assert out["error"] and out["provider"] == "fake" and out["lang"] == "en" and out["budget_usd"] == 0.2 and s.lang == "en"
+
+
 # ---- 服務層 ----
+def test_service_validates_types_and_harness_name(workdir):
+    """二審 (c)1、(c)2：壞型別與參謀長包路徑穿越在 /session/start、/settings、/aar/discuss 就擋（400 人話）。"""
+    svc = ChiefService(cfg(workdir))
+    for bad, why in (({"lang": 7}, "session 設定"), ({"budget_usd": "abc"}, "session 設定"), ({"effort": "max"}, "session 設定"),
+                     ({"harness": "../../evil"}, "參謀長包名稱"), ({"harness": "a/b"}, "參謀長包名稱"), ({"harness": 5}, "session 設定")):
+        with pytest.raises(BoardError, match=why):
+            svc.start({"board": BOARD, **bad})
+    assert svc.session is None
+    assert svc.start({"board": BOARD, "lang": "en", "budget_usd": 0.5, "harness": "none"})["lang"] == "en"
+    with pytest.raises(BoardError, match="settings 不合法"):
+        svc.handle("POST", "/settings", {"budget_usd": "0.5"})
+    with pytest.raises(BoardError, match="settings 不合法"):
+        svc.handle("POST", "/settings", {"lang": "fr"})
+    assert svc.handle("POST", "/settings", {"budget_usd": 1})[1]["budget_usd"] == 1.0
+    svc.session.tick(BOARD, t=120); svc.session.end(at(300), RESULT)
+    with pytest.raises(BoardError, match="index"):
+        svc.handle("POST", "/aar/discuss", {"index": "abc"})
+    with pytest.raises(BoardError, match="index"):
+        svc.handle("POST", "/aar/discuss", {"index": 1.5})
+    assert svc.handle("POST", "/aar/discuss", {"index": 1.0})[1]["round"] == 1
+    with pytest.raises(BoardError, match="ai_order"):
+        svc.handle("POST", "/override", {"unit_id": "plt-A1", "player_order": {"task": "hold", "target": "B2"}, "ai_order": "x"})
+
+
 def test_service_start_whitelist_and_doctrine_containment(workdir):
     svc = ChiefService(cfg(workdir))
     with pytest.raises(BoardError, match="board"):
@@ -335,6 +403,11 @@ def test_http_round_trip(workdir):
     conn.request("GET", "/nope"); r = conn.getresponse(); r.read(); assert r.status == 404
     conn.request("PUT", "/tick", body=b"{}"); r = conn.getresponse(); r.read(); assert r.status == 405
     conn.request("POST", "/health"); r = conn.getresponse(); r.read(); assert r.status == 405
+    conn.request("GET", "/health", body=b'{"junk": 1}'); r = conn.getresponse(); r.read()    # GET 帶 body：讀掉，不毒化下一個請求
+    assert r.status == 200 and _post(conn, "/aar/skip")[0] == 409                              # adopt 過了 → 409（連線仍乾淨）
+    conn.request("HEAD", "/status"); r = conn.getresponse(); r.read()
+    assert r.status == 405 and r.getheader("Connection") == "close"
+    conn.close(); conn = http.client.HTTPConnection("127.0.0.1", conn.port, timeout=15)
     conn.request("POST", "/tick", body=b"{}", headers={"Content-Length": "abc"}); r = conn.getresponse()
     assert r.status == 400 and "Content-Length" in json.loads(r.read())["error"]
     conn.close(); conn = http.client.HTTPConnection("127.0.0.1", conn.port, timeout=15)        # 壞長度後服務關了那條連線

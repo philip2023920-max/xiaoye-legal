@@ -252,11 +252,15 @@ class ChiefSession:
         u = by_id.get(unit_id)
         return {"task": u.task.type, "target": u.task.target} if u and u.task else None
 
-    def override(self, unit_id: str, player_order: dict, board: Optional[dict] = None, ai_order: Optional[dict] = None) -> dict:
+    def override(self, unit_id: str, player_order: dict, board: Optional[dict] = None, ai_order: Optional[dict] = None,
+                 t: Optional[float] = None) -> dict:
         """總司令推翻／接管：先驗命令（同 play.py 的 player_order_problem），記到 overrides.jsonl；一個決策間隔後判後果。
-        已直轄單位再改令不算推翻（§9）：以上一次收到的板的 controlled_by 與本場直轄清單判斷。"""
+        已直轄單位再改令不算推翻（§9）：以上一次收到的板的 controlled_by 與本場直轄清單判斷。
+        推翻秒＝t（引擎給的）＞附帶板的 t ＞ 上一拍板的 t；不帶 t 也不帶板時判定會退化成「下一拍」。"""
         if self.ended:
             raise ConflictError("這場已經結束，不能再推翻")
+        if t is not None and not isinstance(t, (int, float)):
+            raise BoardError("t 要是數字（遊戲秒）")
         task, target = player_order.get("task"), player_order.get("target")
         if task not in TASK_CHOICES:
             raise BoardError(f"任務 {task!r} 不合法（可用：{'、'.join(TASK_CHOICES)}）")
@@ -285,12 +289,13 @@ class ChiefSession:
         if not counted:
             return {**base, "recorded": len(self.overrides.records), "counted": False, "override_rate": self.override_rate(),
                     "message": "已直轄單位改令，不算推翻（§9）"}
+        t_at = float(t) if t is not None else (float(self.board.t) if self.board.time_unit == "second" else None)
         rec = OverrideRecord(turn=turn, unit_id=unit_id, ai_order=ai, player_order=clean,
-                             snapshot_ref=str(self.out_dir / f"t{turn - 1}.json"), strength_at=round(unit.strength, 4))
+                             snapshot_ref=str(self.out_dir / f"t{turn - 1}.json"), strength_at=round(unit.strength, 4), t_at=t_at)
         self.overrides.add(rec)
         sector = target_sector(self.board, clean)
         self.owner_before[id(rec)] = self.board.map.sectors[sector].owner if sector and sector in self.board.map.sectors else None
-        self.override_t[id(rec)] = float(self.board.t) if self.board.time_unit == "second" else None
+        self.override_t[id(rec)] = t_at
         return {**base, "recorded": len(self.overrides.records), "counted": True, "override_rate": self.override_rate()}
 
     def override_rate(self) -> str:
@@ -310,24 +315,37 @@ class ChiefSession:
             res = EndResult.model_validate(result)
         except ValidationError as err:
             raise BoardError(f"result 不合法：{_validation_text(err)}") from None
-        new_board = board_from_dict(board)          # 驗完才改狀態
-        self.board = new_board
-        save_board(self.board, self.out_dir / f"t{self.turn}.json")   # 最終板；拍數不動
-        self._judge_pending()                        # 到期的推翻用最終板判（最後一拍才推翻的留「未判定」，§9）
-        self.result = BattleResult(battle_id=res.battle_id or self.start_board.battle_id, turns_played=res.turns_played if res.turns_played is not None else self.turn,
-                                   end_reason=res.end_reason, winner=res.winner, score_us=res.score_us, score_enemy=res.score_enemy,
-                                   strength_us=res.strength_us, strength_enemy=res.strength_enemy)
-        self.ended = True
-        play_result = SimpleNamespace(battle=self.result, meter=self.meter, override_outcomes=self.override_outcomes,
-                                      chief_orders_total=self.chief_orders_total, override_rate=self.override_rate())
-        battle_ns = SimpleNamespace(board=self.board, out_dir=self.out_dir)
-        start_us = {o.id for o in self.start_board.objectives if o.owner == "us"}
-        end_us = {o.id for o in self.board.objectives if o.owner == "us"}
-        badges = award(self.result.winner, self.override_outcomes, len(self.overrides.records), self.meter.cost_usd, start_us, end_us,
-                       local_model=self.gateway.model.startswith(("ollama", "fake")))
-        self.card = build_card_from(play_result, battle_ns, self.overrides.records, badges, self.gateway)
-        self.card.hint = objective_hint(self.start_board.objectives, self.board.objectives, self.result.winner, self.lang)
-        self.summary = card_summary_text(self.card)
+        final_board = board_from_dict(board)         # 驗完才改狀態；卡片全部算好才一次設 ended（中途例外不留半套）
+        result_obj = BattleResult(battle_id=res.battle_id or self.start_board.battle_id, turns_played=res.turns_played if res.turns_played is not None else self.turn,
+                                  end_reason=res.end_reason, winner=res.winner, score_us=res.score_us, score_enemy=res.score_enemy,
+                                  strength_us=res.strength_us, strength_enemy=res.strength_enemy)
+        prev_board = self.board
+        self.board = final_board                      # 判後果要用最終板
+        judged_now = self._judgeable()
+        try:
+            outcomes_before = len(self.override_outcomes)
+            self._judge_pending()                    # 到期的推翻用最終板判（最後一拍才推翻的留「未判定」，§9）
+            play_result = SimpleNamespace(battle=result_obj, meter=self.meter, override_outcomes=self.override_outcomes,
+                                          chief_orders_total=self.chief_orders_total, override_rate=self.override_rate())
+            battle_ns = SimpleNamespace(board=final_board, out_dir=self.out_dir)
+            start_us = {o.id for o in self.start_board.objectives if o.owner == "us"}
+            end_us = {o.id for o in final_board.objectives if o.owner == "us"}
+            badges = award(result_obj.winner, self.override_outcomes, len(self.overrides.records), self.meter.cost_usd, start_us, end_us,
+                           local_model=self.gateway.model.startswith(("ollama", "fake")))
+            card = build_card_from(play_result, battle_ns, self.overrides.records, badges, self.gateway)
+            card.hint = objective_hint(self.start_board.objectives, final_board.objectives, result_obj.winner, self.lang)
+            summary = card_summary_text(card)
+        except Exception:
+            self.board = prev_board
+            del self.override_outcomes[outcomes_before:]
+            for rec in judged_now:                   # 剛判的也退回未判定（overrides.jsonl 一起復原）
+                rec.outcome, rec.judged_turn = None, None
+            if judged_now:
+                self.overrides._write()
+            raise
+        # 最終板：t<拍數>.json（拍數不動）；還沒 tick 就結束 → final.json，別把開局板 t0.json 蓋掉
+        save_board(final_board, self.out_dir / (f"t{self.turn}.json" if self.turn > 0 else "final.json"))
+        self.result, self.card, self.summary, self.ended = result_obj, card, summary, True
         save_aar(self.out_dir / "aar.json", self.summary, [], None, False, None, card=card_dict(self.card), duration_s=0.0, skipped=True)
         return self._end_payload()
 
@@ -467,7 +485,13 @@ class ChiefSession:
     def settings(self, provider: Optional[str] = None, model: Optional[str] = None, lang: Optional[str] = None,
                  budget_usd: Optional[float] = None, effort: Optional[str] = None, aar_provider: Optional[str] = None,
                  aar_model: Optional[str] = None) -> dict:
-        """換供應商／模型（重建閘道）、戰後閘道、語言、預算、思考深度；哪一段失敗就保留那段原設定並回 error。"""
+        """換供應商／模型（重建閘道）、戰後閘道、語言、預算、思考深度；哪一段失敗就保留那段原設定並回 error。
+        不會失敗的（語言、預算）先套用，閘道失敗不會把同一請求的語言／預算丟掉。"""
+        if lang:
+            self.lang = lang
+        if budget_usd is not None:
+            self.budget_usd = float(budget_usd) if budget_usd >= 0 else None
+            self.budget_hit = self.budget_usd is not None and self.meter.cost_usd >= self.budget_usd
         if provider or model or effort:
             try:
                 gw = make_gateway(provider or self.cfg.provider, model or (self.cfg.model if not provider else None), effort=effort or self.cfg.effort)
@@ -484,9 +508,4 @@ class ChiefSession:
             except GATEWAY_ERRORS as err:
                 self.cfg.aar_provider, self.cfg.aar_model = old
                 return self._settings_payload(f"戰後閘道設定失敗：{err}")
-        if lang:
-            self.lang = lang
-        if budget_usd is not None:
-            self.budget_usd = float(budget_usd) if budget_usd >= 0 else None
-            self.budget_hit = self.budget_usd is not None and self.meter.cost_usd >= self.budget_usd
         return self._settings_payload()
